@@ -22,19 +22,228 @@ let defaultBasePath = 'https://app.launchdarkly.com/api/v2';
 
 /* tslint:disable:no-unused-variable */
 
+export class AuditLogEntries {
+    'links': Links;
+    'items': Array<AuditLogEntry>;
+}
+
+export class AuditLogEntry {
+    'links': Links;
+    'id': string;
+    'date': number;
+    'kind': string;
+    'name': string;
+    'description': string;
+    'member': Member;
+    'titleVerb': string;
+    'title': string;
+    'target': AuditLogEntryTarget;
+}
+
+export class AuditLogEntryTarget {
+    'links': Links;
+    'name': string;
+    'resources': Array<string>;
+}
+
+export class Clause {
+    'attribute': string;
+    'op': string;
+    'values': Array<string>;
+    'negate': boolean;
+}
+
+export class Environment {
+    'links': Links;
+    'id': string;
+    'key': string;
+    'name': string;
+    'apiKey': string;
+    'mobileKey': string;
+    'color': string;
+    'defaultTtl': number;
+    'secureMode': boolean;
+}
+
+export class EnvironmentBody {
+    'name': string;
+    'key': string;
+    /**
+    * A color swatch (as an RGB hex value with no leading '#', e.g. C8C8C8)
+    */
+    'color': string;
+    'defaultTtl': number;
+}
+
+export class FeatureFlag {
+    'key': string;
+    'name': string;
+    'kind': string;
+    'creationDate': number;
+    'includeInSnippet': boolean;
+    'temporary': boolean;
+    'maintainerId': string;
+    'tags': Array<string>;
+    'variations': Array<Variation>;
+    'links': Links;
+    'maintainer': Member;
+    'environments': { [key: string]: FeatureFlagConfig; };
+}
+
+export class FeatureFlagBody {
+    /**
+    * A human-friendly name for the feature flag. Remember to note if this flag is intended to be temporary or permanent.
+    */
+    'name': string;
+    /**
+    * A unique key that will be used to reference the flag in your code
+    */
+    'key': string;
+    /**
+    * An array of possible variations for the flag.
+    */
+    'variations': Array<Variation>;
+    /**
+    * Whether or not the flag is a temporary flag
+    */
+    'temporary': boolean;
+    /**
+    * Tags for the feature flag
+    */
+    'tags': Array<string>;
+    /**
+    * Whether or not this flag should be made available to the client-side JavaScript SDK
+    */
+    'includeInSnippet': boolean;
+}
+
+export class FeatureFlagConfig {
+    'on': boolean;
+    'archived': boolean;
+    'salt': string;
+    'sel': string;
+    'lastModified': number;
+    'version': number;
+    'targets': Array<Target>;
+    'rules': Array<Rule>;
+    'fallthrough': FeatureFlagConfigFallthrough;
+}
+
+export class FeatureFlagConfigFallthrough {
+    'variation': number;
+    'rollout': Rollout;
+}
+
+export class FeatureFlagStatus {
+    'links': Links;
+    'name': string;
+    'lastRequested': string;
+    'default': boolean;
+}
+
+export class FeatureFlagStatuses {
+    'links': Links;
+    'items': Array<FeatureFlagStatus>;
+}
+
+export class FeatureFlags {
+    'links': Links;
+    'items': Array<FeatureFlag>;
+}
+
 export class Link {
     'href': string;
     'type': string;
 }
 
 export class Links {
-    'parent': Link;
     'self': Link;
+}
+
+export class Member {
+    'links': Links;
+    'id': string;
+    'role': string;
+    'email': string;
+    'pendingInvite': boolean;
+    'isBeta': boolean;
+    'customRoles': Array<string>;
 }
 
 export class PatchDelta {
     'op': string;
     'path': string;
+    'value': any;
+}
+
+export class Project {
+    'links': Links;
+    'items': Array<Environment>;
+}
+
+export class ProjectBody {
+    'name': string;
+    'key': string;
+}
+
+export class Projects {
+    'links': Links;
+    'id': string;
+    'key': string;
+    'name': string;
+    'items': Array<Project>;
+}
+
+export class Rollout {
+    'variations': Array<WeightedVariation>;
+}
+
+export class Rule {
+    'variation': number;
+    'rollout': Rollout;
+    'clauses': Array<Clause>;
+}
+
+export class Target {
+    'values': Array<string>;
+    'variation': number;
+}
+
+export class User {
+    'lastPing': string;
+    'environmentId': string;
+    'ownerId': string;
+    'user': any;
+    'avatar': string;
+}
+
+export class UserFlagSetting {
+    'links': Links;
+    'value': boolean;
+    'setting': boolean;
+}
+
+export class UserFlagSettings {
+    'links': Links;
+    'items': any;
+}
+
+export class UserSettingsBody {
+    /**
+    * The variation value to set for the user. Must match the variation type of the flag.
+    */
+    'setting': boolean;
+}
+
+export class Users {
+    'links': Links;
+    'totalCount': number;
+    'items': Array<User>;
+}
+
+export class Variation {
+    'name': string;
+    'description': string;
     'value': any;
 }
 
@@ -47,7 +256,7 @@ export class Webhook {
     'tags': Array<string>;
 }
 
-export class WebhookPost {
+export class WebhookBody {
     'url': string;
     'secret': string;
     'sign': boolean;
@@ -57,6 +266,11 @@ export class WebhookPost {
 export class Webhooks {
     'links': Links;
     'items': Array<Webhook>;
+}
+
+export class WeightedVariation {
+    'variation': number;
+    'weight': number;
 }
 
 
@@ -110,6 +324,1265 @@ export class VoidAuth implements Authentication {
     }
 }
 
+export enum AuditLogApiApiKeys {
+    Token,
+}
+
+export class AuditLogApi {
+    protected _basePath = defaultBasePath;
+    protected defaultHeaders : any = {};
+    protected _useQuerystring : boolean = false;
+
+    protected authentications = {
+        'default': <Authentication>new VoidAuth(),
+        'Token': new ApiKeyAuth('header', 'Authorization'),
+    }
+
+    constructor(basePath?: string);
+    constructor(basePathOrUsername: string, password?: string, basePath?: string) {
+        if (password) {
+            if (basePath) {
+                this.basePath = basePath;
+            }
+        } else {
+            if (basePathOrUsername) {
+                this.basePath = basePathOrUsername
+            }
+        }
+    }
+
+    set useQuerystring(value: boolean) {
+        this._useQuerystring = value;
+    }
+
+    set basePath(basePath: string) {
+        this._basePath = basePath;
+    }
+
+    get basePath() {
+        return this._basePath;
+    }
+
+    public setDefaultAuthentication(auth: Authentication) {
+	this.authentications.default = auth;
+    }
+
+    public setApiKey(key: AuditLogApiApiKeys, value: string) {
+        this.authentications[AuditLogApiApiKeys[key]].apiKey = value;
+    }
+    /**
+     * 
+     * @summary Fetch a list of all webhooks
+     */
+    public getAuditLogEntries () : Promise<{ response: http.ClientResponse; body: AuditLogEntries;  }> {
+        const localVarPath = this.basePath + '/auditlog';
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: AuditLogEntries;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get a webhook by ID
+     * @param resourceId The resource ID
+     */
+    public getAuditLogEntry (resourceId: string) : Promise<{ response: http.ClientResponse; body: AuditLogEntry;  }> {
+        const localVarPath = this.basePath + '/auditlog/{resourceId}'
+            .replace('{' + 'resourceId' + '}', String(resourceId));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'resourceId' is not null or undefined
+        if (resourceId === null || resourceId === undefined) {
+            throw new Error('Required parameter resourceId was null or undefined when calling getAuditLogEntry.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: AuditLogEntry;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+}
+export enum EnvironmentsApiApiKeys {
+    Token,
+}
+
+export class EnvironmentsApi {
+    protected _basePath = defaultBasePath;
+    protected defaultHeaders : any = {};
+    protected _useQuerystring : boolean = false;
+
+    protected authentications = {
+        'default': <Authentication>new VoidAuth(),
+        'Token': new ApiKeyAuth('header', 'Authorization'),
+    }
+
+    constructor(basePath?: string);
+    constructor(basePathOrUsername: string, password?: string, basePath?: string) {
+        if (password) {
+            if (basePath) {
+                this.basePath = basePath;
+            }
+        } else {
+            if (basePathOrUsername) {
+                this.basePath = basePathOrUsername
+            }
+        }
+    }
+
+    set useQuerystring(value: boolean) {
+        this._useQuerystring = value;
+    }
+
+    set basePath(basePath: string) {
+        this._basePath = basePath;
+    }
+
+    get basePath() {
+        return this._basePath;
+    }
+
+    public setDefaultAuthentication(auth: Authentication) {
+	this.authentications.default = auth;
+    }
+
+    public setApiKey(key: EnvironmentsApiApiKeys, value: string) {
+        this.authentications[EnvironmentsApiApiKeys[key]].apiKey = value;
+    }
+    /**
+     * 
+     * @summary Delete an environment by ID
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     */
+    public deleteEnvironment (projectKey: string, environmentKey: string) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/environments/{projectKey}/{environmentKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling deleteEnvironment.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling deleteEnvironment.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'DELETE',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get an environment by key.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     */
+    public getEnvironment (projectKey: string, environmentKey: string) : Promise<{ response: http.ClientResponse; body: Environment;  }> {
+        const localVarPath = this.basePath + '/environments/{projectKey}/{environmentKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getEnvironment.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getEnvironment.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: Environment;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Modify an environment by ID
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param patchDelta http://jsonpatch.com/
+     */
+    public patchEnvironment (projectKey: string, environmentKey: string, patchDelta: Array<PatchDelta>) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/environments/{projectKey}/{environmentKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling patchEnvironment.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling patchEnvironment.');
+        }
+
+        // verify required parameter 'patchDelta' is not null or undefined
+        if (patchDelta === null || patchDelta === undefined) {
+            throw new Error('Required parameter patchDelta was null or undefined when calling patchEnvironment.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'PATCH',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: patchDelta,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Create an environment
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentBody New environment
+     */
+    public postEnvironment (projectKey: string, environmentBody: EnvironmentBody) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/environments/{projectKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling postEnvironment.');
+        }
+
+        // verify required parameter 'environmentBody' is not null or undefined
+        if (environmentBody === null || environmentBody === undefined) {
+            throw new Error('Required parameter environmentBody was null or undefined when calling postEnvironment.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'POST',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: environmentBody,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+}
+export enum FlagsApiApiKeys {
+    Token,
+}
+
+export class FlagsApi {
+    protected _basePath = defaultBasePath;
+    protected defaultHeaders : any = {};
+    protected _useQuerystring : boolean = false;
+
+    protected authentications = {
+        'default': <Authentication>new VoidAuth(),
+        'Token': new ApiKeyAuth('header', 'Authorization'),
+    }
+
+    constructor(basePath?: string);
+    constructor(basePathOrUsername: string, password?: string, basePath?: string) {
+        if (password) {
+            if (basePath) {
+                this.basePath = basePath;
+            }
+        } else {
+            if (basePathOrUsername) {
+                this.basePath = basePathOrUsername
+            }
+        }
+    }
+
+    set useQuerystring(value: boolean) {
+        this._useQuerystring = value;
+    }
+
+    set basePath(basePath: string) {
+        this._basePath = basePath;
+    }
+
+    get basePath() {
+        return this._basePath;
+    }
+
+    public setDefaultAuthentication(auth: Authentication) {
+	this.authentications.default = auth;
+    }
+
+    public setApiKey(key: FlagsApiApiKeys, value: string) {
+        this.authentications[FlagsApiApiKeys[key]].apiKey = value;
+    }
+    /**
+     * 
+     * @summary Delete a feature flag by ID
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param featureFlagKey The feature flag&#39;s key. The key identifies the flag in your code.
+     */
+    public deleteFeatureFlag (projectKey: string, featureFlagKey: string) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/flags/{projectKey}/{featureFlagKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'featureFlagKey' + '}', String(featureFlagKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling deleteFeatureFlag.');
+        }
+
+        // verify required parameter 'featureFlagKey' is not null or undefined
+        if (featureFlagKey === null || featureFlagKey === undefined) {
+            throw new Error('Required parameter featureFlagKey was null or undefined when calling deleteFeatureFlag.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'DELETE',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get a single feature flag by key.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param featureFlagKey The feature flag&#39;s key. The key identifies the flag in your code.
+     * @param environmentKeyQuery The environment key
+     */
+    public getFeatureFlag (projectKey: string, featureFlagKey: string, environmentKeyQuery?: string) : Promise<{ response: http.ClientResponse; body: FeatureFlag;  }> {
+        const localVarPath = this.basePath + '/flags/{projectKey}/{featureFlagKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'featureFlagKey' + '}', String(featureFlagKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getFeatureFlag.');
+        }
+
+        // verify required parameter 'featureFlagKey' is not null or undefined
+        if (featureFlagKey === null || featureFlagKey === undefined) {
+            throw new Error('Required parameter featureFlagKey was null or undefined when calling getFeatureFlag.');
+        }
+
+        if (environmentKeyQuery !== undefined) {
+            queryParameters['environmentKeyQuery'] = environmentKeyQuery;
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: FeatureFlag;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get a list of statuses for all feature flags
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     */
+    public getFeatureFlagStatus (projectKey: string, environmentKey: string) : Promise<{ response: http.ClientResponse; body: FeatureFlagStatuses;  }> {
+        const localVarPath = this.basePath + '/flag-statuses/{projectKey}/{environmentKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getFeatureFlagStatus.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getFeatureFlagStatus.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: FeatureFlagStatuses;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get a list of statuses for all feature flags
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param featureFlagKey The feature flag&#39;s key. The key identifies the flag in your code.
+     */
+    public getFeatureFlagStatuses (projectKey: string, environmentKey: string, featureFlagKey: string) : Promise<{ response: http.ClientResponse; body: FeatureFlagStatus;  }> {
+        const localVarPath = this.basePath + '/flag-statuses/{projectKey}/{environmentKey}/{featureFlagKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey))
+            .replace('{' + 'featureFlagKey' + '}', String(featureFlagKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getFeatureFlagStatuses.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getFeatureFlagStatuses.');
+        }
+
+        // verify required parameter 'featureFlagKey' is not null or undefined
+        if (featureFlagKey === null || featureFlagKey === undefined) {
+            throw new Error('Required parameter featureFlagKey was null or undefined when calling getFeatureFlagStatuses.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: FeatureFlagStatus;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get a list of all features in the given project.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKeyQuery The environment key
+     * @param tag Filter by tag. A tag can be used to group flags across projects.
+     */
+    public getFeatureFlags (projectKey: string, environmentKeyQuery?: string, tag?: string) : Promise<{ response: http.ClientResponse; body: FeatureFlags;  }> {
+        const localVarPath = this.basePath + '/flags/{projectKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getFeatureFlags.');
+        }
+
+        if (environmentKeyQuery !== undefined) {
+            queryParameters['environmentKeyQuery'] = environmentKeyQuery;
+        }
+
+        if (tag !== undefined) {
+            queryParameters['tag'] = tag;
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: FeatureFlags;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Modify a feature flag by ID
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param featureFlagKey The feature flag&#39;s key. The key identifies the flag in your code.
+     * @param patchDelta http://jsonpatch.com/
+     */
+    public patchFeatureFlag (projectKey: string, featureFlagKey: string, patchDelta: Array<PatchDelta>) : Promise<{ response: http.ClientResponse; body: FeatureFlag;  }> {
+        const localVarPath = this.basePath + '/flags/{projectKey}/{featureFlagKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'featureFlagKey' + '}', String(featureFlagKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling patchFeatureFlag.');
+        }
+
+        // verify required parameter 'featureFlagKey' is not null or undefined
+        if (featureFlagKey === null || featureFlagKey === undefined) {
+            throw new Error('Required parameter featureFlagKey was null or undefined when calling patchFeatureFlag.');
+        }
+
+        // verify required parameter 'patchDelta' is not null or undefined
+        if (patchDelta === null || patchDelta === undefined) {
+            throw new Error('Required parameter patchDelta was null or undefined when calling patchFeatureFlag.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'PATCH',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: patchDelta,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: FeatureFlag;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Create a feature flag
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param featureFlagBody Create a new feature flag
+     */
+    public postFeatureFlag (projectKey: string, featureFlagBody: FeatureFlagBody) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/flags/{projectKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling postFeatureFlag.');
+        }
+
+        // verify required parameter 'featureFlagBody' is not null or undefined
+        if (featureFlagBody === null || featureFlagBody === undefined) {
+            throw new Error('Required parameter featureFlagBody was null or undefined when calling postFeatureFlag.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'POST',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: featureFlagBody,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+}
+export enum ProjectsApiApiKeys {
+    Token,
+}
+
+export class ProjectsApi {
+    protected _basePath = defaultBasePath;
+    protected defaultHeaders : any = {};
+    protected _useQuerystring : boolean = false;
+
+    protected authentications = {
+        'default': <Authentication>new VoidAuth(),
+        'Token': new ApiKeyAuth('header', 'Authorization'),
+    }
+
+    constructor(basePath?: string);
+    constructor(basePathOrUsername: string, password?: string, basePath?: string) {
+        if (password) {
+            if (basePath) {
+                this.basePath = basePath;
+            }
+        } else {
+            if (basePathOrUsername) {
+                this.basePath = basePathOrUsername
+            }
+        }
+    }
+
+    set useQuerystring(value: boolean) {
+        this._useQuerystring = value;
+    }
+
+    set basePath(basePath: string) {
+        this._basePath = basePath;
+    }
+
+    get basePath() {
+        return this._basePath;
+    }
+
+    public setDefaultAuthentication(auth: Authentication) {
+	this.authentications.default = auth;
+    }
+
+    public setApiKey(key: ProjectsApiApiKeys, value: string) {
+        this.authentications[ProjectsApiApiKeys[key]].apiKey = value;
+    }
+    /**
+     * 
+     * @summary Delete a project by ID
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     */
+    public deleteProject (projectKey: string) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/projects/{projectKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling deleteProject.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'DELETE',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get a project by key.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     */
+    public getProject (projectKey: string) : Promise<{ response: http.ClientResponse; body: Project;  }> {
+        const localVarPath = this.basePath + '/projects/{projectKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getProject.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: Project;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Returns a list of all projects in the account.
+     */
+    public getProjects () : Promise<{ response: http.ClientResponse; body: Projects;  }> {
+        const localVarPath = this.basePath + '/projects';
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: Projects;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Modify a project by ID
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param patchDelta http://jsonpatch.com/
+     */
+    public patchProject (projectKey: string, patchDelta: Array<PatchDelta>) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/projects/{projectKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling patchProject.');
+        }
+
+        // verify required parameter 'patchDelta' is not null or undefined
+        if (patchDelta === null || patchDelta === undefined) {
+            throw new Error('Required parameter patchDelta was null or undefined when calling patchProject.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'PATCH',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: patchDelta,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Create a project
+     * @param projectBody New project
+     */
+    public postProject (projectBody: ProjectBody) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/projects';
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectBody' is not null or undefined
+        if (projectBody === null || projectBody === undefined) {
+            throw new Error('Required parameter projectBody was null or undefined when calling postProject.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'POST',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: projectBody,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+}
 export enum RootApiApiKeys {
     Token,
 }
@@ -204,6 +1677,608 @@ export class RootApi {
         });
     }
 }
+export enum UserSettingsApiApiKeys {
+    Token,
+}
+
+export class UserSettingsApi {
+    protected _basePath = defaultBasePath;
+    protected defaultHeaders : any = {};
+    protected _useQuerystring : boolean = false;
+
+    protected authentications = {
+        'default': <Authentication>new VoidAuth(),
+        'Token': new ApiKeyAuth('header', 'Authorization'),
+    }
+
+    constructor(basePath?: string);
+    constructor(basePathOrUsername: string, password?: string, basePath?: string) {
+        if (password) {
+            if (basePath) {
+                this.basePath = basePath;
+            }
+        } else {
+            if (basePathOrUsername) {
+                this.basePath = basePathOrUsername
+            }
+        }
+    }
+
+    set useQuerystring(value: boolean) {
+        this._useQuerystring = value;
+    }
+
+    set basePath(basePath: string) {
+        this._basePath = basePath;
+    }
+
+    get basePath() {
+        return this._basePath;
+    }
+
+    public setDefaultAuthentication(auth: Authentication) {
+	this.authentications.default = auth;
+    }
+
+    public setApiKey(key: UserSettingsApiApiKeys, value: string) {
+        this.authentications[UserSettingsApiApiKeys[key]].apiKey = value;
+    }
+    /**
+     * 
+     * @summary Get a user by key.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param userKey The user&#39;s key
+     * @param featureFlagKey The feature flag&#39;s key. The key identifies the flag in your code.
+     */
+    public getUserFlagSetting (projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string) : Promise<{ response: http.ClientResponse; body: UserFlagSetting;  }> {
+        const localVarPath = this.basePath + '/users/{projectKey}/{environmentKey}/{userKey}/flags/{featureFlagKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey))
+            .replace('{' + 'userKey' + '}', String(userKey))
+            .replace('{' + 'featureFlagKey' + '}', String(featureFlagKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getUserFlagSetting.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getUserFlagSetting.');
+        }
+
+        // verify required parameter 'userKey' is not null or undefined
+        if (userKey === null || userKey === undefined) {
+            throw new Error('Required parameter userKey was null or undefined when calling getUserFlagSetting.');
+        }
+
+        // verify required parameter 'featureFlagKey' is not null or undefined
+        if (featureFlagKey === null || featureFlagKey === undefined) {
+            throw new Error('Required parameter featureFlagKey was null or undefined when calling getUserFlagSetting.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: UserFlagSetting;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Lists the current flag settings for a given user.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param userKey The user&#39;s key
+     */
+    public getUserFlagSettings (projectKey: string, environmentKey: string, userKey: string) : Promise<{ response: http.ClientResponse; body: UserFlagSettings;  }> {
+        const localVarPath = this.basePath + '/users/{projectKey}/{environmentKey}/{userKey}/flags'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey))
+            .replace('{' + 'userKey' + '}', String(userKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getUserFlagSettings.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getUserFlagSettings.');
+        }
+
+        // verify required parameter 'userKey' is not null or undefined
+        if (userKey === null || userKey === undefined) {
+            throw new Error('Required parameter userKey was null or undefined when calling getUserFlagSettings.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: UserFlagSettings;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Specifically enable or disable a feature flag for a user based on their key.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param userKey The user&#39;s key
+     * @param featureFlagKey The feature flag&#39;s key. The key identifies the flag in your code.
+     * @param userSettingsBody 
+     */
+    public putFlagSetting (projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, userSettingsBody: UserSettingsBody) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/users/{projectKey}/{environmentKey}/{userKey}/flags/{featureFlagKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey))
+            .replace('{' + 'userKey' + '}', String(userKey))
+            .replace('{' + 'featureFlagKey' + '}', String(featureFlagKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling putFlagSetting.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling putFlagSetting.');
+        }
+
+        // verify required parameter 'userKey' is not null or undefined
+        if (userKey === null || userKey === undefined) {
+            throw new Error('Required parameter userKey was null or undefined when calling putFlagSetting.');
+        }
+
+        // verify required parameter 'featureFlagKey' is not null or undefined
+        if (featureFlagKey === null || featureFlagKey === undefined) {
+            throw new Error('Required parameter featureFlagKey was null or undefined when calling putFlagSetting.');
+        }
+
+        // verify required parameter 'userSettingsBody' is not null or undefined
+        if (userSettingsBody === null || userSettingsBody === undefined) {
+            throw new Error('Required parameter userSettingsBody was null or undefined when calling putFlagSetting.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'PUT',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: userSettingsBody,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+}
+export enum UsersApiApiKeys {
+    Token,
+}
+
+export class UsersApi {
+    protected _basePath = defaultBasePath;
+    protected defaultHeaders : any = {};
+    protected _useQuerystring : boolean = false;
+
+    protected authentications = {
+        'default': <Authentication>new VoidAuth(),
+        'Token': new ApiKeyAuth('header', 'Authorization'),
+    }
+
+    constructor(basePath?: string);
+    constructor(basePathOrUsername: string, password?: string, basePath?: string) {
+        if (password) {
+            if (basePath) {
+                this.basePath = basePath;
+            }
+        } else {
+            if (basePathOrUsername) {
+                this.basePath = basePathOrUsername
+            }
+        }
+    }
+
+    set useQuerystring(value: boolean) {
+        this._useQuerystring = value;
+    }
+
+    set basePath(basePath: string) {
+        this._basePath = basePath;
+    }
+
+    get basePath() {
+        return this._basePath;
+    }
+
+    public setDefaultAuthentication(auth: Authentication) {
+	this.authentications.default = auth;
+    }
+
+    public setApiKey(key: UsersApiApiKeys, value: string) {
+        this.authentications[UsersApiApiKeys[key]].apiKey = value;
+    }
+    /**
+     * 
+     * @summary Delete a user by ID
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param userKey The user&#39;s key
+     */
+    public deleteUser (projectKey: string, environmentKey: string, userKey: string) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/users/{projectKey}/{environmentKey}/{userKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey))
+            .replace('{' + 'userKey' + '}', String(userKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling deleteUser.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling deleteUser.');
+        }
+
+        // verify required parameter 'userKey' is not null or undefined
+        if (userKey === null || userKey === undefined) {
+            throw new Error('Required parameter userKey was null or undefined when calling deleteUser.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'DELETE',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Search users in LaunchDarkly based on their last active date, or a search query.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param q Search query
+     * @param limit Pagination limit
+     * @param offset Specifies the first item to return in the collection
+     * @param after A unix epoch time in milliseconds specifying the maximum last time a user requested a feature flag
+     */
+    public getSearchUsers (projectKey: string, environmentKey: string, q?: string, limit?: number, offset?: number, after?: number) : Promise<{ response: http.ClientResponse; body: Users;  }> {
+        const localVarPath = this.basePath + '/user-search/{projectKey}/{environmentKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getSearchUsers.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getSearchUsers.');
+        }
+
+        if (q !== undefined) {
+            queryParameters['q'] = q;
+        }
+
+        if (limit !== undefined) {
+            queryParameters['limit'] = limit;
+        }
+
+        if (offset !== undefined) {
+            queryParameters['offset'] = offset;
+        }
+
+        if (after !== undefined) {
+            queryParameters['after'] = after;
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: Users;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary Get a user by key.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param userKey The user&#39;s key
+     */
+    public getUser (projectKey: string, environmentKey: string, userKey: string) : Promise<{ response: http.ClientResponse; body: User;  }> {
+        const localVarPath = this.basePath + '/users/{projectKey}/{environmentKey}/{userKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey))
+            .replace('{' + 'userKey' + '}', String(userKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getUser.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getUser.');
+        }
+
+        // verify required parameter 'userKey' is not null or undefined
+        if (userKey === null || userKey === undefined) {
+            throw new Error('Required parameter userKey was null or undefined when calling getUser.');
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: User;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+    /**
+     * 
+     * @summary List all users in the environment.
+     * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
+     * @param environmentKey The environment key
+     * @param limit Pagination limit
+     */
+    public getUsers (projectKey: string, environmentKey: string, limit?: number) : Promise<{ response: http.ClientResponse; body: Users;  }> {
+        const localVarPath = this.basePath + '/users/{projectKey}/{environmentKey}'
+            .replace('{' + 'projectKey' + '}', String(projectKey))
+            .replace('{' + 'environmentKey' + '}', String(environmentKey));
+        let queryParameters: any = {};
+        let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
+        let formParams: any = {};
+
+
+        // verify required parameter 'projectKey' is not null or undefined
+        if (projectKey === null || projectKey === undefined) {
+            throw new Error('Required parameter projectKey was null or undefined when calling getUsers.');
+        }
+
+        // verify required parameter 'environmentKey' is not null or undefined
+        if (environmentKey === null || environmentKey === undefined) {
+            throw new Error('Required parameter environmentKey was null or undefined when calling getUsers.');
+        }
+
+        if (limit !== undefined) {
+            queryParameters['limit'] = limit;
+        }
+
+        let useFormData = false;
+
+        let requestOptions: request.Options = {
+            method: 'GET',
+            qs: queryParameters,
+            headers: headerParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+        };
+
+        this.authentications.Token.applyToRequest(requestOptions);
+
+        this.authentications.default.applyToRequest(requestOptions);
+
+        if (Object.keys(formParams).length) {
+            if (useFormData) {
+                (<any>requestOptions).formData = formParams;
+            } else {
+                requestOptions.form = formParams;
+            }
+        }
+        return new Promise<{ response: http.ClientResponse; body: Users;  }>((resolve, reject) => {
+            request(requestOptions, (error, response, body) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode <= 299) {
+                        resolve({ response: response, body: body });
+                    } else {
+                        reject({ response: response, body: body });
+                    }
+                }
+            });
+        });
+    }
+}
 export enum WebhooksApiApiKeys {
     Token,
 }
@@ -253,19 +2328,19 @@ export class WebhooksApi {
     /**
      * 
      * @summary Delete a webhook by ID
-     * @param webhookId The webhook ID
+     * @param resourceId The resource ID
      */
-    public deleteWebhook (webhookId: string) : Promise<{ response: http.ClientResponse; body?: any;  }> {
-        const localVarPath = this.basePath + '/webhooks/{webhookId}'
-            .replace('{' + 'webhookId' + '}', String(webhookId));
+    public deleteWebhook (resourceId: string) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+        const localVarPath = this.basePath + '/webhooks/{resourceId}'
+            .replace('{' + 'resourceId' + '}', String(resourceId));
         let queryParameters: any = {};
         let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
         let formParams: any = {};
 
 
-        // verify required parameter 'webhookId' is not null or undefined
-        if (webhookId === null || webhookId === undefined) {
-            throw new Error('Required parameter webhookId was null or undefined when calling deleteWebhook.');
+        // verify required parameter 'resourceId' is not null or undefined
+        if (resourceId === null || resourceId === undefined) {
+            throw new Error('Required parameter resourceId was null or undefined when calling deleteWebhook.');
         }
 
         let useFormData = false;
@@ -307,19 +2382,19 @@ export class WebhooksApi {
     /**
      * 
      * @summary Get a webhook by ID
-     * @param webhookId The webhook ID
+     * @param resourceId The resource ID
      */
-    public getWebhook (webhookId: string) : Promise<{ response: http.ClientResponse; body: Webhook;  }> {
-        const localVarPath = this.basePath + '/webhooks/{webhookId}'
-            .replace('{' + 'webhookId' + '}', String(webhookId));
+    public getWebhook (resourceId: string) : Promise<{ response: http.ClientResponse; body: Webhook;  }> {
+        const localVarPath = this.basePath + '/webhooks/{resourceId}'
+            .replace('{' + 'resourceId' + '}', String(resourceId));
         let queryParameters: any = {};
         let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
         let formParams: any = {};
 
 
-        // verify required parameter 'webhookId' is not null or undefined
-        if (webhookId === null || webhookId === undefined) {
-            throw new Error('Required parameter webhookId was null or undefined when calling getWebhook.');
+        // verify required parameter 'resourceId' is not null or undefined
+        if (resourceId === null || resourceId === undefined) {
+            throw new Error('Required parameter resourceId was null or undefined when calling getWebhook.');
         }
 
         let useFormData = false;
@@ -408,20 +2483,20 @@ export class WebhooksApi {
     /**
      * 
      * @summary Modify a webhook by ID
-     * @param webhookId The webhook ID
+     * @param resourceId The resource ID
      * @param patchDelta http://jsonpatch.com/
      */
-    public patchWebhook (webhookId: string, patchDelta: Array<PatchDelta>) : Promise<{ response: http.ClientResponse; body?: any;  }> {
-        const localVarPath = this.basePath + '/webhooks/{webhookId}'
-            .replace('{' + 'webhookId' + '}', String(webhookId));
+    public patchWebhook (resourceId: string, patchDelta: Array<PatchDelta>) : Promise<{ response: http.ClientResponse; body: Webhook;  }> {
+        const localVarPath = this.basePath + '/webhooks/{resourceId}'
+            .replace('{' + 'resourceId' + '}', String(resourceId));
         let queryParameters: any = {};
         let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
         let formParams: any = {};
 
 
-        // verify required parameter 'webhookId' is not null or undefined
-        if (webhookId === null || webhookId === undefined) {
-            throw new Error('Required parameter webhookId was null or undefined when calling patchWebhook.');
+        // verify required parameter 'resourceId' is not null or undefined
+        if (resourceId === null || resourceId === undefined) {
+            throw new Error('Required parameter resourceId was null or undefined when calling patchWebhook.');
         }
 
         // verify required parameter 'patchDelta' is not null or undefined
@@ -452,7 +2527,7 @@ export class WebhooksApi {
                 requestOptions.form = formParams;
             }
         }
-        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+        return new Promise<{ response: http.ClientResponse; body: Webhook;  }>((resolve, reject) => {
             request(requestOptions, (error, response, body) => {
                 if (error) {
                     reject(error);
@@ -469,18 +2544,18 @@ export class WebhooksApi {
     /**
      * 
      * @summary Create a webhook
-     * @param webhookPost New webhook
+     * @param webhookBody New webhook
      */
-    public postWebhook (webhookPost: WebhookPost) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+    public postWebhook (webhookBody: WebhookBody) : Promise<{ response: http.ClientResponse; body?: any;  }> {
         const localVarPath = this.basePath + '/webhooks';
         let queryParameters: any = {};
         let headerParams: any = (<any>Object).assign({}, this.defaultHeaders);
         let formParams: any = {};
 
 
-        // verify required parameter 'webhookPost' is not null or undefined
-        if (webhookPost === null || webhookPost === undefined) {
-            throw new Error('Required parameter webhookPost was null or undefined when calling postWebhook.');
+        // verify required parameter 'webhookBody' is not null or undefined
+        if (webhookBody === null || webhookBody === undefined) {
+            throw new Error('Required parameter webhookBody was null or undefined when calling postWebhook.');
         }
 
         let useFormData = false;
@@ -492,7 +2567,7 @@ export class WebhooksApi {
             uri: localVarPath,
             useQuerystring: this._useQuerystring,
             json: true,
-            body: webhookPost,
+            body: webhookBody,
         };
 
         this.authentications.Token.applyToRequest(requestOptions);
