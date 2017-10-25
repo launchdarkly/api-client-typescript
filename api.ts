@@ -372,7 +372,7 @@ export class AuditLogApi {
     }
     /**
      * 
-     * @summary Fetch a list of all webhooks
+     * @summary Fetch a list of all audit log entries
      */
     public getAuditLogEntries () : Promise<{ response: http.ClientResponse; body: AuditLogEntries;  }> {
         const localVarPath = this.basePath + '/auditlog';
@@ -419,7 +419,7 @@ export class AuditLogApi {
     }
     /**
      * 
-     * @summary Get a webhook by ID
+     * @summary Get an audit log entry by ID
      * @param resourceId The resource ID
      */
     public getAuditLogEntry (resourceId: string) : Promise<{ response: http.ClientResponse; body: AuditLogEntry;  }> {
@@ -1206,7 +1206,7 @@ export class FlagsApi {
     }
     /**
      * 
-     * @summary Create a feature flag
+     * @summary Creates a new feature flag.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      * @param featureFlagBody Create a new feature flag
      */
@@ -1368,7 +1368,7 @@ export class ProjectsApi {
     }
     /**
      * 
-     * @summary Get a project by key.
+     * @summary Fetch a single project by key.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      */
     public getProject (projectKey: string) : Promise<{ response: http.ClientResponse; body: Project;  }> {
