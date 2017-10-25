@@ -55,23 +55,56 @@ export class Clause {
 
 export class Environment {
     'links': Links;
+    /**
+    * The unique id for the environment
+    */
     'id': string;
+    /**
+    * The key for the environment
+    */
     'key': string;
+    /**
+    * The name of the environment
+    */
     'name': string;
+    /**
+    * The SDK key for backend LaunchDarkly SDKs
+    */
     'apiKey': string;
+    /**
+    * The SDK key for mobile LaunchDarkly SDKs
+    */
     'mobileKey': string;
+    /**
+    * The swatch color for the environment
+    */
     'color': string;
+    /**
+    * The default TTL
+    */
     'defaultTtl': number;
+    /**
+    * Determines if this environment is in safe mode
+    */
     'secureMode': boolean;
 }
 
 export class EnvironmentBody {
+    /**
+    * The name of the new environment
+    */
     'name': string;
+    /**
+    * A project-unique key for the new environment
+    */
     'key': string;
     /**
     * A color swatch (as an RGB hex value with no leading '#', e.g. C8C8C8)
     */
     'color': string;
+    /**
+    * The default TTL for the new environment
+    */
     'defaultTtl': number;
 }
 
@@ -137,7 +170,7 @@ export class FeatureFlagConfigFallthrough {
 export class FeatureFlagStatus {
     'links': Links;
     'name': string;
-    'lastRequested': string;
+    'lastRequested': number;
     'default': boolean;
 }
 
@@ -210,7 +243,7 @@ export class Target {
 }
 
 export class User {
-    'lastPing': string;
+    'lastPing': number;
     'environmentId': string;
     'ownerId': string;
     'user': any;
@@ -581,7 +614,7 @@ export class EnvironmentsApi {
     }
     /**
      * 
-     * @summary Get an environment by key.
+     * @summary Get an environment given a project and key.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      * @param environmentKey The environment key
      */
@@ -710,7 +743,7 @@ export class EnvironmentsApi {
     }
     /**
      * 
-     * @summary Create an environment
+     * @summary Create a new environment in a specified project with a given name, key, and swatch color.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      * @param environmentBody New environment
      */
@@ -1138,7 +1171,7 @@ export class FlagsApi {
     }
     /**
      * 
-     * @summary Modify a feature flag by ID
+     * @summary Perform a partial update to a feature.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      * @param featureFlagKey The feature flag&#39;s key. The key identifies the flag in your code.
      * @param patchDelta http://jsonpatch.com/
@@ -1800,7 +1833,7 @@ export class UserSettingsApi {
     }
     /**
      * 
-     * @summary Lists the current flag settings for a given user.
+     * @summary Fetch a single flag setting for a user by key.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      * @param environmentKey The environment key
      * @param userKey The user&#39;s key
@@ -2065,7 +2098,7 @@ export class UsersApi {
     }
     /**
      * 
-     * @summary Search users in LaunchDarkly based on their last active date, or a search query.
+     * @summary Search users in LaunchDarkly based on their last active date, or a search query. It should not be used to enumerate all users in LaunchDarkly-- use the List users API resource.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      * @param environmentKey The environment key
      * @param q Search query
@@ -2214,7 +2247,7 @@ export class UsersApi {
     }
     /**
      * 
-     * @summary List all users in the environment.
+     * @summary List all users in the environment. Includes the total count of users. In each page, there will be up to 'limit' users returned (default 20). This is useful for exporting all users in the system for further analysis. Paginated collections will include a next link containing a URL with the next set of elements in the collection.
      * @param projectKey The project key, used to tie the flags together under one project so they can be managed together.
      * @param environmentKey The environment key
      * @param limit Pagination limit
