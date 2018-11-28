@@ -733,6 +733,7 @@ export class FeatureFlag {
     * The variations for this feature flag.
     */
     'variations': Array<Variation>;
+    'version': number;
     'customProperties': CustomProperties;
     'links': Links;
     'maintainer': Member;
@@ -790,6 +791,11 @@ export class FeatureFlag {
             "name": "variations",
             "baseName": "variations",
             "type": "Array<Variation>"
+        },
+        {
+            "name": "version",
+            "baseName": "_version",
+            "type": "number"
         },
         {
             "name": "customProperties",
@@ -3623,7 +3629,7 @@ export class FeatureFlagsApi {
      * @param featureFlagBody Create a new feature flag.
      * @param clone The key of the feature flag to be cloned. The key identifies the flag in your code.  For example, setting clone&#x3D;flagKey will copy the full targeting configuration for all environments (including on/off state) from the original flag to the new flag.
      */
-    public postFeatureFlag (projectKey: string, featureFlagBody: FeatureFlagBody, clone?: string) : Promise<{ response: http.ClientResponse; body?: any;  }> {
+    public postFeatureFlag (projectKey: string, featureFlagBody: FeatureFlagBody, clone?: string) : Promise<{ response: http.ClientResponse; body: FeatureFlag;  }> {
         const localVarPath = this.basePath + '/flags/{projectKey}'
             .replace('{' + 'projectKey' + '}', encodeURIComponent(String(projectKey)));
         let localVarQueryParameters: any = {};
@@ -3668,11 +3674,12 @@ export class FeatureFlagsApi {
                 localVarRequestOptions.form = localVarFormParams;
             }
         }
-        return new Promise<{ response: http.ClientResponse; body?: any;  }>((resolve, reject) => {
+        return new Promise<{ response: http.ClientResponse; body: FeatureFlag;  }>((resolve, reject) => {
             localVarRequest(localVarRequestOptions, (error, response, body) => {
                 if (error) {
                     reject(error);
                 } else {
+                    body = ObjectSerializer.deserialize(body, "FeatureFlag");
                     if (response.statusCode && response.statusCode >= 200 && response.statusCode <= 299) {
                         resolve({ response: response, body: body });
                     } else {
