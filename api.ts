@@ -500,6 +500,14 @@ export class Environment {
     * An array of tags for this environment.
     */
     'tags'?: Array<string>;
+    /**
+    * Determines if this environment requires comments for flag and segment changes.
+    */
+    'requireComments'?: boolean;
+    /**
+    * Determines if this environment requires confirmation for flag and segment changes.
+    */
+    'confirmChanges'?: boolean;
 
     static discriminator: string | undefined = undefined;
 
@@ -558,6 +566,16 @@ export class Environment {
             "name": "tags",
             "baseName": "tags",
             "type": "Array<string>"
+        },
+        {
+            "name": "requireComments",
+            "baseName": "requireComments",
+            "type": "boolean"
+        },
+        {
+            "name": "confirmChanges",
+            "baseName": "confirmChanges",
+            "type": "boolean"
         }    ];
 
     static getAttributeTypeMap() {
