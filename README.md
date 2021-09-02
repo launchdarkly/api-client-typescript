@@ -1,27 +1,71 @@
 This repository contains a client library for LaunchDarkly's REST API. This client was automatically
-generated from our [OpenAPI specification](https://github.com/launchdarkly/ld-openapi).
+generated from our [OpenAPI specification](https://app.launchdarkly.com/api/v2/openapi.json) using a [code generation library](https://github.com/launchdarkly/ld-openapi). View our [sample code](#sample-code) for example usage.
 
-This REST API is for custom integrations, data export, or automating your feature flag workflows. *DO NOT* use this client library to include feature flags in your web or mobile application. To integrate feature flags with your application, please see the [SDK documentation](https://docs.launchdarkly.com/v2.0/docs)
+This REST API is for custom integrations, data export, or automating your feature flag workflows. *DO NOT* use this client library to include feature flags in your web or mobile application. To integrate feature flags with your application, read the [SDK documentation](https://docs.launchdarkly.com/sdk).
+## launchdarkly-api-typescript@6.0.0
 
+This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
+
+Environment
+* Node.js
+* Webpack
+* Browserify
+
+Language level
+* ES5 - you must have a Promises/A+ library installed
+* ES6
+
+Module system
+* CommonJS
+* ES6 module system
+
+It can be used in both TypeScript and JavaScript. In TypeScript, the definition should be automatically resolved via `package.json`. ([Reference](http://www.typescriptlang.org/docs/handbook/typings-for-npm-packages.html))
+
+### Building
+
+To build and compile the typescript sources to javascript use:
+```
+npm install
+npm run build
+```
+
+### Publishing
+
+First build the package then run ```npm publish```
+
+### Consuming
+
+navigate to the folder of your consuming project and run one of the following commands.
+
+_published:_
+
+```
+npm install launchdarkly-api-typescript@6.0.0 --save
+```
+
+_unPublished (not recommended):_
+
+```
+npm install PATH_TO_GENERATED_PACKAGE --save
 ## Sample Code
 
 ```ts
-import { FeatureFlagsApi, FeatureFlagsApiApiKeys, FeatureFlagBody } from "launchdarkly-api-typescript";
+import { FeatureFlagsApi, Configuration, FeatureFlagBody } from "launchdarkly-api-typescript";
 
-let apiInstance = new FeatureFlagsApi();
-const apiKey = process.env.LD_API_KEY || '';
-apiInstance.setApiKey(FeatureFlagsApiApiKeys.Token, apiKey);
+const apiToken = process.env.LD_API_KEY;
+const config = new Configuration({apiKey: apiToken});
+let apiInstance = new FeatureFlagsApi(config);
 
-const successCallback = function(data){
-    console.log('API called successfully. Returned data: ' + JSON.stringify(data));
+const successCallback = function(res){
+    console.log('API called successfully. Returned data: ' + JSON.stringify(res.data));
 };
 const errorCallback = function(error) {
     console.error('Error!', error);
     process.exit(1);
 };
 
-const createSuccessCallback = function(data){
-    successCallback(data);
+const createSuccessCallback = function(res){
+    successCallback(res);
 
     // Clean up
     apiInstance.deleteFeatureFlag(projectName, keyName).then(successCallback, errorCallback);
@@ -35,5 +79,17 @@ const flagBody: FeatureFlagBody = {
     variations: [{value: [1, 2]}, {value: [3, 4]}, {value: [5]}]
 };
 
-apiInstance.postFeatureFlag(projectName, flagBody).then(createSuccessCallback, errorCallback);
+apiInstance.deleteFeatureFlag(projectName, keyName)
+    .then(() => {
+        console.log("flag deleted")
+        apiInstance.postFeatureFlag(projectName, flagBody).then(createSuccessCallback, errorCallback);
+    })
+    .catch((err) => {
+        if (err?.response?.status == 404) {
+            console.log("No flag to cleanup")
+        } else {
+            errorCallback(err)
+        }
+        apiInstance.postFeatureFlag(projectName, flagBody).then(createSuccessCallback, errorCallback);
+    })
 ```
