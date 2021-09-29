@@ -2,7 +2,7 @@ This repository contains a client library for LaunchDarkly's REST API. This clie
 generated from our [OpenAPI specification](https://app.launchdarkly.com/api/v2/openapi.json) using a [code generation library](https://github.com/launchdarkly/ld-openapi). View our [sample code](#sample-code) for example usage.
 
 This REST API is for custom integrations, data export, or automating your feature flag workflows. *DO NOT* use this client library to include feature flags in your web or mobile application. To integrate feature flags with your application, read the [SDK documentation](https://docs.launchdarkly.com/sdk).
-## launchdarkly-api-typescript@6.0.0
+## launchdarkly-api-typescript@6.0.1
 
 This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
 
@@ -40,7 +40,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@6.0.0 --save
+npm install launchdarkly-api-typescript@6.0.1 --save
 ```
 
 _unPublished (not recommended):_
