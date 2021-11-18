@@ -47,6 +47,8 @@ _unPublished (not recommended):_
 
 ```
 npm install PATH_TO_GENERATED_PACKAGE --save
+```
+
 ## Sample Code
 
 ```ts
