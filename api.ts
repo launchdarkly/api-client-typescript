@@ -159,6 +159,94 @@ export enum AccessTokenPostRoleEnum {
 /**
  * 
  * @export
+ * @interface ActionInputRep
+ */
+export interface ActionInputRep {
+    /**
+     * 
+     * @type {any}
+     * @memberof ActionInputRep
+     */
+    instructions?: any | null;
+}
+/**
+ * 
+ * @export
+ * @interface ActionOutputRep
+ */
+export interface ActionOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ActionOutputRep
+     */
+    kind: string;
+    /**
+     * 
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof ActionOutputRep
+     */
+    instructions: Array<{ [key: string]: any; }>;
+}
+/**
+ * 
+ * @export
+ * @interface ApprovalConditionInputRep
+ */
+export interface ApprovalConditionInputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ApprovalConditionInputRep
+     */
+    description?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ApprovalConditionInputRep
+     */
+    notifyMemberIds?: Array<string>;
+}
+/**
+ * 
+ * @export
+ * @interface ApprovalConditionOutputRep
+ */
+export interface ApprovalConditionOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ApprovalConditionOutputRep
+     */
+    description: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ApprovalConditionOutputRep
+     */
+    notifyMemberIds: Array<string>;
+    /**
+     * 
+     * @type {Array<ReviewOutputRep>}
+     * @memberof ApprovalConditionOutputRep
+     */
+    allReviews: Array<ReviewOutputRep>;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApprovalConditionOutputRep
+     */
+    reviewStatus: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ApprovalConditionOutputRep
+     */
+    appliedDate?: number;
+}
+/**
+ * 
+ * @export
  * @interface ApprovalSettings
  */
 export interface ApprovalSettings {
@@ -167,7 +255,7 @@ export interface ApprovalSettings {
      * @type {boolean}
      * @memberof ApprovalSettings
      */
-    Required: boolean;
+    required: boolean;
     /**
      * 
      * @type {boolean}
@@ -571,7 +659,7 @@ export interface BranchCollectionRep {
      */
     _links: { [key: string]: Link; };
     /**
-     * 
+     * An array of branches
      * @type {Array<BranchRep>}
      * @memberof BranchCollectionRep
      */
@@ -584,19 +672,19 @@ export interface BranchCollectionRep {
  */
 export interface BranchRep {
     /**
-     * 
+     * The branch name
      * @type {string}
      * @memberof BranchRep
      */
-    name?: string;
+    name: string;
     /**
-     * 
+     * An ID representing the branch HEAD. For example, a commit SHA.
      * @type {string}
      * @memberof BranchRep
      */
-    head?: string;
+    head: string;
     /**
-     * 
+     * An optional ID used to prevent older data from overwriting newer data
      * @type {number}
      * @memberof BranchRep
      */
@@ -606,9 +694,9 @@ export interface BranchRep {
      * @type {number}
      * @memberof BranchRep
      */
-    syncTime?: number;
+    syncTime: number;
     /**
-     * 
+     * An array of flag references found on the branch
      * @type {Array<ReferenceRep>}
      * @memberof BranchRep
      */
@@ -618,7 +706,7 @@ export interface BranchRep {
      * @type {{ [key: string]: any; }}
      * @memberof BranchRep
      */
-    _links?: { [key: string]: any; };
+    _links: { [key: string]: any; };
 }
 /**
  * 
@@ -698,6 +786,129 @@ export interface ClientSideAvailabilityPost {
 /**
  * 
  * @export
+ * @interface ConditionBaseOutputRep
+ */
+export interface ConditionBaseOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionBaseOutputRep
+     */
+    _id: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionBaseOutputRep
+     */
+    kind?: string;
+    /**
+     * 
+     * @type {ExecutionOutputRep}
+     * @memberof ConditionBaseOutputRep
+     */
+    _execution: ExecutionOutputRep;
+}
+/**
+ * 
+ * @export
+ * @interface ConditionInputRep
+ */
+export interface ConditionInputRep {
+    /**
+     * 
+     * @type {number}
+     * @memberof ConditionInputRep
+     */
+    executionDate?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ConditionInputRep
+     */
+    executeNow?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionInputRep
+     */
+    description?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ConditionInputRep
+     */
+    notifyMemberIds?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionInputRep
+     */
+    kind?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ConditionOutputRep
+ */
+export interface ConditionOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionOutputRep
+     */
+    _id: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionOutputRep
+     */
+    kind?: string;
+    /**
+     * 
+     * @type {ExecutionOutputRep}
+     * @memberof ConditionOutputRep
+     */
+    _execution: ExecutionOutputRep;
+    /**
+     * 
+     * @type {number}
+     * @memberof ConditionOutputRep
+     */
+    executionDate?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionOutputRep
+     */
+    description: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ConditionOutputRep
+     */
+    notifyMemberIds: Array<string>;
+    /**
+     * 
+     * @type {Array<ReviewOutputRep>}
+     * @memberof ConditionOutputRep
+     */
+    allReviews: Array<ReviewOutputRep>;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionOutputRep
+     */
+    reviewStatus: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ConditionOutputRep
+     */
+    appliedDate?: number;
+}
+/**
+ * 
+ * @export
  * @interface ConfidenceIntervalRep
  */
 export interface ConfidenceIntervalRep {
@@ -732,6 +943,25 @@ export interface Conflict {
      * @memberof Conflict
      */
     reason?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ConflictOutputRep
+ */
+export interface ConflictOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ConflictOutputRep
+     */
+    stageId: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConflictOutputRep
+     */
+    message: string;
 }
 /**
  * 
@@ -871,22 +1101,22 @@ export interface CustomProperty {
 export interface CustomRole {
     /**
      * 
+     * @type {string}
+     * @memberof CustomRole
+     */
+    _id: string;
+    /**
+     * 
      * @type {{ [key: string]: Link; }}
      * @memberof CustomRole
      */
     _links: { [key: string]: Link; };
     /**
      * 
-     * @type {string}
+     * @type {AccessRep}
      * @memberof CustomRole
      */
-    name: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof CustomRole
-     */
-    key: string;
+    _access?: AccessRep;
     /**
      * 
      * @type {string}
@@ -898,7 +1128,13 @@ export interface CustomRole {
      * @type {string}
      * @memberof CustomRole
      */
-    _id: string;
+    key: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomRole
+     */
+    name: string;
     /**
      * 
      * @type {Array<Statement>}
@@ -907,10 +1143,10 @@ export interface CustomRole {
     policy: Array<Statement>;
     /**
      * 
-     * @type {AccessRep}
+     * @type {string}
      * @memberof CustomRole
      */
-    _access?: AccessRep;
+    basePermissions?: string;
 }
 /**
  * 
@@ -942,6 +1178,12 @@ export interface CustomRolePost {
      * @memberof CustomRolePost
      */
     policy: Array<StatementPost>;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomRolePost
+     */
+    basePermissions?: string;
 }
 /**
  * 
@@ -973,6 +1215,12 @@ export interface CustomRolePostData {
      * @memberof CustomRolePostData
      */
     policy: Array<StatementPost>;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomRolePostData
+     */
+    basePermissions?: string;
 }
 /**
  * 
@@ -996,6 +1244,37 @@ export interface CustomRoles {
 /**
  * 
  * @export
+ * @interface CustomWorkflowInputRep
+ */
+export interface CustomWorkflowInputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowInputRep
+     */
+    maintainerId?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowInputRep
+     */
+    name?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowInputRep
+     */
+    description?: string;
+    /**
+     * 
+     * @type {Array<StageInputRep>}
+     * @memberof CustomWorkflowInputRep
+     */
+    stages?: Array<StageInputRep>;
+}
+/**
+ * 
+ * @export
  * @interface CustomWorkflowMeta
  */
 export interface CustomWorkflowMeta {
@@ -1015,6 +1294,79 @@ export interface CustomWorkflowMeta {
 /**
  * 
  * @export
+ * @interface CustomWorkflowOutputRep
+ */
+export interface CustomWorkflowOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowOutputRep
+     */
+    _id: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof CustomWorkflowOutputRep
+     */
+    _version: number;
+    /**
+     * 
+     * @type {Array<ConflictOutputRep>}
+     * @memberof CustomWorkflowOutputRep
+     */
+    _conflicts: Array<ConflictOutputRep>;
+    /**
+     * 
+     * @type {number}
+     * @memberof CustomWorkflowOutputRep
+     */
+    _creationDate: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowOutputRep
+     */
+    _maintainerId: string;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof CustomWorkflowOutputRep
+     */
+    _links: { [key: string]: Link; };
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowOutputRep
+     */
+    name: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowOutputRep
+     */
+    description?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomWorkflowOutputRep
+     */
+    kind?: string;
+    /**
+     * 
+     * @type {Array<StageOutputRep>}
+     * @memberof CustomWorkflowOutputRep
+     */
+    stages?: Array<StageOutputRep>;
+    /**
+     * 
+     * @type {ExecutionOutputRep}
+     * @memberof CustomWorkflowOutputRep
+     */
+    _execution: ExecutionOutputRep;
+}
+/**
+ * 
+ * @export
  * @interface CustomWorkflowStageMeta
  */
 export interface CustomWorkflowStageMeta {
@@ -1030,6 +1382,19 @@ export interface CustomWorkflowStageMeta {
      * @memberof CustomWorkflowStageMeta
      */
     name?: string;
+}
+/**
+ * 
+ * @export
+ * @interface CustomWorkflowsListingOutputRep
+ */
+export interface CustomWorkflowsListingOutputRep {
+    /**
+     * 
+     * @type {Array<CustomWorkflowOutputRep>}
+     * @memberof CustomWorkflowsListingOutputRep
+     */
+    items: Array<CustomWorkflowOutputRep>;
 }
 /**
  * 
@@ -1426,6 +1791,19 @@ export interface EnvironmentPost {
      * @memberof EnvironmentPost
      */
     tags?: Array<string>;
+}
+/**
+ * 
+ * @export
+ * @interface ExecutionOutputRep
+ */
+export interface ExecutionOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ExecutionOutputRep
+     */
+    status: string;
 }
 /**
  * 
@@ -1889,43 +2267,6 @@ export interface ExpiringUserTargetPatchResponse {
 /**
  * 
  * @export
- * @interface Extinction
- */
-export interface Extinction {
-    /**
-     * 
-     * @type {string}
-     * @memberof Extinction
-     */
-    revision: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Extinction
-     */
-    message?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof Extinction
-     */
-    time: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof Extinction
-     */
-    flag_key: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Extinction
-     */
-    project_key: string;
-}
-/**
- * 
- * @export
  * @interface ExtinctionCollectionRep
  */
 export interface ExtinctionCollectionRep {
@@ -1936,7 +2277,7 @@ export interface ExtinctionCollectionRep {
      */
     _links: { [key: string]: Link; };
     /**
-     * 
+     * An array of extinction events
      * @type {{ [key: string]: Array<ExtinctionRep>; }}
      * @memberof ExtinctionCollectionRep
      */
@@ -1949,13 +2290,13 @@ export interface ExtinctionCollectionRep {
  */
 export interface ExtinctionRep {
     /**
-     * 
+     * The identifier for the revision where flag became extinct. For example, a commit SHA.
      * @type {string}
      * @memberof ExtinctionRep
      */
     revision: string;
     /**
-     * 
+     * Description of the extinction. For example, the commit message for the revision.
      * @type {string}
      * @memberof ExtinctionRep
      */
@@ -1967,13 +2308,13 @@ export interface ExtinctionRep {
      */
     time: number;
     /**
-     * 
+     * The feature flag key
      * @type {string}
      * @memberof ExtinctionRep
      */
     flagKey: string;
     /**
-     * 
+     * The project key
      * @type {string}
      * @memberof ExtinctionRep
      */
@@ -2609,7 +2950,7 @@ export interface FlagConfigApprovalRequestResponse {
      * @type {CustomWorkflowMeta}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    customWorkflowMetaData?: CustomWorkflowMeta;
+    customWorkflowMetadata?: CustomWorkflowMeta;
 }
 /**
  * 
@@ -2952,119 +3293,58 @@ export interface FlagSummary {
 /**
  * 
  * @export
+ * @interface ForbiddenErrorRep
+ */
+export interface ForbiddenErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ForbiddenErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ForbiddenErrorRep
+     */
+    message?: string;
+}
+/**
+ * 
+ * @export
  * @interface HunkRep
  */
 export interface HunkRep {
     /**
-     * 
+     * Line number of beginning of code reference hunk
      * @type {number}
      * @memberof HunkRep
      */
-    startingLineNumber?: number;
+    startingLineNumber: number;
     /**
-     * 
+     * Contextual lines of code that include the referenced feature flag
      * @type {string}
      * @memberof HunkRep
      */
     lines?: string;
     /**
-     * 
+     * The project key
      * @type {string}
      * @memberof HunkRep
      */
     projKey?: string;
     /**
-     * 
+     * The feature flag key
      * @type {string}
      * @memberof HunkRep
      */
     flagKey?: string;
     /**
-     * 
+     * An array of flag key aliases
      * @type {Array<string>}
      * @memberof HunkRep
      */
     aliases?: Array<string>;
-}
-/**
- * 
- * @export
- * @interface InlineObject
- */
-export interface InlineObject {
-    /**
-     * 
-     * @type {string}
-     * @memberof InlineObject
-     */
-    revision: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof InlineObject
-     */
-    message?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof InlineObject
-     */
-    time: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof InlineObject
-     */
-    flag_key: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof InlineObject
-     */
-    project_key: string;
-}
-/**
- * 
- * @export
- * @interface InlineObject1
- */
-export interface InlineObject1 {
-    /**
-     * The member\'s email
-     * @type {string}
-     * @memberof InlineObject1
-     */
-    email: string;
-    /**
-     * The member\'s password
-     * @type {string}
-     * @memberof InlineObject1
-     */
-    password?: string;
-    /**
-     * The member\'s first name
-     * @type {string}
-     * @memberof InlineObject1
-     */
-    firstName?: string;
-    /**
-     * The member\'s last name
-     * @type {string}
-     * @memberof InlineObject1
-     */
-    lastName?: string;
-    /**
-     * The member\'s built-in role
-     * @type {string}
-     * @memberof InlineObject1
-     */
-    role?: string;
-    /**
-     * The member\'s custom role
-     * @type {Array<string>}
-     * @memberof InlineObject1
-     */
-    customRoles?: Array<string>;
 }
 /**
  * 
@@ -3134,6 +3414,25 @@ export interface IntegrationStatus {
      * @memberof IntegrationStatus
      */
     value: string;
+}
+/**
+ * 
+ * @export
+ * @interface InvalidRequestErrorRep
+ */
+export interface InvalidRequestErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof InvalidRequestErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof InvalidRequestErrorRep
+     */
+    message?: string;
 }
 /**
  * 
@@ -3294,6 +3593,12 @@ export interface Member {
      * @memberof Member
      */
     permissionGrants?: Array<MemberPermissionGrantSummaryRep>;
+    /**
+     * 
+     * @type {number}
+     * @memberof Member
+     */
+    creationDate: number;
 }
 /**
  * 
@@ -3449,6 +3754,25 @@ export interface Members {
      * @memberof Members
      */
     totalCount?: number;
+}
+/**
+ * 
+ * @export
+ * @interface MethodNotAllowedErrorRep
+ */
+export interface MethodNotAllowedErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof MethodNotAllowedErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MethodNotAllowedErrorRep
+     */
+    message?: string;
 }
 /**
  * 
@@ -3950,6 +4274,25 @@ export interface NewMemberForm {
 /**
  * 
  * @export
+ * @interface NotFoundErrorRep
+ */
+export interface NotFoundErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof NotFoundErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof NotFoundErrorRep
+     */
+    message?: string;
+}
+/**
+ * 
+ * @export
  * @interface ParentResourceRep
  */
 export interface ParentResourceRep {
@@ -3971,6 +4314,25 @@ export interface ParentResourceRep {
      * @memberof ParentResourceRep
      */
     resource?: any | null;
+}
+/**
+ * 
+ * @export
+ * @interface PatchFailedErrorRep
+ */
+export interface PatchFailedErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchFailedErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PatchFailedErrorRep
+     */
+    message?: string;
 }
 /**
  * 
@@ -4392,17 +4754,73 @@ export interface PubNubDetailRep {
 /**
  * 
  * @export
+ * @interface PutBranch
+ */
+export interface PutBranch {
+    /**
+     * The branch name
+     * @type {string}
+     * @memberof PutBranch
+     */
+    name: string;
+    /**
+     * An ID representing the branch HEAD. For example, a commit SHA.
+     * @type {string}
+     * @memberof PutBranch
+     */
+    head: string;
+    /**
+     * An optional ID used to prevent older data from overwriting newer data. If no sequence ID is included, the newly submitted data will always be saved.
+     * @type {number}
+     * @memberof PutBranch
+     */
+    updateSequenceId?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof PutBranch
+     */
+    syncTime: number;
+    /**
+     * An array of flag references found on the branch
+     * @type {Array<ReferenceRep>}
+     * @memberof PutBranch
+     */
+    references?: Array<ReferenceRep>;
+}
+/**
+ * 
+ * @export
+ * @interface RateLimitedErrorRep
+ */
+export interface RateLimitedErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof RateLimitedErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof RateLimitedErrorRep
+     */
+    message?: string;
+}
+/**
+ * 
+ * @export
  * @interface ReferenceRep
  */
 export interface ReferenceRep {
     /**
-     * 
+     * File path of the reference
      * @type {string}
      * @memberof ReferenceRep
      */
-    path?: string;
+    path: string;
     /**
-     * 
+     * Programming language used in the file
      * @type {string}
      * @memberof ReferenceRep
      */
@@ -4412,7 +4830,7 @@ export interface ReferenceRep {
      * @type {Array<HunkRep>}
      * @memberof ReferenceRep
      */
-    hunks?: Array<HunkRep>;
+    hunks: Array<HunkRep>;
 }
 /**
  * 
@@ -4520,7 +4938,7 @@ export interface RepositoryCollectionRep {
      */
     _links: { [key: string]: Link; };
     /**
-     * 
+     * An array of repositories
      * @type {Array<RepositoryRep>}
      * @memberof RepositoryCollectionRep
      */
@@ -4545,13 +4963,13 @@ export interface RepositoryPost {
      */
     sourceLink?: string;
     /**
-     * 
+     * A template for constructing a valid URL to view the commit
      * @type {string}
      * @memberof RepositoryPost
      */
     commitUrlTemplate?: string;
     /**
-     * 
+     * A template for constructing a valid URL to view the hunk
      * @type {string}
      * @memberof RepositoryPost
      */
@@ -4587,55 +5005,55 @@ export enum RepositoryPostTypeEnum {
  */
 export interface RepositoryRep {
     /**
-     * 
+     * The repository name
      * @type {string}
      * @memberof RepositoryRep
      */
     name: string;
     /**
-     * 
+     * A URL to access the repository
      * @type {string}
      * @memberof RepositoryRep
      */
     sourceLink?: string;
     /**
-     * 
+     * A template for constructing a valid URL to view the commit
      * @type {string}
      * @memberof RepositoryRep
      */
     commitUrlTemplate?: string;
     /**
-     * 
+     * A template for constructing a valid URL to view the hunk
      * @type {string}
      * @memberof RepositoryRep
      */
     hunkUrlTemplate?: string;
     /**
-     * 
+     * The type of repository
      * @type {string}
      * @memberof RepositoryRep
      */
-    type: string;
+    type: RepositoryRepTypeEnum;
     /**
-     * 
+     * The repository\'s default branch
      * @type {string}
      * @memberof RepositoryRep
      */
     defaultBranch: string;
     /**
-     * 
+     * Whether or not a repository is enabled for code reference scanning
      * @type {boolean}
      * @memberof RepositoryRep
      */
     enabled: boolean;
     /**
-     * 
+     * The version of the repository\'s saved information
      * @type {number}
      * @memberof RepositoryRep
      */
     version: number;
     /**
-     * 
+     * An array of the repository\'s branches that have been scanned for code references
      * @type {Array<BranchRep>}
      * @memberof RepositoryRep
      */
@@ -4653,6 +5071,17 @@ export interface RepositoryRep {
      */
     _access?: AccessRep;
 }
+
+/**
+    * @export
+    * @enum {string}
+    */
+export enum RepositoryRepTypeEnum {
+    Github = 'github',
+    Bitbucket = 'bitbucket',
+    Custom = 'custom'
+}
+
 /**
  * 
  * @export
@@ -4708,6 +5137,43 @@ export interface ResourceIDResponse {
      * @memberof ResourceIDResponse
      */
     key?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ReviewOutputRep
+ */
+export interface ReviewOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof ReviewOutputRep
+     */
+    _id: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ReviewOutputRep
+     */
+    kind: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ReviewOutputRep
+     */
+    creationDate?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ReviewOutputRep
+     */
+    comment?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ReviewOutputRep
+     */
+    memberId?: string;
 }
 /**
  * 
@@ -4830,6 +5296,38 @@ export interface Rule {
      * @memberof Rule
      */
     description?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ScheduleConditionInputRep
+ */
+export interface ScheduleConditionInputRep {
+    /**
+     * 
+     * @type {number}
+     * @memberof ScheduleConditionInputRep
+     */
+    executionDate?: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ScheduleConditionInputRep
+     */
+    executeNow?: boolean;
+}
+/**
+ * 
+ * @export
+ * @interface ScheduleConditionOutputRep
+ */
+export interface ScheduleConditionOutputRep {
+    /**
+     * 
+     * @type {number}
+     * @memberof ScheduleConditionOutputRep
+     */
+    executionDate?: number;
 }
 /**
  * 
@@ -5053,6 +5551,68 @@ export interface SourceFlag {
 /**
  * 
  * @export
+ * @interface StageInputRep
+ */
+export interface StageInputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof StageInputRep
+     */
+    name?: string;
+    /**
+     * 
+     * @type {Array<ConditionInputRep>}
+     * @memberof StageInputRep
+     */
+    conditions?: Array<ConditionInputRep>;
+    /**
+     * 
+     * @type {ActionInputRep}
+     * @memberof StageInputRep
+     */
+    action?: ActionInputRep;
+}
+/**
+ * 
+ * @export
+ * @interface StageOutputRep
+ */
+export interface StageOutputRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof StageOutputRep
+     */
+    _id: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof StageOutputRep
+     */
+    name?: string;
+    /**
+     * 
+     * @type {Array<ConditionOutputRep>}
+     * @memberof StageOutputRep
+     */
+    conditions: Array<ConditionOutputRep>;
+    /**
+     * 
+     * @type {ActionOutputRep}
+     * @memberof StageOutputRep
+     */
+    action: ActionOutputRep;
+    /**
+     * 
+     * @type {ExecutionOutputRep}
+     * @memberof StageOutputRep
+     */
+    _execution: ExecutionOutputRep;
+}
+/**
+ * 
+ * @export
  * @interface Statement
  */
 export interface Statement {
@@ -5098,7 +5658,7 @@ export interface StatementPost {
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    resources?: Array<string>;
+    resources: Array<string>;
     /**
      * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
@@ -5110,7 +5670,7 @@ export interface StatementPost {
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    actions?: Array<string>;
+    actions: Array<string>;
     /**
      * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
      * @type {Array<string>}
@@ -5135,7 +5695,7 @@ export interface StatementPostData {
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    resources?: Array<string>;
+    resources: Array<string>;
     /**
      * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
@@ -5147,7 +5707,7 @@ export interface StatementPostData {
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    actions?: Array<string>;
+    actions: Array<string>;
     /**
      * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
      * @type {Array<string>}
@@ -5288,6 +5848,25 @@ export interface StatisticsRoot {
 /**
  * 
  * @export
+ * @interface StatusConflictErrorRep
+ */
+export interface StatusConflictErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof StatusConflictErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof StatusConflictErrorRep
+     */
+    message?: string;
+}
+/**
+ * 
+ * @export
  * @interface SubjectDataRep
  */
 export interface SubjectDataRep {
@@ -5405,37 +5984,37 @@ export interface TeamPatchInput {
  */
 export interface TeamPostInput {
     /**
-     * 
+     * List of custom role keys the team will access
      * @type {Array<string>}
      * @memberof TeamPostInput
      */
     customRoleKeys?: Array<string>;
     /**
-     * 
+     * A description of the team
      * @type {string}
      * @memberof TeamPostInput
      */
     description?: string;
     /**
-     * 
+     * The team\'s key or ID
      * @type {string}
      * @memberof TeamPostInput
      */
-    key?: string;
+    key: string;
     /**
-     * 
+     * A list of member IDs who belong to the team
      * @type {Array<string>}
      * @memberof TeamPostInput
      */
     memberIDs?: Array<string>;
     /**
-     * 
+     * A human-friendly name for the team
      * @type {string}
      * @memberof TeamPostInput
      */
-    name?: string;
+    name: string;
     /**
-     * 
+     * A list of permission grants to apply to the team. Can use \"maintainTeam\" to add team maintainers
      * @type {Array<PermissionGrantInput>}
      * @memberof TeamPostInput
      */
@@ -5733,6 +6312,25 @@ export interface Tokens {
      * @memberof Tokens
      */
     _links?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface UnauthorizedErrorRep
+ */
+export interface UnauthorizedErrorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof UnauthorizedErrorRep
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UnauthorizedErrorRep
+     */
+    message?: string;
 }
 /**
  * 
@@ -6046,6 +6644,12 @@ export interface UserSegment {
      * @memberof UserSegment
      */
     _externalLink?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof UserSegment
+     */
+    _importInProgress?: boolean;
 }
 /**
  * 
@@ -6942,7 +7546,7 @@ export class AccessTokensApi extends BaseAPI {
 export const AccountMembersApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Delete a single account member by ID
+         * Delete a single account member by ID. Requests to delete account members will not work if SCIM is enabled for the account.
          * @summary Delete account member
          * @param {string} id The member ID
          * @param {*} [options] Override http request option.
@@ -7020,7 +7624,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
          * @summary List account members
          * @param {number} [limit] The number of members to return in the response. Defaults to 20.
          * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
-         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained below.
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
          * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -7069,7 +7673,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             };
         },
         /**
-         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.
+         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
          * @summary Modify an account member
          * @param {string} id The member ID
          * @param {Array<PatchOperation>} patchOperation 
@@ -7112,15 +7716,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             };
         },
         /**
-         * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+         * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
          * @summary Invite new members
-         * @param {Array<InlineObject1>} inlineObject1 
+         * @param {Array<NewMemberForm>} newMemberForm 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postMembers: async (inlineObject1: Array<InlineObject1>, options: any = {}): Promise<RequestArgs> => {
-            // verify required parameter 'inlineObject1' is not null or undefined
-            assertParamExists('postMembers', 'inlineObject1', inlineObject1)
+        postMembers: async (newMemberForm: Array<NewMemberForm>, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'newMemberForm' is not null or undefined
+            assertParamExists('postMembers', 'newMemberForm', newMemberForm)
             const localVarPath = `/api/v2/members`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -7143,7 +7747,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(inlineObject1, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(newMemberForm, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -7161,7 +7765,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = AccountMembersApiAxiosParamCreator(configuration)
     return {
         /**
-         * Delete a single account member by ID
+         * Delete a single account member by ID. Requests to delete account members will not work if SCIM is enabled for the account.
          * @summary Delete account member
          * @param {string} id The member ID
          * @param {*} [options] Override http request option.
@@ -7187,7 +7791,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          * @summary List account members
          * @param {number} [limit] The number of members to return in the response. Defaults to 20.
          * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
-         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained below.
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
          * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -7197,7 +7801,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.
+         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
          * @summary Modify an account member
          * @param {string} id The member ID
          * @param {Array<PatchOperation>} patchOperation 
@@ -7209,14 +7813,14 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+         * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
          * @summary Invite new members
-         * @param {Array<InlineObject1>} inlineObject1 
+         * @param {Array<NewMemberForm>} newMemberForm 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postMembers(inlineObject1: Array<InlineObject1>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Members>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postMembers(inlineObject1, options);
+        async postMembers(newMemberForm: Array<NewMemberForm>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Members>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postMembers(newMemberForm, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -7230,7 +7834,7 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
     const localVarFp = AccountMembersApiFp(configuration)
     return {
         /**
-         * Delete a single account member by ID
+         * Delete a single account member by ID. Requests to delete account members will not work if SCIM is enabled for the account.
          * @summary Delete account member
          * @param {string} id The member ID
          * @param {*} [options] Override http request option.
@@ -7254,7 +7858,7 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
          * @summary List account members
          * @param {number} [limit] The number of members to return in the response. Defaults to 20.
          * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
-         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained below.
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
          * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -7263,7 +7867,7 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
             return localVarFp.getMembers(limit, offset, filter, sort, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.
+         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
          * @summary Modify an account member
          * @param {string} id The member ID
          * @param {Array<PatchOperation>} patchOperation 
@@ -7274,14 +7878,14 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
             return localVarFp.patchMember(id, patchOperation, options).then((request) => request(axios, basePath));
         },
         /**
-         * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+         * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
          * @summary Invite new members
-         * @param {Array<InlineObject1>} inlineObject1 
+         * @param {Array<NewMemberForm>} newMemberForm 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postMembers(inlineObject1: Array<InlineObject1>, options?: any): AxiosPromise<Members> {
-            return localVarFp.postMembers(inlineObject1, options).then((request) => request(axios, basePath));
+        postMembers(newMemberForm: Array<NewMemberForm>, options?: any): AxiosPromise<Members> {
+            return localVarFp.postMembers(newMemberForm, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -7294,7 +7898,7 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
  */
 export class AccountMembersApi extends BaseAPI {
     /**
-     * Delete a single account member by ID
+     * Delete a single account member by ID. Requests to delete account members will not work if SCIM is enabled for the account.
      * @summary Delete account member
      * @param {string} id The member ID
      * @param {*} [options] Override http request option.
@@ -7322,7 +7926,7 @@ export class AccountMembersApi extends BaseAPI {
      * @summary List account members
      * @param {number} [limit] The number of members to return in the response. Defaults to 20.
      * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
-     * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained below.
+     * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
      * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -7333,7 +7937,7 @@ export class AccountMembersApi extends BaseAPI {
     }
 
     /**
-     * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.
+     * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
      * @summary Modify an account member
      * @param {string} id The member ID
      * @param {Array<PatchOperation>} patchOperation 
@@ -7346,15 +7950,15 @@ export class AccountMembersApi extends BaseAPI {
     }
 
     /**
-     * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+     * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
      * @summary Invite new members
-     * @param {Array<InlineObject1>} inlineObject1 
+     * @param {Array<NewMemberForm>} newMemberForm 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof AccountMembersApi
      */
-    public postMembers(inlineObject1: Array<InlineObject1>, options?: any) {
-        return AccountMembersApiFp(this.configuration).postMembers(inlineObject1, options).then((request) => request(this.axios, this.basePath));
+    public postMembers(newMemberForm: Array<NewMemberForm>, options?: any) {
+        return AccountMembersApiFp(this.configuration).postMembers(newMemberForm, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -8487,7 +9091,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             assertParamExists('postFlagCopyConfigApprovalRequest', 'environmentKey', environmentKey)
             // verify required parameter 'createCopyFlagConfigApprovalRequestRequest' is not null or undefined
             assertParamExists('postFlagCopyConfigApprovalRequest', 'createCopyFlagConfigApprovalRequestRequest', createCopyFlagConfigApprovalRequestRequest)
-            const localVarPath = `/api/v2/projects/{projectKey}/flags/{featureFlagKey}/copy/environments/{environmentKey}/approval-requests-flag-copy`
+            const localVarPath = `/api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/approval-requests-flag-copy`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
                 .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
                 .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
@@ -9237,7 +9841,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * Get a list of all extinctions.
          * @summary List extinctions
          * @param {string} [repoName] Filter results to a specific repository
-         * @param {string} [branchName] Filter results to a specific branch
+         * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
          * @param {string} [projKey] Filter results to a specific project
          * @param {string} [flagKey] Filter results to a specific flag key
          * @param {*} [options] Override http request option.
@@ -9499,18 +10103,18 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @summary Create extinction
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {Array<InlineObject>} inlineObject 
+         * @param {Array<ExtinctionRep>} extinctionRep 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postExtinction: async (repo: string, branch: string, inlineObject: Array<InlineObject>, options: any = {}): Promise<RequestArgs> => {
+        postExtinction: async (repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options: any = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('postExtinction', 'repo', repo)
             // verify required parameter 'branch' is not null or undefined
             assertParamExists('postExtinction', 'branch', branch)
-            // verify required parameter 'inlineObject' is not null or undefined
-            assertParamExists('postExtinction', 'inlineObject', inlineObject)
-            const localVarPath = `/api/v2/code-refs/repositories/{repo}/branches/{branch}`
+            // verify required parameter 'extinctionRep' is not null or undefined
+            assertParamExists('postExtinction', 'extinctionRep', extinctionRep)
+            const localVarPath = `/api/v2/code-refs/repositories/{repo}/branches/{branch}/extinction-events`
                 .replace(`{${"repo"}}`, encodeURIComponent(String(repo)))
                 .replace(`{${"branch"}}`, encodeURIComponent(String(branch)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -9534,7 +10138,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(inlineObject, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(extinctionRep, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -9585,17 +10189,17 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @summary Upsert branch
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {BranchRep} branchRep 
+         * @param {PutBranch} putBranch 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putBranch: async (repo: string, branch: string, branchRep: BranchRep, options: any = {}): Promise<RequestArgs> => {
+        putBranch: async (repo: string, branch: string, putBranch: PutBranch, options: any = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('putBranch', 'repo', repo)
             // verify required parameter 'branch' is not null or undefined
             assertParamExists('putBranch', 'branch', branch)
-            // verify required parameter 'branchRep' is not null or undefined
-            assertParamExists('putBranch', 'branchRep', branchRep)
+            // verify required parameter 'putBranch' is not null or undefined
+            assertParamExists('putBranch', 'putBranch', putBranch)
             const localVarPath = `/api/v2/code-refs/repositories/{repo}/branches/{branch}`
                 .replace(`{${"repo"}}`, encodeURIComponent(String(repo)))
                 .replace(`{${"branch"}}`, encodeURIComponent(String(branch)));
@@ -9620,7 +10224,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(branchRep, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(putBranch, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -9689,7 +10293,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * Get a list of all extinctions.
          * @summary List extinctions
          * @param {string} [repoName] Filter results to a specific repository
-         * @param {string} [branchName] Filter results to a specific branch
+         * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
          * @param {string} [projKey] Filter results to a specific project
          * @param {string} [flagKey] Filter results to a specific flag key
          * @param {*} [options] Override http request option.
@@ -9763,12 +10367,12 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @summary Create extinction
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {Array<InlineObject>} inlineObject 
+         * @param {Array<ExtinctionRep>} extinctionRep 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postExtinction(repo: string, branch: string, inlineObject: Array<InlineObject>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postExtinction(repo, branch, inlineObject, options);
+        async postExtinction(repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postExtinction(repo, branch, extinctionRep, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -9778,7 +10382,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postRepository(repositoryPost: RepositoryPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async postRepository(repositoryPost: RepositoryPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postRepository(repositoryPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9787,12 +10391,12 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @summary Upsert branch
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {BranchRep} branchRep 
+         * @param {PutBranch} putBranch 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async putBranch(repo: string, branch: string, branchRep: BranchRep, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.putBranch(repo, branch, branchRep, options);
+        async putBranch(repo: string, branch: string, putBranch: PutBranch, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.putBranch(repo, branch, putBranch, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -9853,7 +10457,7 @@ export const CodeReferencesApiFactory = function (configuration?: Configuration,
          * Get a list of all extinctions.
          * @summary List extinctions
          * @param {string} [repoName] Filter results to a specific repository
-         * @param {string} [branchName] Filter results to a specific branch
+         * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
          * @param {string} [projKey] Filter results to a specific project
          * @param {string} [flagKey] Filter results to a specific flag key
          * @param {*} [options] Override http request option.
@@ -9921,12 +10525,12 @@ export const CodeReferencesApiFactory = function (configuration?: Configuration,
          * @summary Create extinction
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {Array<InlineObject>} inlineObject 
+         * @param {Array<ExtinctionRep>} extinctionRep 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postExtinction(repo: string, branch: string, inlineObject: Array<InlineObject>, options?: any): AxiosPromise<void> {
-            return localVarFp.postExtinction(repo, branch, inlineObject, options).then((request) => request(axios, basePath));
+        postExtinction(repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options?: any): AxiosPromise<void> {
+            return localVarFp.postExtinction(repo, branch, extinctionRep, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a repository with the specified name.
@@ -9935,7 +10539,7 @@ export const CodeReferencesApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postRepository(repositoryPost: RepositoryPost, options?: any): AxiosPromise<void> {
+        postRepository(repositoryPost: RepositoryPost, options?: any): AxiosPromise<RepositoryRep> {
             return localVarFp.postRepository(repositoryPost, options).then((request) => request(axios, basePath));
         },
         /**
@@ -9943,12 +10547,12 @@ export const CodeReferencesApiFactory = function (configuration?: Configuration,
          * @summary Upsert branch
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {BranchRep} branchRep 
+         * @param {PutBranch} putBranch 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putBranch(repo: string, branch: string, branchRep: BranchRep, options?: any): AxiosPromise<void> {
-            return localVarFp.putBranch(repo, branch, branchRep, options).then((request) => request(axios, basePath));
+        putBranch(repo: string, branch: string, putBranch: PutBranch, options?: any): AxiosPromise<void> {
+            return localVarFp.putBranch(repo, branch, putBranch, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -10016,7 +10620,7 @@ export class CodeReferencesApi extends BaseAPI {
      * Get a list of all extinctions.
      * @summary List extinctions
      * @param {string} [repoName] Filter results to a specific repository
-     * @param {string} [branchName] Filter results to a specific branch
+     * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
      * @param {string} [projKey] Filter results to a specific project
      * @param {string} [flagKey] Filter results to a specific flag key
      * @param {*} [options] Override http request option.
@@ -10096,13 +10700,13 @@ export class CodeReferencesApi extends BaseAPI {
      * @summary Create extinction
      * @param {string} repo The repository name
      * @param {string} branch The url-encoded branch name
-     * @param {Array<InlineObject>} inlineObject 
+     * @param {Array<ExtinctionRep>} extinctionRep 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public postExtinction(repo: string, branch: string, inlineObject: Array<InlineObject>, options?: any) {
-        return CodeReferencesApiFp(this.configuration).postExtinction(repo, branch, inlineObject, options).then((request) => request(this.axios, this.basePath));
+    public postExtinction(repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options?: any) {
+        return CodeReferencesApiFp(this.configuration).postExtinction(repo, branch, extinctionRep, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -10122,13 +10726,13 @@ export class CodeReferencesApi extends BaseAPI {
      * @summary Upsert branch
      * @param {string} repo The repository name
      * @param {string} branch The url-encoded branch name
-     * @param {BranchRep} branchRep 
+     * @param {PutBranch} putBranch 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public putBranch(repo: string, branch: string, branchRep: BranchRep, options?: any) {
-        return CodeReferencesApiFp(this.configuration).putBranch(repo, branch, branchRep, options).then((request) => request(this.axios, this.basePath));
+    public putBranch(repo: string, branch: string, putBranch: PutBranch, options?: any) {
+        return CodeReferencesApiFp(this.configuration).putBranch(repo, branch, putBranch, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -10292,13 +10896,13 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
         /**
          * Create a new custom role
          * @summary Create custom role
-         * @param {Array<StatementPost>} statementPost 
+         * @param {CustomRolePost} customRolePost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postCustomRole: async (statementPost: Array<StatementPost>, options: any = {}): Promise<RequestArgs> => {
-            // verify required parameter 'statementPost' is not null or undefined
-            assertParamExists('postCustomRole', 'statementPost', statementPost)
+        postCustomRole: async (customRolePost: CustomRolePost, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'customRolePost' is not null or undefined
+            assertParamExists('postCustomRole', 'customRolePost', customRolePost)
             const localVarPath = `/api/v2/roles`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -10321,7 +10925,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(statementPost, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(customRolePost, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -10356,7 +10960,7 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getCustomRole(key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRolePost>> {
+        async getCustomRole(key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getCustomRole(key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10385,12 +10989,12 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
         /**
          * Create a new custom role
          * @summary Create custom role
-         * @param {Array<StatementPost>} statementPost 
+         * @param {CustomRolePost} customRolePost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postCustomRole(statementPost: Array<StatementPost>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postCustomRole(statementPost, options);
+        async postCustomRole(customRolePost: CustomRolePost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postCustomRole(customRolePost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -10420,7 +11024,7 @@ export const CustomRolesApiFactory = function (configuration?: Configuration, ba
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getCustomRole(key: string, options?: any): AxiosPromise<CustomRolePost> {
+        getCustomRole(key: string, options?: any): AxiosPromise<CustomRole> {
             return localVarFp.getCustomRole(key, options).then((request) => request(axios, basePath));
         },
         /**
@@ -10446,12 +11050,12 @@ export const CustomRolesApiFactory = function (configuration?: Configuration, ba
         /**
          * Create a new custom role
          * @summary Create custom role
-         * @param {Array<StatementPost>} statementPost 
+         * @param {CustomRolePost} customRolePost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postCustomRole(statementPost: Array<StatementPost>, options?: any): AxiosPromise<CustomRole> {
-            return localVarFp.postCustomRole(statementPost, options).then((request) => request(axios, basePath));
+        postCustomRole(customRolePost: CustomRolePost, options?: any): AxiosPromise<CustomRole> {
+            return localVarFp.postCustomRole(customRolePost, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -10514,13 +11118,13 @@ export class CustomRolesApi extends BaseAPI {
     /**
      * Create a new custom role
      * @summary Create custom role
-     * @param {Array<StatementPost>} statementPost 
+     * @param {CustomRolePost} customRolePost 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public postCustomRole(statementPost: Array<StatementPost>, options?: any) {
-        return CustomRolesApiFp(this.configuration).postCustomRole(statementPost, options).then((request) => request(this.axios, this.basePath));
+    public postCustomRole(customRolePost: CustomRolePost, options?: any) {
+        return CustomRolesApiFp(this.configuration).postCustomRole(customRolePost, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -11109,7 +11713,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
+         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > You cannot update approval settings when creating new environments. Update approval settings with the PATCH Environment API.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
          * @summary Create environment
          * @param {string} projectKey The project key
          * @param {EnvironmentPost} environmentPost 
@@ -11286,7 +11890,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
+         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > You cannot update approval settings when creating new environments. Update approval settings with the PATCH Environment API.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
          * @summary Create environment
          * @param {string} projectKey The project key
          * @param {EnvironmentPost} environmentPost 
@@ -11367,7 +11971,7 @@ export const EnvironmentsApiFactory = function (configuration?: Configuration, b
             return localVarFp.patchEnvironment(projectKey, environmentKey, patchOperation, options).then((request) => request(axios, basePath));
         },
         /**
-         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
+         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > You cannot update approval settings when creating new environments. Update approval settings with the PATCH Environment API.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
          * @summary Create environment
          * @param {string} projectKey The project key
          * @param {EnvironmentPost} environmentPost 
@@ -11451,7 +12055,7 @@ export class EnvironmentsApi extends BaseAPI {
     }
 
     /**
-     * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
+     * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > You cannot update approval settings when creating new environments. Update approval settings with the PATCH Environment API.  Create a new environment in a specified project with a given name, key, swatch color, and default TTL. 
      * @summary Create environment
      * @param {string} projectKey The project key
      * @param {EnvironmentPost} environmentPost 
@@ -15873,8 +16477,8 @@ export class SegmentsApi extends BaseAPI {
 export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Delete a team by key.
-         * @summary Delete team by key
+         * Delete a team by key
+         * @summary Delete team
          * @param {string} key The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -15910,8 +16514,8 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Fetch a team by key.
-         * @summary Get team by key
+         * Fetch a team by key
+         * @summary Get team
          * @param {string} key The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -15947,12 +16551,15 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Fetch all teams.
-         * @summary Get all teams
+         * Return a list of teams.  By default, this returns the first 20 teams. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering teams  LaunchDarkly supports the `query` field for filtering. `query` is a string that matches against the teams\' names and keys. It is not case sensitive. For example, the filter `query:abc` matches teams with the string `abc` in their name or key. 
+         * @summary List teams
+         * @param {number} [limit] The number of teams to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeams: async (options: any = {}): Promise<RequestArgs> => {
+        getTeams: async (limit?: number, offset?: number, filter?: string, options: any = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/teams`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -15968,6 +16575,18 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
+            }
+
 
     
             setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
@@ -15980,8 +16599,8 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
-         * @summary Patch team by key
+         * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
+         * @summary Update team
          * @param {string} key The team key
          * @param {TeamPatchInput} teamPatchInput 
          * @param {*} [options] Override http request option.
@@ -16023,7 +16642,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Create a team.
+         * Create a team
          * @summary Create team
          * @param {TeamPostInput} teamPostInput 
          * @param {*} [options] Override http request option.
@@ -16072,8 +16691,8 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = TeamsBetaApiAxiosParamCreator(configuration)
     return {
         /**
-         * Delete a team by key.
-         * @summary Delete team by key
+         * Delete a team by key
+         * @summary Delete team
          * @param {string} key The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -16083,8 +16702,8 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Fetch a team by key.
-         * @summary Get team by key
+         * Fetch a team by key
+         * @summary Get team
          * @param {string} key The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -16094,18 +16713,21 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Fetch all teams.
-         * @summary Get all teams
+         * Return a list of teams.  By default, this returns the first 20 teams. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering teams  LaunchDarkly supports the `query` field for filtering. `query` is a string that matches against the teams\' names and keys. It is not case sensitive. For example, the filter `query:abc` matches teams with the string `abc` in their name or key. 
+         * @summary List teams
+         * @param {number} [limit] The number of teams to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTeams(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getTeams(options);
+        async getTeams(limit?: number, offset?: number, filter?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTeams(limit, offset, filter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
-         * @summary Patch team by key
+         * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
+         * @summary Update team
          * @param {string} key The team key
          * @param {TeamPatchInput} teamPatchInput 
          * @param {*} [options] Override http request option.
@@ -16116,7 +16738,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Create a team.
+         * Create a team
          * @summary Create team
          * @param {TeamPostInput} teamPostInput 
          * @param {*} [options] Override http request option.
@@ -16137,8 +16759,8 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
     const localVarFp = TeamsBetaApiFp(configuration)
     return {
         /**
-         * Delete a team by key.
-         * @summary Delete team by key
+         * Delete a team by key
+         * @summary Delete team
          * @param {string} key The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -16147,8 +16769,8 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
             return localVarFp.deleteTeam(key, options).then((request) => request(axios, basePath));
         },
         /**
-         * Fetch a team by key.
-         * @summary Get team by key
+         * Fetch a team by key
+         * @summary Get team
          * @param {string} key The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -16157,17 +16779,20 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
             return localVarFp.getTeam(key, options).then((request) => request(axios, basePath));
         },
         /**
-         * Fetch all teams.
-         * @summary Get all teams
+         * Return a list of teams.  By default, this returns the first 20 teams. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering teams  LaunchDarkly supports the `query` field for filtering. `query` is a string that matches against the teams\' names and keys. It is not case sensitive. For example, the filter `query:abc` matches teams with the string `abc` in their name or key. 
+         * @summary List teams
+         * @param {number} [limit] The number of teams to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeams(options?: any): AxiosPromise<TeamCollectionRep> {
-            return localVarFp.getTeams(options).then((request) => request(axios, basePath));
+        getTeams(limit?: number, offset?: number, filter?: string, options?: any): AxiosPromise<TeamCollectionRep> {
+            return localVarFp.getTeams(limit, offset, filter, options).then((request) => request(axios, basePath));
         },
         /**
-         * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
-         * @summary Patch team by key
+         * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
+         * @summary Update team
          * @param {string} key The team key
          * @param {TeamPatchInput} teamPatchInput 
          * @param {*} [options] Override http request option.
@@ -16177,7 +16802,7 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
             return localVarFp.patchTeam(key, teamPatchInput, options).then((request) => request(axios, basePath));
         },
         /**
-         * Create a team.
+         * Create a team
          * @summary Create team
          * @param {TeamPostInput} teamPostInput 
          * @param {*} [options] Override http request option.
@@ -16197,8 +16822,8 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
  */
 export class TeamsBetaApi extends BaseAPI {
     /**
-     * Delete a team by key.
-     * @summary Delete team by key
+     * Delete a team by key
+     * @summary Delete team
      * @param {string} key The team key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -16209,8 +16834,8 @@ export class TeamsBetaApi extends BaseAPI {
     }
 
     /**
-     * Fetch a team by key.
-     * @summary Get team by key
+     * Fetch a team by key
+     * @summary Get team
      * @param {string} key The team key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -16221,19 +16846,22 @@ export class TeamsBetaApi extends BaseAPI {
     }
 
     /**
-     * Fetch all teams.
-     * @summary Get all teams
+     * Return a list of teams.  By default, this returns the first 20 teams. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering teams  LaunchDarkly supports the `query` field for filtering. `query` is a string that matches against the teams\' names and keys. It is not case sensitive. For example, the filter `query:abc` matches teams with the string `abc` in their name or key. 
+     * @summary List teams
+     * @param {number} [limit] The number of teams to return in the response. Defaults to 20.
+     * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+     * @param {string} [filter] A comma-separated list of filters. Each filter is of the form &#x60;field:value&#x60;. Supported fields are explained above.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public getTeams(options?: any) {
-        return TeamsBetaApiFp(this.configuration).getTeams(options).then((request) => request(this.axios, this.basePath));
+    public getTeams(limit?: number, offset?: number, filter?: string, options?: any) {
+        return TeamsBetaApiFp(this.configuration).getTeams(limit, offset, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
-     * @summary Patch team by key
+     * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
+     * @summary Update team
      * @param {string} key The team key
      * @param {TeamPatchInput} teamPatchInput 
      * @param {*} [options] Override http request option.
@@ -16245,7 +16873,7 @@ export class TeamsBetaApi extends BaseAPI {
     }
 
     /**
-     * Create a team.
+     * Create a team
      * @summary Create team
      * @param {TeamPostInput} teamPostInput 
      * @param {*} [options] Override http request option.
@@ -16800,7 +17428,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Search users in LaunchDarkly based on their last active date, or a search query. Do not use to enumerate all users in LaunchDarkly. Instead use the [List users](getUsers) API resource.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
          * @summary Find users
          * @param {string} projKey The project key
          * @param {string} envKey The environment key
@@ -16808,11 +17436,13 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
          * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
          * @param {number} [offset] Specifies the first item to return in the collection
          * @param {number} [after] A unix epoch time in milliseconds specifying the maximum last time a user requested a feature flag from LaunchDarkly
+         * @param {string} [sort] Specifies a field by which to sort. LaunchDarkly supports the &#x60;userKey&#x60; and &#x60;lastSeen&#x60; fields. Fields prefixed by a dash ( - ) sort in descending order.
          * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
+         * @param {string} [filter] A comma-separated list of user attribute filters. Each filter is in the form of attributeKey:attributeValue
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSearchUsers: async (projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, searchAfter?: string, options: any = {}): Promise<RequestArgs> => {
+        getSearchUsers: async (projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options: any = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getSearchUsers', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -16850,8 +17480,16 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['after'] = after;
             }
 
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
             if (searchAfter !== undefined) {
                 localVarQueryParameter['searchAfter'] = searchAfter;
+            }
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
             }
 
 
@@ -16985,7 +17623,7 @@ export const UsersApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Search users in LaunchDarkly based on their last active date, or a search query. Do not use to enumerate all users in LaunchDarkly. Instead use the [List users](getUsers) API resource.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
          * @summary Find users
          * @param {string} projKey The project key
          * @param {string} envKey The environment key
@@ -16993,12 +17631,14 @@ export const UsersApiFp = function(configuration?: Configuration) {
          * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
          * @param {number} [offset] Specifies the first item to return in the collection
          * @param {number} [after] A unix epoch time in milliseconds specifying the maximum last time a user requested a feature flag from LaunchDarkly
+         * @param {string} [sort] Specifies a field by which to sort. LaunchDarkly supports the &#x60;userKey&#x60; and &#x60;lastSeen&#x60; fields. Fields prefixed by a dash ( - ) sort in descending order.
          * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
+         * @param {string} [filter] A comma-separated list of user attribute filters. Each filter is in the form of attributeKey:attributeValue
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, searchAfter?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getSearchUsers(projKey, envKey, q, limit, offset, after, searchAfter, options);
+        async getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -17051,7 +17691,7 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.deleteUser(projKey, envKey, key, options).then((request) => request(axios, basePath));
         },
         /**
-         * Search users in LaunchDarkly based on their last active date, or a search query. Do not use to enumerate all users in LaunchDarkly. Instead use the [List users](getUsers) API resource.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
          * @summary Find users
          * @param {string} projKey The project key
          * @param {string} envKey The environment key
@@ -17059,12 +17699,14 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
          * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
          * @param {number} [offset] Specifies the first item to return in the collection
          * @param {number} [after] A unix epoch time in milliseconds specifying the maximum last time a user requested a feature flag from LaunchDarkly
+         * @param {string} [sort] Specifies a field by which to sort. LaunchDarkly supports the &#x60;userKey&#x60; and &#x60;lastSeen&#x60; fields. Fields prefixed by a dash ( - ) sort in descending order.
          * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
+         * @param {string} [filter] A comma-separated list of user attribute filters. Each filter is in the form of attributeKey:attributeValue
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, searchAfter?: string, options?: any): AxiosPromise<Users> {
-            return localVarFp.getSearchUsers(projKey, envKey, q, limit, offset, after, searchAfter, options).then((request) => request(axios, basePath));
+        getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: any): AxiosPromise<Users> {
+            return localVarFp.getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a user by key. The `user` object contains all attributes sent in `variation` calls for that key.
@@ -17116,7 +17758,7 @@ export class UsersApi extends BaseAPI {
     }
 
     /**
-     * Search users in LaunchDarkly based on their last active date, or a search query. Do not use to enumerate all users in LaunchDarkly. Instead use the [List users](getUsers) API resource.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+     * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
      * @summary Find users
      * @param {string} projKey The project key
      * @param {string} envKey The environment key
@@ -17124,13 +17766,15 @@ export class UsersApi extends BaseAPI {
      * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
      * @param {number} [offset] Specifies the first item to return in the collection
      * @param {number} [after] A unix epoch time in milliseconds specifying the maximum last time a user requested a feature flag from LaunchDarkly
+     * @param {string} [sort] Specifies a field by which to sort. LaunchDarkly supports the &#x60;userKey&#x60; and &#x60;lastSeen&#x60; fields. Fields prefixed by a dash ( - ) sort in descending order.
      * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
+     * @param {string} [filter] A comma-separated list of user attribute filters. Each filter is in the form of attributeKey:attributeValue
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, searchAfter?: string, options?: any) {
-        return UsersApiFp(this.configuration).getSearchUsers(projKey, envKey, q, limit, offset, after, searchAfter, options).then((request) => request(this.axios, this.basePath));
+    public getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: any) {
+        return UsersApiFp(this.configuration).getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -17667,6 +18311,312 @@ export class WebhooksApi extends BaseAPI {
      */
     public postWebhook(webhookPost: WebhookPost, options?: any) {
         return WebhooksApiFp(this.configuration).postWebhook(webhookPost, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * WorkflowsBetaApi - axios parameter creator
+ * @export
+ */
+export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Delete a workflow from a feature flag
+         * @summary Delete workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {string} workflowId The workflow id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkflow: async (projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteWorkflow', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('deleteWorkflow', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('deleteWorkflow', 'environmentKey', environmentKey)
+            // verify required parameter 'workflowId' is not null or undefined
+            assertParamExists('deleteWorkflow', 'workflowId', workflowId)
+            const localVarPath = `/api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/workflows/{workflowId}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"workflowId"}}`, encodeURIComponent(String(workflowId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get workflows from a feature flag
+         * @summary Get workflows
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkflows: async (projectKey: string, featureFlagKey: string, environmentKey: string, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getWorkflows', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getWorkflows', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getWorkflows', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/workflows`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Create a workflow for a feature flag
+         * @summary Create workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {CustomWorkflowInputRep} customWorkflowInputRep 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postWorkflow: async (projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('postWorkflow', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('postWorkflow', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('postWorkflow', 'environmentKey', environmentKey)
+            // verify required parameter 'customWorkflowInputRep' is not null or undefined
+            assertParamExists('postWorkflow', 'customWorkflowInputRep', customWorkflowInputRep)
+            const localVarPath = `/api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/workflows`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(customWorkflowInputRep, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * WorkflowsBetaApi - functional programming interface
+ * @export
+ */
+export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = WorkflowsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Delete a workflow from a feature flag
+         * @summary Delete workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {string} workflowId The workflow id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get workflows from a feature flag
+         * @summary Get workflows
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getWorkflows(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomWorkflowsListingOutputRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getWorkflows(projectKey, featureFlagKey, environmentKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Create a workflow for a feature flag
+         * @summary Create workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {CustomWorkflowInputRep} customWorkflowInputRep 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async postWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomWorkflowOutputRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postWorkflow(projectKey, featureFlagKey, environmentKey, customWorkflowInputRep, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * WorkflowsBetaApi - factory interface
+ * @export
+ */
+export const WorkflowsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = WorkflowsBetaApiFp(configuration)
+    return {
+        /**
+         * Delete a workflow from a feature flag
+         * @summary Delete workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {string} workflowId The workflow id
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get workflows from a feature flag
+         * @summary Get workflows
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkflows(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any): AxiosPromise<CustomWorkflowsListingOutputRep> {
+            return localVarFp.getWorkflows(projectKey, featureFlagKey, environmentKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Create a workflow for a feature flag
+         * @summary Create workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {CustomWorkflowInputRep} customWorkflowInputRep 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options?: any): AxiosPromise<CustomWorkflowOutputRep> {
+            return localVarFp.postWorkflow(projectKey, featureFlagKey, environmentKey, customWorkflowInputRep, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * WorkflowsBetaApi - object-oriented interface
+ * @export
+ * @class WorkflowsBetaApi
+ * @extends {BaseAPI}
+ */
+export class WorkflowsBetaApi extends BaseAPI {
+    /**
+     * Delete a workflow from a feature flag
+     * @summary Delete workflow
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} environmentKey The environment key
+     * @param {string} workflowId The workflow id
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof WorkflowsBetaApi
+     */
+    public deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: any) {
+        return WorkflowsBetaApiFp(this.configuration).deleteWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get workflows from a feature flag
+     * @summary Get workflows
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} environmentKey The environment key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof WorkflowsBetaApi
+     */
+    public getWorkflows(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any) {
+        return WorkflowsBetaApiFp(this.configuration).getWorkflows(projectKey, featureFlagKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Create a workflow for a feature flag
+     * @summary Create workflow
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} environmentKey The environment key
+     * @param {CustomWorkflowInputRep} customWorkflowInputRep 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof WorkflowsBetaApi
+     */
+    public postWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options?: any) {
+        return WorkflowsBetaApiFp(this.configuration).postWorkflow(projectKey, featureFlagKey, environmentKey, customWorkflowInputRep, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
