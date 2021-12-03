@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * LaunchDarkly REST API
- * # Overview  ## Authentication  All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [Account settings](https://app.launchdarkly.com/settings/tokens) page.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and client-side SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations (fetching feature flag settings).  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export | | SDK keys                                                                                        | Can only access read-only SDK-specific resources and the firehose, restricted to a single environment | Server-side SDKs, Firehose API                     | | Mobile keys                                                                                     | Can only access read-only mobile SDK-specific resources, restricted to a single environment           | Mobile SDKs                                        | | Client-side ID                                                                                  | Single environment, only flags marked available to client-side                                        | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [Account Settings](https://app.launchdarkly.com/settings#/tokens) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Via request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [Account Settings](https://app.launchdarkly.com/settings/tokens) page.  ### Via session cookie  For testing purposes, you can make API calls directly from your web browser. If you\'re logged in to the application, the API will use your existing session to authenticate calls.  If you have a [role](https://docs.launchdarkly.com/home/team/built-in-roles) other than Admin, or have a [custom role](https://docs.launchdarkly.com/home/team/custom-roles) defined, you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses will also send a JSON body. Read [Errors](#section/Errors) for a more detailed description of the error format used by the API.  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PUT`, `POST`, `REPORT` and `PATCH` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource (for example, a single feature flag), you receive a _detailed representation_ containing all of the attributes of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object. - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link.  Each link has two attributes: an href (the URL) and a type (the content type). For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb, and support the [JSON Patch](http://tools.ietf.org/html/rfc6902) format. Some resources also support the [JSON Merge Patch](https://tools.ietf.org/html/rfc7386) format. In addition, some resources support optional comments that can be submitted with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  ### Updates via JSON Patch  [JSON Patch](http://tools.ietf.org/html/rfc6902) is a way to specify the modifications to perform on a resource. For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ```  You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  JSON Patch documents are always arrays. You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that aren\'t editable, like a resource\'s `_links`, have names that start with an underscore.  ### Updates via JSON Merge Patch  The API also supports the [JSON Merge Patch](https://tools.ietf.org/html/rfc7386) format, as well as the [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource.  JSON Merge Patch is less expressive than JSON Patch but in many cases, it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates with comments  You can submit optional comments with `PATCH` changes. The [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource supports comments.  To submit a comment along with a JSON Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON Merge Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  ### Updates via semantic patches  The API also supports the Semantic patch format. A semantic `PATCH` is a way to specify the modifications to perform on a resource as a set of executable instructions.  JSON Patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, semantic patch instructions can also be defined independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  For example, in this feature flag configuration in environment Production:  ```json {     \"name\": \"Alternate sort order\",     \"kind\": \"boolean\",     \"key\": \"sort.order\",    ...     \"environments\": {         \"production\": {             \"on\": true,             \"archived\": false,             \"salt\": \"c29ydC5vcmRlcg==\",             \"sel\": \"8de1085cb7354b0ab41c0e778376dfd3\",             \"lastModified\": 1469131558260,             \"version\": 81,             \"targets\": [                 {                     \"values\": [                         \"Gerhard.Little@yahoo.com\"                     ],                     \"variation\": 0                 },                 {                     \"values\": [                         \"1461797806429-33-861961230\",                         \"438580d8-02ee-418d-9eec-0085cab2bdf0\"                     ],                     \"variation\": 1                 }             ],             \"rules\": [],             \"fallthrough\": {                 \"variation\": 0             },             \"offVariation\": 1,             \"prerequisites\": [],             \"_site\": {                 \"href\": \"/default/production/features/sort.order\",                 \"type\": \"text/html\"             }        }     } } ```  You can add a date you want a user to be removed from the feature flag\'s user targets. For example, “remove user 1461797806429-33-861961230 from the user target for variation 0 on the Alternate sort order flag in the production environment on Wed Jul 08 2020 at 15:27:41 pm”. This is done using the following:  ```json {   \"comment\": \"update expiring user targets\",   \"instructions\": [     {       \"kind\": \"removeExpireUserTargetDate\",       \"userKey\": \"userKey\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\"     },     {       \"kind\": \"updateExpireUserTargetDate\",       \"userKey\": \"userKey2\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1587582000000     },     {       \"kind\": \"addExpireUserTargetDate\",       \"userKey\": \"userKey3\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1594247266386     }   ] } ```  Here is another example. In this feature flag configuration:  ```json {   \"name\": \"New recommendations engine\",   \"key\": \"engine.enable\",   \"environments\": {     \"test\": {       \"on\": true     }   } } ```  You can change the feature flag\'s description with the following patch document as a set of executable instructions. For example, “add user X to targets for variation Y and remove user A from targets for variation B for test flag”:  ```json {   \"comment\": \"\",   \"instructions\": [     {       \"kind\": \"removeUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"852cb784-54ff-46b9-8c35-5498d2e4f270\"     },     {       \"kind\": \"addUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"1bb18465-33b6-49aa-a3bd-eeb6650b33ad\"     }   ] } ```  > ### Supported semantic patch API endpoints > > - [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) > - [Update expiring user targets on feature flag](/tag/Feature-flags#operation/patchExpiringUserTargets) > - [Update expiring user target for flags](/tag/User-settings#operation/patchExpiringFlagsForUser) > - [Update expiring user targets on segment](/tag/Segments#operation/patchExpiringUserTargetsForSegment)  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The general class of error is indicated by the `code`. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly support to debug a problem with a specific API call.  ### HTTP Status - Error Response Codes  | Code | Definition        | Desc.                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Bad Request       | A request that fails may return this HTTP response code.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Unauthorized      | User doesn\'t have permission to an API call.                                                | Ensure your SDK key is good.                                     | | 403  | Forbidden         | User does not have permission for operation.                                                | Ensure that the user or access token has proper permissions set. | | 409  | Conflict          | The API request could not be completed because it conflicted with a concurrent API request. | Retry your request.                                              | | 429  | Too many requests | See [Rate limiting](/#section/Rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise, a wildcard is returned: `Access-Control-Allow-Origin: *`. For more information on CORS, see the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](#section/Authentication). If you’re using session auth, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted users.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs will return a `429` status code. Calls to our APIs will include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that can be made to the API per ten seconds. All personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits will return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits will return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](/tag/Environments#operation/deleteEnvironment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that can be made to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger)  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  You can use this specification to generate client libraries to interact with our REST API in your language of choice.  This specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to ease use in navigating the APIs in the tooling.  ## Client libraries  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit [GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories).  ## Method Overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `PUT`, `PATCH`, and `DELETE` verbs will be inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `PUT`, `PATCH`, and `DELETE` requests via a `POST` request.  For example, if you wish to call one of our `PATCH` resources via a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](/#section/Beta-resources).  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you\'ll receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20191212 ```  The header value is the version number of the API version you\'d like to request. The number for each version corresponds to the date the version was released. In the example above the version `20191212` corresponds to December 12, 2019.  ### Setting the API version per access token  When creating an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426` (the version of the API that existed before versioning) so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing. 
+ * # Overview  ## Authentication  All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [Account settings](https://app.launchdarkly.com/settings/tokens) page.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and client-side SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations (fetching feature flag settings).  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export | | SDK keys                                                                                        | Can only access read-only SDK-specific resources and the firehose, restricted to a single environment | Server-side SDKs, Firehose API                     | | Mobile keys                                                                                     | Can only access read-only mobile SDK-specific resources, restricted to a single environment           | Mobile SDKs                                        | | Client-side ID                                                                                  | Single environment, only flags marked available to client-side                                        | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [Account Settings](https://app.launchdarkly.com/settings#/tokens) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Via request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [Account Settings](https://app.launchdarkly.com/settings/tokens) page.  ### Via session cookie  For testing purposes, you can make API calls directly from your web browser. If you\'re logged in to the application, the API will use your existing session to authenticate calls.  If you have a [role](https://docs.launchdarkly.com/home/team/built-in-roles) other than Admin, or have a [custom role](https://docs.launchdarkly.com/home/team/custom-roles) defined, you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses will also send a JSON body. Read [Errors](#section/Errors) for a more detailed description of the error format used by the API.  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PUT`, `POST`, `REPORT` and `PATCH` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource (for example, a single feature flag), you receive a _detailed representation_ containing all of the attributes of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object. - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link.  Each link has two attributes: an href (the URL) and a type (the content type). For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb, and support the [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) format. Some resources also support the [JSON Merge Patch](https://datatracker.ietf.org/doc/html/rfc7386) format. In addition, some resources support optional comments that can be submitted with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  ### Updates via JSON Patch  [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ```  You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  JSON Patch documents are always arrays. You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that aren\'t editable, like a resource\'s `_links`, have names that start with an underscore.  ### Updates via JSON Merge Patch  The API also supports the [JSON Merge Patch](https://datatracker.ietf.org/doc/html/rfc7386) format, as well as the [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource.  JSON Merge Patch is less expressive than JSON Patch but in many cases, it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates with comments  You can submit optional comments with `PATCH` changes. The [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource supports comments.  To submit a comment along with a JSON Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON Merge Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  ### Updates via semantic patches  The API also supports the Semantic patch format. A semantic `PATCH` is a way to specify the modifications to perform on a resource as a set of executable instructions.  JSON Patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, semantic patch instructions can also be defined independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  For example, in this feature flag configuration in environment Production:  ```json {     \"name\": \"Alternate sort order\",     \"kind\": \"boolean\",     \"key\": \"sort.order\",    ...     \"environments\": {         \"production\": {             \"on\": true,             \"archived\": false,             \"salt\": \"c29ydC5vcmRlcg==\",             \"sel\": \"8de1085cb7354b0ab41c0e778376dfd3\",             \"lastModified\": 1469131558260,             \"version\": 81,             \"targets\": [                 {                     \"values\": [                         \"Gerhard.Little@yahoo.com\"                     ],                     \"variation\": 0                 },                 {                     \"values\": [                         \"1461797806429-33-861961230\",                         \"438580d8-02ee-418d-9eec-0085cab2bdf0\"                     ],                     \"variation\": 1                 }             ],             \"rules\": [],             \"fallthrough\": {                 \"variation\": 0             },             \"offVariation\": 1,             \"prerequisites\": [],             \"_site\": {                 \"href\": \"/default/production/features/sort.order\",                 \"type\": \"text/html\"             }        }     } } ```  You can add a date you want a user to be removed from the feature flag\'s user targets. For example, “remove user 1461797806429-33-861961230 from the user target for variation 0 on the Alternate sort order flag in the production environment on Wed Jul 08 2020 at 15:27:41 pm”. This is done using the following:  ```json {   \"comment\": \"update expiring user targets\",   \"instructions\": [     {       \"kind\": \"removeExpireUserTargetDate\",       \"userKey\": \"userKey\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\"     },     {       \"kind\": \"updateExpireUserTargetDate\",       \"userKey\": \"userKey2\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1587582000000     },     {       \"kind\": \"addExpireUserTargetDate\",       \"userKey\": \"userKey3\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1594247266386     }   ] } ```  Here is another example. In this feature flag configuration:  ```json {   \"name\": \"New recommendations engine\",   \"key\": \"engine.enable\",   \"environments\": {     \"test\": {       \"on\": true     }   } } ```  You can change the feature flag\'s description with the following patch document as a set of executable instructions. For example, “add user X to targets for variation Y and remove user A from targets for variation B for test flag”:  ```json {   \"comment\": \"\",   \"instructions\": [     {       \"kind\": \"removeUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"852cb784-54ff-46b9-8c35-5498d2e4f270\"     },     {       \"kind\": \"addUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"1bb18465-33b6-49aa-a3bd-eeb6650b33ad\"     }   ] } ```  > ### Supported semantic patch API endpoints > > - [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) > - [Update expiring user targets on feature flag](/tag/Feature-flags#operation/patchExpiringUserTargets) > - [Update expiring user target for flags](/tag/User-settings#operation/patchExpiringFlagsForUser) > - [Update expiring user targets on segment](/tag/Segments#operation/patchExpiringUserTargetsForSegment)  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The general class of error is indicated by the `code`. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly support to debug a problem with a specific API call.  ### HTTP Status - Error Response Codes  | Code | Definition        | Desc.                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Bad Request       | A request that fails may return this HTTP response code.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Unauthorized      | User doesn\'t have permission to an API call.                                                | Ensure your SDK key is good.                                     | | 403  | Forbidden         | User does not have permission for operation.                                                | Ensure that the user or access token has proper permissions set. | | 409  | Conflict          | The API request could not be completed because it conflicted with a concurrent API request. | Retry your request.                                              | | 429  | Too many requests | See [Rate limiting](/#section/Rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise, a wildcard is returned: `Access-Control-Allow-Origin: *`. For more information on CORS, see the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](#section/Authentication). If you’re using session auth, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted users.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs will return a `429` status code. Calls to our APIs will include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that can be made to the API per ten seconds. All personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits will return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits will return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](/tag/Environments#operation/deleteEnvironment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that can be made to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger)  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  You can use this specification to generate client libraries to interact with our REST API in your language of choice.  This specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to ease use in navigating the APIs in the tooling.  ## Client libraries  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit [GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories).  ## Method Overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `PUT`, `PATCH`, and `DELETE` verbs will be inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `PUT`, `PATCH`, and `DELETE` requests via a `POST` request.  For example, if you wish to call one of our `PATCH` resources via a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](/#section/Beta-resources).  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you\'ll receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20191212 ```  The header value is the version number of the API version you\'d like to request. The number for each version corresponds to the date the version was released. In the example above the version `20191212` corresponds to December 12, 2019.  ### Setting the API version per access token  When creating an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426` (the version of the API that existed before versioning) so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing. 
  *
  * The version of the OpenAPI document: 2.0
  * Contact: support@launchdarkly.com
@@ -14,7 +14,7 @@
 
 
 import { Configuration } from './configuration';
-import globalAxios, { AxiosPromise, AxiosInstance } from 'axios';
+import globalAxios, { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios';
 // Some imports not used depending on template conditions
 // @ts-ignore
 import { DUMMY_BASE_URL, assertParamExists, setApiKeyToObject, setBasicAuthToObject, setBearerAuthToObject, setOAuthToObject, setSearchParams, serializeDataIfNeeded, toPathString, createRequestFunction } from './common';
@@ -28,41 +28,41 @@ import { BASE_PATH, COLLECTION_FORMATS, RequestArgs, BaseAPI, RequiredError } fr
  */
 export interface AccessDeniedReasonRep {
     /**
-     * 
-     * @type {Array<object>}
-     * @memberof AccessDeniedReasonRep
-     */
-    resources?: Array<object>;
-    /**
-     * 
-     * @type {Array<object>}
-     * @memberof AccessDeniedReasonRep
-     */
-    notResources?: Array<object>;
-    /**
-     * 
+     * Resource specifier strings
      * @type {Array<string>}
      * @memberof AccessDeniedReasonRep
      */
-    actions?: Array<string>;
+    'resources'?: Array<string>;
     /**
-     * 
+     * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
      * @memberof AccessDeniedReasonRep
      */
-    notActions?: Array<string>;
+    'notResources'?: Array<string>;
+    /**
+     * Actions to perform on a resource
+     * @type {Array<string>}
+     * @memberof AccessDeniedReasonRep
+     */
+    'actions'?: Array<string>;
+    /**
+     * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
+     * @type {Array<string>}
+     * @memberof AccessDeniedReasonRep
+     */
+    'notActions'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof AccessDeniedReasonRep
      */
-    effect: string;
+    'effect': string;
     /**
      * 
      * @type {string}
      * @memberof AccessDeniedReasonRep
      */
-    role_name?: string;
+    'role_name'?: string;
 }
 /**
  * 
@@ -75,13 +75,13 @@ export interface AccessDeniedRep {
      * @type {string}
      * @memberof AccessDeniedRep
      */
-    action: string;
+    'action': string;
     /**
      * 
      * @type {AccessDeniedReasonRep}
      * @memberof AccessDeniedRep
      */
-    reason: AccessDeniedReasonRep;
+    'reason': AccessDeniedReasonRep;
 }
 /**
  * 
@@ -94,7 +94,7 @@ export interface AccessRep {
      * @type {Array<AccessDeniedRep>}
      * @memberof AccessRep
      */
-    denied: Array<AccessDeniedRep>;
+    'denied': Array<AccessDeniedRep>;
 }
 /**
  * 
@@ -107,43 +107,43 @@ export interface AccessTokenPost {
      * @type {string}
      * @memberof AccessTokenPost
      */
-    name?: string;
+    'name'?: string;
     /**
      * A description for the access token
      * @type {string}
      * @memberof AccessTokenPost
      */
-    description?: string;
+    'description'?: string;
     /**
      * Built-in role for the token
      * @type {string}
      * @memberof AccessTokenPost
      */
-    role?: AccessTokenPostRoleEnum;
+    'role'?: AccessTokenPostRoleEnum;
     /**
      * A list of custom role IDs to use as access limits for the access token
      * @type {Array<string>}
      * @memberof AccessTokenPost
      */
-    customRoleIds?: Array<string>;
+    'customRoleIds'?: Array<string>;
     /**
      * A JSON array of statements represented as JSON objects with three attributes: effect, resources, actions. May be used in place of a built-in or custom role.
      * @type {Array<StatementPost>}
      * @memberof AccessTokenPost
      */
-    inlineRole?: Array<StatementPost>;
+    'inlineRole'?: Array<StatementPost>;
     /**
      * Whether the token is a service token https://docs.launchdarkly.com/home/account-security/api-access-tokens#service-tokens
      * @type {boolean}
      * @memberof AccessTokenPost
      */
-    serviceToken?: boolean;
+    'serviceToken'?: boolean;
     /**
      * The default API version for this token
      * @type {number}
      * @memberof AccessTokenPost
      */
-    defaultApiVersion?: number;
+    'defaultApiVersion'?: number;
 }
 
 /**
@@ -167,7 +167,7 @@ export interface ActionInputRep {
      * @type {any}
      * @memberof ActionInputRep
      */
-    instructions?: any | null;
+    'instructions'?: any;
 }
 /**
  * 
@@ -180,13 +180,13 @@ export interface ActionOutputRep {
      * @type {string}
      * @memberof ActionOutputRep
      */
-    kind: string;
+    'kind': string;
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof ActionOutputRep
      */
-    instructions: Array<{ [key: string]: any; }>;
+    'instructions': Array<{ [key: string]: any; }>;
 }
 /**
  * 
@@ -199,13 +199,13 @@ export interface ApprovalConditionInputRep {
      * @type {string}
      * @memberof ApprovalConditionInputRep
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {Array<string>}
      * @memberof ApprovalConditionInputRep
      */
-    notifyMemberIds?: Array<string>;
+    'notifyMemberIds'?: Array<string>;
 }
 /**
  * 
@@ -218,31 +218,31 @@ export interface ApprovalConditionOutputRep {
      * @type {string}
      * @memberof ApprovalConditionOutputRep
      */
-    description: string;
+    'description': string;
     /**
      * 
      * @type {Array<string>}
      * @memberof ApprovalConditionOutputRep
      */
-    notifyMemberIds: Array<string>;
+    'notifyMemberIds': Array<string>;
     /**
      * 
      * @type {Array<ReviewOutputRep>}
      * @memberof ApprovalConditionOutputRep
      */
-    allReviews: Array<ReviewOutputRep>;
+    'allReviews': Array<ReviewOutputRep>;
     /**
      * 
      * @type {string}
      * @memberof ApprovalConditionOutputRep
      */
-    reviewStatus: string;
+    'reviewStatus': string;
     /**
      * 
      * @type {number}
      * @memberof ApprovalConditionOutputRep
      */
-    appliedDate?: number;
+    'appliedDate'?: number;
 }
 /**
  * 
@@ -255,49 +255,49 @@ export interface ApprovalSettings {
      * @type {boolean}
      * @memberof ApprovalSettings
      */
-    required: boolean;
+    'required': boolean;
     /**
      * 
      * @type {boolean}
      * @memberof ApprovalSettings
      */
-    bypassApprovalsForPendingChanges: boolean;
+    'bypassApprovalsForPendingChanges': boolean;
     /**
      * Sets the amount of approvals required before a member can apply a change. The minimum is one and the maximum is five.
      * @type {number}
      * @memberof ApprovalSettings
      */
-    minNumApprovals: number;
+    'minNumApprovals': number;
     /**
      * Allow someone who makes an approval request to apply their own change.
      * @type {boolean}
      * @memberof ApprovalSettings
      */
-    canReviewOwnRequest: boolean;
+    'canReviewOwnRequest': boolean;
     /**
      * Allow applying the change as long as at least one person has approved.
      * @type {boolean}
      * @memberof ApprovalSettings
      */
-    canApplyDeclinedChanges: boolean;
+    'canApplyDeclinedChanges': boolean;
     /**
      * Which service to use for managing approvals.
      * @type {string}
      * @memberof ApprovalSettings
      */
-    serviceKind: string;
+    'serviceKind': string;
     /**
      * 
      * @type {{ [key: string]: any; }}
      * @memberof ApprovalSettings
      */
-    serviceConfig: { [key: string]: any; };
+    'serviceConfig': { [key: string]: any; };
     /**
      * Require approval only on flags with the provided tags. Otherwise all flags will require approval.
      * @type {Array<string>}
      * @memberof ApprovalSettings
      */
-    requiredApprovalTags: Array<string>;
+    'requiredApprovalTags': Array<string>;
 }
 /**
  * 
@@ -310,109 +310,109 @@ export interface AuditLogEntryListingRep {
      * @type {{ [key: string]: Link; }}
      * @memberof AuditLogEntryListingRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    _accountId: string;
+    '_accountId': string;
     /**
      * 
      * @type {number}
      * @memberof AuditLogEntryListingRep
      */
-    date: number;
+    'date': number;
     /**
      * 
      * @type {Array<ResourceAccess>}
      * @memberof AuditLogEntryListingRep
      */
-    accesses: Array<ResourceAccess>;
+    'accesses': Array<ResourceAccess>;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    kind: string;
+    'kind': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    description: string;
+    'description': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    shortDescription: string;
+    'shortDescription': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * 
      * @type {SubjectDataRep}
      * @memberof AuditLogEntryListingRep
      */
-    subject?: SubjectDataRep;
+    'subject'?: SubjectDataRep;
     /**
      * 
      * @type {MemberDataRep}
      * @memberof AuditLogEntryListingRep
      */
-    member?: MemberDataRep;
+    'member'?: MemberDataRep;
     /**
      * 
      * @type {TokenDataRep}
      * @memberof AuditLogEntryListingRep
      */
-    token?: TokenDataRep;
+    'token'?: TokenDataRep;
     /**
      * 
      * @type {AuthorizedAppDataRep}
      * @memberof AuditLogEntryListingRep
      */
-    app?: AuthorizedAppDataRep;
+    'app'?: AuthorizedAppDataRep;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    titleVerb?: string;
+    'titleVerb'?: string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryListingRep
      */
-    title?: string;
+    'title'?: string;
     /**
      * 
      * @type {TargetResourceRep}
      * @memberof AuditLogEntryListingRep
      */
-    target?: TargetResourceRep;
+    'target'?: TargetResourceRep;
     /**
      * 
      * @type {ParentResourceRep}
      * @memberof AuditLogEntryListingRep
      */
-    parent?: ParentResourceRep;
+    'parent'?: ParentResourceRep;
 }
 /**
  * 
@@ -425,13 +425,13 @@ export interface AuditLogEntryListingRepCollection {
      * @type {Array<AuditLogEntryListingRep>}
      * @memberof AuditLogEntryListingRepCollection
      */
-    items: Array<AuditLogEntryListingRep>;
+    'items': Array<AuditLogEntryListingRep>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof AuditLogEntryListingRepCollection
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
 }
 /**
  * 
@@ -444,145 +444,145 @@ export interface AuditLogEntryRep {
      * @type {{ [key: string]: Link; }}
      * @memberof AuditLogEntryRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    _accountId: string;
+    '_accountId': string;
     /**
      * 
      * @type {number}
      * @memberof AuditLogEntryRep
      */
-    date: number;
+    'date': number;
     /**
      * 
      * @type {Array<ResourceAccess>}
      * @memberof AuditLogEntryRep
      */
-    accesses: Array<ResourceAccess>;
+    'accesses': Array<ResourceAccess>;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    kind: string;
+    'kind': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    description: string;
+    'description': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    shortDescription: string;
+    'shortDescription': string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * 
      * @type {SubjectDataRep}
      * @memberof AuditLogEntryRep
      */
-    subject?: SubjectDataRep;
+    'subject'?: SubjectDataRep;
     /**
      * 
      * @type {MemberDataRep}
      * @memberof AuditLogEntryRep
      */
-    member?: MemberDataRep;
+    'member'?: MemberDataRep;
     /**
      * 
      * @type {TokenDataRep}
      * @memberof AuditLogEntryRep
      */
-    token?: TokenDataRep;
+    'token'?: TokenDataRep;
     /**
      * 
      * @type {AuthorizedAppDataRep}
      * @memberof AuditLogEntryRep
      */
-    app?: AuthorizedAppDataRep;
+    'app'?: AuthorizedAppDataRep;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    titleVerb?: string;
+    'titleVerb'?: string;
     /**
      * 
      * @type {string}
      * @memberof AuditLogEntryRep
      */
-    title?: string;
+    'title'?: string;
     /**
      * 
      * @type {TargetResourceRep}
      * @memberof AuditLogEntryRep
      */
-    target?: TargetResourceRep;
+    'target'?: TargetResourceRep;
     /**
      * 
      * @type {ParentResourceRep}
      * @memberof AuditLogEntryRep
      */
-    parent?: ParentResourceRep;
+    'parent'?: ParentResourceRep;
     /**
      * 
      * @type {any}
      * @memberof AuditLogEntryRep
      */
-    delta?: any | null;
+    'delta'?: any;
     /**
      * 
      * @type {any}
      * @memberof AuditLogEntryRep
      */
-    triggerBody?: any | null;
+    'triggerBody'?: any;
     /**
      * 
      * @type {any}
      * @memberof AuditLogEntryRep
      */
-    merge?: any | null;
+    'merge'?: any;
     /**
      * 
      * @type {any}
      * @memberof AuditLogEntryRep
      */
-    previousVersion?: any | null;
+    'previousVersion'?: any;
     /**
      * 
      * @type {any}
      * @memberof AuditLogEntryRep
      */
-    currentVersion?: any | null;
+    'currentVersion'?: any;
     /**
      * 
      * @type {Array<AuditLogEntryListingRep>}
      * @memberof AuditLogEntryRep
      */
-    subentries?: Array<AuditLogEntryListingRep>;
+    'subentries'?: Array<AuditLogEntryListingRep>;
 }
 /**
  * 
@@ -595,31 +595,31 @@ export interface AuthorizedAppDataRep {
      * @type {{ [key: string]: Link; }}
      * @memberof AuthorizedAppDataRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof AuthorizedAppDataRep
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {boolean}
      * @memberof AuthorizedAppDataRep
      */
-    isScim?: boolean;
+    'isScim'?: boolean;
     /**
      * 
      * @type {string}
      * @memberof AuthorizedAppDataRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof AuthorizedAppDataRep
      */
-    maintainerName?: string;
+    'maintainerName'?: string;
 }
 /**
  * 
@@ -632,19 +632,19 @@ export interface BigSegmentTarget {
      * @type {string}
      * @memberof BigSegmentTarget
      */
-    userKey: string;
+    'userKey': string;
     /**
      * Indicates whether the user is included.<br />Included users are always segment members, regardless of segment rules.
      * @type {boolean}
      * @memberof BigSegmentTarget
      */
-    included: boolean;
+    'included': boolean;
     /**
      * Indicates whether the user is excluded.<br />Segment rules bypass excluded users, so they will never be included based on rules. Excluded users may still be included explicitly.
      * @type {boolean}
      * @memberof BigSegmentTarget
      */
-    excluded: boolean;
+    'excluded': boolean;
 }
 /**
  * 
@@ -657,13 +657,13 @@ export interface BranchCollectionRep {
      * @type {{ [key: string]: Link; }}
      * @memberof BranchCollectionRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * An array of branches
      * @type {Array<BranchRep>}
      * @memberof BranchCollectionRep
      */
-    items: Array<BranchRep>;
+    'items': Array<BranchRep>;
 }
 /**
  * 
@@ -676,37 +676,37 @@ export interface BranchRep {
      * @type {string}
      * @memberof BranchRep
      */
-    name: string;
+    'name': string;
     /**
      * An ID representing the branch HEAD. For example, a commit SHA.
      * @type {string}
      * @memberof BranchRep
      */
-    head: string;
+    'head': string;
     /**
      * An optional ID used to prevent older data from overwriting newer data
      * @type {number}
      * @memberof BranchRep
      */
-    updateSequenceId?: number;
+    'updateSequenceId'?: number;
     /**
      * 
      * @type {number}
      * @memberof BranchRep
      */
-    syncTime: number;
+    'syncTime': number;
     /**
      * An array of flag references found on the branch
      * @type {Array<ReferenceRep>}
      * @memberof BranchRep
      */
-    references?: Array<ReferenceRep>;
+    'references'?: Array<ReferenceRep>;
     /**
      * 
      * @type {{ [key: string]: any; }}
      * @memberof BranchRep
      */
-    _links: { [key: string]: any; };
+    '_links': { [key: string]: any; };
 }
 /**
  * 
@@ -719,31 +719,31 @@ export interface Clause {
      * @type {string}
      * @memberof Clause
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {string}
      * @memberof Clause
      */
-    attribute: string;
+    'attribute': string;
     /**
      * 
      * @type {string}
      * @memberof Clause
      */
-    op: string;
+    'op': string;
     /**
      * 
      * @type {Array<any>}
      * @memberof Clause
      */
-    values: Array<any>;
+    'values': Array<any>;
     /**
      * 
      * @type {boolean}
      * @memberof Clause
      */
-    negate: boolean;
+    'negate': boolean;
 }
 /**
  * 
@@ -756,13 +756,13 @@ export interface ClientSideAvailability {
      * @type {boolean}
      * @memberof ClientSideAvailability
      */
-    usingMobileKey?: boolean;
+    'usingMobileKey'?: boolean;
     /**
      * 
      * @type {boolean}
      * @memberof ClientSideAvailability
      */
-    usingEnvironmentId?: boolean;
+    'usingEnvironmentId'?: boolean;
 }
 /**
  * 
@@ -775,13 +775,13 @@ export interface ClientSideAvailabilityPost {
      * @type {boolean}
      * @memberof ClientSideAvailabilityPost
      */
-    usingEnvironmentId: boolean;
+    'usingEnvironmentId': boolean;
     /**
      * 
      * @type {boolean}
      * @memberof ClientSideAvailabilityPost
      */
-    usingMobileKey: boolean;
+    'usingMobileKey': boolean;
 }
 /**
  * 
@@ -794,19 +794,19 @@ export interface ConditionBaseOutputRep {
      * @type {string}
      * @memberof ConditionBaseOutputRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof ConditionBaseOutputRep
      */
-    kind?: string;
+    'kind'?: string;
     /**
      * 
      * @type {ExecutionOutputRep}
      * @memberof ConditionBaseOutputRep
      */
-    _execution: ExecutionOutputRep;
+    '_execution': ExecutionOutputRep;
 }
 /**
  * 
@@ -819,31 +819,31 @@ export interface ConditionInputRep {
      * @type {number}
      * @memberof ConditionInputRep
      */
-    executionDate?: number;
+    'executionDate'?: number;
     /**
      * 
      * @type {boolean}
      * @memberof ConditionInputRep
      */
-    executeNow?: boolean;
+    'executeNow'?: boolean;
     /**
      * 
      * @type {string}
      * @memberof ConditionInputRep
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {Array<string>}
      * @memberof ConditionInputRep
      */
-    notifyMemberIds?: Array<string>;
+    'notifyMemberIds'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof ConditionInputRep
      */
-    kind?: string;
+    'kind'?: string;
 }
 /**
  * 
@@ -856,55 +856,55 @@ export interface ConditionOutputRep {
      * @type {string}
      * @memberof ConditionOutputRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof ConditionOutputRep
      */
-    kind?: string;
+    'kind'?: string;
     /**
      * 
      * @type {ExecutionOutputRep}
      * @memberof ConditionOutputRep
      */
-    _execution: ExecutionOutputRep;
+    '_execution': ExecutionOutputRep;
     /**
      * 
      * @type {number}
      * @memberof ConditionOutputRep
      */
-    executionDate?: number;
+    'executionDate'?: number;
     /**
      * 
      * @type {string}
      * @memberof ConditionOutputRep
      */
-    description: string;
+    'description': string;
     /**
      * 
      * @type {Array<string>}
      * @memberof ConditionOutputRep
      */
-    notifyMemberIds: Array<string>;
+    'notifyMemberIds': Array<string>;
     /**
      * 
      * @type {Array<ReviewOutputRep>}
      * @memberof ConditionOutputRep
      */
-    allReviews: Array<ReviewOutputRep>;
+    'allReviews': Array<ReviewOutputRep>;
     /**
      * 
      * @type {string}
      * @memberof ConditionOutputRep
      */
-    reviewStatus: string;
+    'reviewStatus': string;
     /**
      * 
      * @type {number}
      * @memberof ConditionOutputRep
      */
-    appliedDate?: number;
+    'appliedDate'?: number;
 }
 /**
  * 
@@ -917,13 +917,13 @@ export interface ConfidenceIntervalRep {
      * @type {number}
      * @memberof ConfidenceIntervalRep
      */
-    upper?: number;
+    'upper'?: number;
     /**
      * 
      * @type {number}
      * @memberof ConfidenceIntervalRep
      */
-    lower?: number;
+    'lower'?: number;
 }
 /**
  * 
@@ -936,13 +936,13 @@ export interface Conflict {
      * @type {{ [key: string]: any; }}
      * @memberof Conflict
      */
-    instruction?: { [key: string]: any; };
+    'instruction'?: { [key: string]: any; };
     /**
      * Reason why the conflict exists
      * @type {string}
      * @memberof Conflict
      */
-    reason?: string;
+    'reason'?: string;
 }
 /**
  * 
@@ -955,13 +955,13 @@ export interface ConflictOutputRep {
      * @type {string}
      * @memberof ConflictOutputRep
      */
-    stageId: string;
+    'stageId': string;
     /**
      * 
      * @type {string}
      * @memberof ConflictOutputRep
      */
-    message: string;
+    'message': string;
 }
 /**
  * 
@@ -974,13 +974,13 @@ export interface CopiedFromEnv {
      * @type {string}
      * @memberof CopiedFromEnv
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {number}
      * @memberof CopiedFromEnv
      */
-    version?: number;
+    'version'?: number;
 }
 /**
  * 
@@ -993,37 +993,37 @@ export interface CreateCopyFlagConfigApprovalRequestRequest {
      * @type {string}
      * @memberof CreateCopyFlagConfigApprovalRequestRequest
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * 
      * @type {string}
      * @memberof CreateCopyFlagConfigApprovalRequestRequest
      */
-    description?: string;
+    'description': string;
     /**
      * An array of member IDs. These members are notified to review the approval request.
      * @type {Array<string>}
      * @memberof CreateCopyFlagConfigApprovalRequestRequest
      */
-    notifyMemberIds: Array<string>;
+    'notifyMemberIds': Array<string>;
     /**
      * 
      * @type {SourceFlag}
      * @memberof CreateCopyFlagConfigApprovalRequestRequest
      */
-    source: SourceFlag;
+    'source': SourceFlag;
     /**
      * 
      * @type {Array<string>}
      * @memberof CreateCopyFlagConfigApprovalRequestRequest
      */
-    includedActions?: Array<string>;
+    'includedActions'?: Array<string>;
     /**
      * 
      * @type {Array<string>}
      * @memberof CreateCopyFlagConfigApprovalRequestRequest
      */
-    excludedActions?: Array<string>;
+    'excludedActions'?: Array<string>;
 }
 /**
  * 
@@ -1036,43 +1036,43 @@ export interface CreateFlagConfigApprovalRequestRequest {
      * @type {string}
      * @memberof CreateFlagConfigApprovalRequestRequest
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * A human-friendly name for the approval request
      * @type {string}
      * @memberof CreateFlagConfigApprovalRequestRequest
      */
-    description: string;
+    'description': string;
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof CreateFlagConfigApprovalRequestRequest
      */
-    instructions: Array<{ [key: string]: any; }>;
+    'instructions': Array<{ [key: string]: any; }>;
     /**
      * An array of member IDs. These members are notified to review the approval request
      * @type {Array<string>}
      * @memberof CreateFlagConfigApprovalRequestRequest
      */
-    notifyMemberIds: Array<string>;
+    'notifyMemberIds': Array<string>;
     /**
      * 
      * @type {number}
      * @memberof CreateFlagConfigApprovalRequestRequest
      */
-    executionDate?: number;
+    'executionDate'?: number;
     /**
      * ID of scheduled change to edit or delete
      * @type {string}
      * @memberof CreateFlagConfigApprovalRequestRequest
      */
-    operatingOnId?: string;
+    'operatingOnId'?: string;
     /**
      * 
      * @type {{ [key: string]: any; }}
      * @memberof CreateFlagConfigApprovalRequestRequest
      */
-    integrationConfig?: { [key: string]: any; };
+    'integrationConfig'?: { [key: string]: any; };
 }
 /**
  * 
@@ -1085,13 +1085,13 @@ export interface CustomProperty {
      * @type {string}
      * @memberof CustomProperty
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {Array<string>}
      * @memberof CustomProperty
      */
-    value: Array<string>;
+    'value': Array<string>;
 }
 /**
  * 
@@ -1104,49 +1104,49 @@ export interface CustomRole {
      * @type {string}
      * @memberof CustomRole
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof CustomRole
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {AccessRep}
      * @memberof CustomRole
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
     /**
      * 
      * @type {string}
      * @memberof CustomRole
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {string}
      * @memberof CustomRole
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {string}
      * @memberof CustomRole
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {Array<Statement>}
      * @memberof CustomRole
      */
-    policy: Array<Statement>;
+    'policy': Array<Statement>;
     /**
      * 
      * @type {string}
      * @memberof CustomRole
      */
-    basePermissions?: string;
+    'basePermissions'?: string;
 }
 /**
  * 
@@ -1159,31 +1159,31 @@ export interface CustomRolePost {
      * @type {string}
      * @memberof CustomRolePost
      */
-    name: string;
+    'name': string;
     /**
      * The custom role key
      * @type {string}
      * @memberof CustomRolePost
      */
-    key: string;
+    'key': string;
     /**
      * Description of custom role
      * @type {string}
      * @memberof CustomRolePost
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {Array<StatementPost>}
      * @memberof CustomRolePost
      */
-    policy: Array<StatementPost>;
+    'policy': Array<StatementPost>;
     /**
      * 
      * @type {string}
      * @memberof CustomRolePost
      */
-    basePermissions?: string;
+    'basePermissions'?: string;
 }
 /**
  * 
@@ -1196,31 +1196,31 @@ export interface CustomRolePostData {
      * @type {string}
      * @memberof CustomRolePostData
      */
-    name: string;
+    'name': string;
     /**
      * The custom role key
      * @type {string}
      * @memberof CustomRolePostData
      */
-    key: string;
+    'key': string;
     /**
      * Description of custom role
      * @type {string}
      * @memberof CustomRolePostData
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {Array<StatementPost>}
      * @memberof CustomRolePostData
      */
-    policy: Array<StatementPost>;
+    'policy': Array<StatementPost>;
     /**
      * 
      * @type {string}
      * @memberof CustomRolePostData
      */
-    basePermissions?: string;
+    'basePermissions'?: string;
 }
 /**
  * 
@@ -1233,13 +1233,13 @@ export interface CustomRoles {
      * @type {{ [key: string]: Link; }}
      * @memberof CustomRoles
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {Array<CustomRole>}
      * @memberof CustomRoles
      */
-    items?: Array<CustomRole>;
+    'items'?: Array<CustomRole>;
 }
 /**
  * 
@@ -1252,25 +1252,25 @@ export interface CustomWorkflowInputRep {
      * @type {string}
      * @memberof CustomWorkflowInputRep
      */
-    maintainerId?: string;
+    'maintainerId'?: string;
     /**
      * 
      * @type {string}
      * @memberof CustomWorkflowInputRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof CustomWorkflowInputRep
      */
-    description?: string;
+    'description': string;
     /**
      * 
      * @type {Array<StageInputRep>}
      * @memberof CustomWorkflowInputRep
      */
-    stages?: Array<StageInputRep>;
+    'stages'?: Array<StageInputRep>;
 }
 /**
  * 
@@ -1283,13 +1283,13 @@ export interface CustomWorkflowMeta {
      * @type {string}
      * @memberof CustomWorkflowMeta
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {CustomWorkflowStageMeta}
      * @memberof CustomWorkflowMeta
      */
-    stage?: CustomWorkflowStageMeta;
+    'stage'?: CustomWorkflowStageMeta;
 }
 /**
  * 
@@ -1302,67 +1302,67 @@ export interface CustomWorkflowOutputRep {
      * @type {string}
      * @memberof CustomWorkflowOutputRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {number}
      * @memberof CustomWorkflowOutputRep
      */
-    _version: number;
+    '_version': number;
     /**
      * 
      * @type {Array<ConflictOutputRep>}
      * @memberof CustomWorkflowOutputRep
      */
-    _conflicts: Array<ConflictOutputRep>;
+    '_conflicts': Array<ConflictOutputRep>;
     /**
      * 
      * @type {number}
      * @memberof CustomWorkflowOutputRep
      */
-    _creationDate: number;
+    '_creationDate': number;
     /**
      * 
      * @type {string}
      * @memberof CustomWorkflowOutputRep
      */
-    _maintainerId: string;
+    '_maintainerId': string;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof CustomWorkflowOutputRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof CustomWorkflowOutputRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof CustomWorkflowOutputRep
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {string}
      * @memberof CustomWorkflowOutputRep
      */
-    kind?: string;
+    'kind'?: string;
     /**
      * 
      * @type {Array<StageOutputRep>}
      * @memberof CustomWorkflowOutputRep
      */
-    stages?: Array<StageOutputRep>;
+    'stages'?: Array<StageOutputRep>;
     /**
      * 
      * @type {ExecutionOutputRep}
      * @memberof CustomWorkflowOutputRep
      */
-    _execution: ExecutionOutputRep;
+    '_execution': ExecutionOutputRep;
 }
 /**
  * 
@@ -1375,13 +1375,13 @@ export interface CustomWorkflowStageMeta {
      * @type {number}
      * @memberof CustomWorkflowStageMeta
      */
-    index?: number;
+    'index'?: number;
     /**
      * 
      * @type {string}
      * @memberof CustomWorkflowStageMeta
      */
-    name?: string;
+    'name'?: string;
 }
 /**
  * 
@@ -1394,7 +1394,7 @@ export interface CustomWorkflowsListingOutputRep {
      * @type {Array<CustomWorkflowOutputRep>}
      * @memberof CustomWorkflowsListingOutputRep
      */
-    items: Array<CustomWorkflowOutputRep>;
+    'items': Array<CustomWorkflowOutputRep>;
 }
 /**
  * 
@@ -1407,13 +1407,13 @@ export interface DefaultClientSideAvailabilityPost {
      * @type {boolean}
      * @memberof DefaultClientSideAvailabilityPost
      */
-    usingEnvironmentId: boolean;
+    'usingEnvironmentId': boolean;
     /**
      * 
      * @type {boolean}
      * @memberof DefaultClientSideAvailabilityPost
      */
-    usingMobileKey: boolean;
+    'usingMobileKey': boolean;
 }
 /**
  * 
@@ -1426,13 +1426,13 @@ export interface Defaults {
      * @type {number}
      * @memberof Defaults
      */
-    onVariation: number;
+    'onVariation': number;
     /**
      * 
      * @type {number}
      * @memberof Defaults
      */
-    offVariation: number;
+    'offVariation': number;
 }
 /**
  * 
@@ -1445,25 +1445,25 @@ export interface DependentFlag {
      * @type {string}
      * @memberof DependentFlag
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof DependentFlag
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof DependentFlag
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Link}
      * @memberof DependentFlag
      */
-    _site: Link;
+    '_site': Link;
 }
 /**
  * 
@@ -1476,25 +1476,25 @@ export interface DependentFlagEnvironment {
      * @type {string}
      * @memberof DependentFlagEnvironment
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof DependentFlagEnvironment
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof DependentFlagEnvironment
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Link}
      * @memberof DependentFlagEnvironment
      */
-    _site: Link;
+    '_site': Link;
 }
 /**
  * 
@@ -1507,19 +1507,38 @@ export interface DependentFlagsByEnvironment {
      * @type {Array<DependentFlag>}
      * @memberof DependentFlagsByEnvironment
      */
-    items: Array<DependentFlag>;
+    'items': Array<DependentFlag>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof DependentFlagsByEnvironment
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Link}
      * @memberof DependentFlagsByEnvironment
      */
-    _site: Link;
+    '_site': Link;
+}
+/**
+ * 
+ * @export
+ * @interface DerivedAttribute
+ */
+export interface DerivedAttribute {
+    /**
+     * 
+     * @type {any}
+     * @memberof DerivedAttribute
+     */
+    'value'?: any;
+    /**
+     * 
+     * @type {string}
+     * @memberof DerivedAttribute
+     */
+    'lastDerived'?: string;
 }
 /**
  * 
@@ -1532,49 +1551,49 @@ export interface Destination {
      * @type {string}
      * @memberof Destination
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof Destination
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof Destination
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof Destination
      */
-    kind?: DestinationKindEnum;
+    'kind'?: DestinationKindEnum;
     /**
      * 
      * @type {number}
      * @memberof Destination
      */
-    version?: number;
+    'version'?: number;
     /**
      * 
      * @type {any}
      * @memberof Destination
      */
-    config?: any | null;
+    'config'?: any;
     /**
      * 
      * @type {boolean}
      * @memberof Destination
      */
-    on?: boolean;
+    'on'?: boolean;
     /**
      * 
      * @type {AccessRep}
      * @memberof Destination
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
 }
 
 /**
@@ -1600,25 +1619,25 @@ export interface DestinationPost {
      * @type {string}
      * @memberof DestinationPost
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof DestinationPost
      */
-    kind?: DestinationPostKindEnum;
+    'kind'?: DestinationPostKindEnum;
     /**
      * 
      * @type {any}
      * @memberof DestinationPost
      */
-    config?: any | null;
+    'config'?: any;
     /**
      * 
      * @type {boolean}
      * @memberof DestinationPost
      */
-    on?: boolean;
+    'on'?: boolean;
 }
 
 /**
@@ -1644,13 +1663,13 @@ export interface Destinations {
      * @type {{ [key: string]: Link; }}
      * @memberof Destinations
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {Array<Destination>}
      * @memberof Destinations
      */
-    items?: Array<Destination>;
+    'items'?: Array<Destination>;
 }
 /**
  * 
@@ -1663,73 +1682,85 @@ export interface Environment {
      * @type {{ [key: string]: Link; }}
      * @memberof Environment
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof Environment
      */
-    _id: string;
+    '_id': string;
     /**
      * A project-unique key for the new environment.
      * @type {string}
      * @memberof Environment
      */
-    key: string;
+    'key': string;
     /**
      * A human-friendly name for the new environment.
      * @type {string}
      * @memberof Environment
      */
-    name: string;
+    'name': string;
     /**
      * API key to use with client-side SDKs.
      * @type {string}
      * @memberof Environment
      */
-    apiKey: string;
+    'apiKey': string;
     /**
      * API key to use with mobile SDKs.
      * @type {string}
      * @memberof Environment
      */
-    mobileKey: string;
+    'mobileKey': string;
     /**
      * The color used to indicate this environment in the UI.
      * @type {string}
      * @memberof Environment
      */
-    color: string;
+    'color': string;
     /**
      * The default time (in minutes) that the PHP SDK can cache feature flag rules locally.
      * @type {number}
      * @memberof Environment
      */
-    defaultTtl: number;
+    'defaultTtl': number;
     /**
      * Secure mode ensures that a user of the client-side SDK cannot impersonate another user.
      * @type {boolean}
      * @memberof Environment
      */
-    secureMode: boolean;
+    'secureMode': boolean;
     /**
      * Enables tracking detailed information for new flags by default.
      * @type {boolean}
      * @memberof Environment
      */
-    defaultTrackEvents: boolean;
+    'defaultTrackEvents': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Environment
+     */
+    'requireComments': boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Environment
+     */
+    'confirmChanges': boolean;
     /**
      * 
      * @type {Array<string>}
      * @memberof Environment
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {ApprovalSettings}
      * @memberof Environment
      */
-    approvalSettings?: ApprovalSettings;
+    'approvalSettings'?: ApprovalSettings;
 }
 /**
  * 
@@ -1742,55 +1773,55 @@ export interface EnvironmentPost {
      * @type {string}
      * @memberof EnvironmentPost
      */
-    name: string;
+    'name': string;
     /**
      * A project-unique key for the new environment.
      * @type {string}
      * @memberof EnvironmentPost
      */
-    key: string;
+    'key': string;
     /**
      * A color to indicate this environment in the UI.
      * @type {string}
      * @memberof EnvironmentPost
      */
-    color: string;
+    'color': string;
     /**
      * The default time (in minutes) that the PHP SDK can cache feature flag rules locally.
      * @type {number}
      * @memberof EnvironmentPost
      */
-    defaultTtl?: number;
+    'defaultTtl'?: number;
     /**
      * Secure mode ensures that a user of the client-side SDK cannot impersonate another user.
      * @type {boolean}
      * @memberof EnvironmentPost
      */
-    secureMode?: boolean;
+    'secureMode'?: boolean;
     /**
      * Enables tracking detailed information for new flags by default.
      * @type {boolean}
      * @memberof EnvironmentPost
      */
-    defaultTrackEvents?: boolean;
+    'defaultTrackEvents'?: boolean;
     /**
      * Require confirmation for all flag and segment changes via the UI in this environment.
      * @type {boolean}
      * @memberof EnvironmentPost
      */
-    confirmChanges?: boolean;
+    'confirmChanges'?: boolean;
     /**
      * Require comments for all flag and segment changes via the UI in this environment.
      * @type {boolean}
      * @memberof EnvironmentPost
      */
-    requireComments?: boolean;
+    'requireComments'?: boolean;
     /**
      * Tags to apply to the new environment.
      * @type {Array<string>}
      * @memberof EnvironmentPost
      */
-    tags?: Array<string>;
+    'tags'?: Array<string>;
 }
 /**
  * 
@@ -1803,7 +1834,7 @@ export interface ExecutionOutputRep {
      * @type {string}
      * @memberof ExecutionOutputRep
      */
-    status: string;
+    'status': string;
 }
 /**
  * 
@@ -1816,13 +1847,13 @@ export interface ExperimentAllocationRep {
      * @type {number}
      * @memberof ExperimentAllocationRep
      */
-    defaultVariation: number;
+    'defaultVariation': number;
     /**
      * 
      * @type {boolean}
      * @memberof ExperimentAllocationRep
      */
-    canReshuffle: boolean;
+    'canReshuffle': boolean;
 }
 /**
  * 
@@ -1835,13 +1866,13 @@ export interface ExperimentEnabledPeriodRep {
      * @type {number}
      * @memberof ExperimentEnabledPeriodRep
      */
-    startDate?: number;
+    'startDate'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentEnabledPeriodRep
      */
-    stopDate?: number;
+    'stopDate'?: number;
 }
 /**
  * 
@@ -1854,19 +1885,19 @@ export interface ExperimentEnvironmentSettingRep {
      * @type {number}
      * @memberof ExperimentEnvironmentSettingRep
      */
-    startDate?: number;
+    'startDate'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentEnvironmentSettingRep
      */
-    stopDate?: number;
+    'stopDate'?: number;
     /**
      * 
      * @type {Array<ExperimentEnabledPeriodRep>}
      * @memberof ExperimentEnvironmentSettingRep
      */
-    enabledPeriods?: Array<ExperimentEnabledPeriodRep>;
+    'enabledPeriods'?: Array<ExperimentEnabledPeriodRep>;
 }
 /**
  * 
@@ -1879,13 +1910,13 @@ export interface ExperimentInfoRep {
      * @type {number}
      * @memberof ExperimentInfoRep
      */
-    baselineIdx: number;
+    'baselineIdx': number;
     /**
      * 
      * @type {Array<ExperimentRep>}
      * @memberof ExperimentInfoRep
      */
-    items: Array<ExperimentRep>;
+    'items': Array<ExperimentRep>;
 }
 /**
  * 
@@ -1898,7 +1929,7 @@ export interface ExperimentMetadataRep {
      * @type {any}
      * @memberof ExperimentMetadataRep
      */
-    key?: any | null;
+    'key'?: any;
 }
 /**
  * 
@@ -1911,25 +1942,25 @@ export interface ExperimentRep {
      * @type {string}
      * @memberof ExperimentRep
      */
-    metricKey?: string;
+    'metricKey'?: string;
     /**
      * 
      * @type {MetricListingRep}
      * @memberof ExperimentRep
      */
-    _metric?: MetricListingRep;
+    '_metric'?: MetricListingRep;
     /**
      * 
      * @type {Array<string>}
      * @memberof ExperimentRep
      */
-    environments?: Array<string>;
+    'environments'?: Array<string>;
     /**
      * 
      * @type {{ [key: string]: ExperimentEnvironmentSettingRep; }}
      * @memberof ExperimentRep
      */
-    _environmentSettings?: { [key: string]: ExperimentEnvironmentSettingRep; };
+    '_environmentSettings'?: { [key: string]: ExperimentEnvironmentSettingRep; };
 }
 /**
  * 
@@ -1942,37 +1973,43 @@ export interface ExperimentResultsRep {
      * @type {{ [key: string]: Link; }}
      * @memberof ExperimentResultsRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {Array<ExperimentMetadataRep>}
      * @memberof ExperimentResultsRep
      */
-    metadata?: Array<ExperimentMetadataRep>;
+    'metadata'?: Array<ExperimentMetadataRep>;
     /**
      * 
      * @type {Array<ExperimentTotalsRep>}
      * @memberof ExperimentResultsRep
      */
-    totals?: Array<ExperimentTotalsRep>;
+    'totals'?: Array<ExperimentTotalsRep>;
     /**
      * 
      * @type {Array<ExperimentTimeSeriesSlice>}
      * @memberof ExperimentResultsRep
      */
-    series?: Array<ExperimentTimeSeriesSlice>;
+    'series'?: Array<ExperimentTimeSeriesSlice>;
     /**
      * 
      * @type {ExperimentStatsRep}
      * @memberof ExperimentResultsRep
      */
-    stats?: ExperimentStatsRep;
+    'stats'?: ExperimentStatsRep;
     /**
      * 
      * @type {string}
      * @memberof ExperimentResultsRep
      */
-    granularity?: string;
+    'granularity'?: string;
+    /**
+     * 
+     * @type {MetricSeen}
+     * @memberof ExperimentResultsRep
+     */
+    'metricSeen'?: MetricSeen;
 }
 /**
  * 
@@ -1985,25 +2022,25 @@ export interface ExperimentStatsRep {
      * @type {number}
      * @memberof ExperimentStatsRep
      */
-    pValue?: number;
+    'pValue'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentStatsRep
      */
-    chi2?: number;
+    'chi2'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentStatsRep
      */
-    winningVariationIdx?: number;
+    'winningVariationIdx'?: number;
     /**
      * 
      * @type {boolean}
      * @memberof ExperimentStatsRep
      */
-    minSampleSizeMet?: boolean;
+    'minSampleSizeMet'?: boolean;
 }
 /**
  * 
@@ -2016,13 +2053,13 @@ export interface ExperimentTimeSeriesSlice {
      * @type {number}
      * @memberof ExperimentTimeSeriesSlice
      */
-    Time?: number;
+    'Time'?: number;
     /**
      * 
      * @type {Array<ExperimentTimeSeriesVariationSlice>}
      * @memberof ExperimentTimeSeriesSlice
      */
-    VariationData?: Array<ExperimentTimeSeriesVariationSlice>;
+    'VariationData'?: Array<ExperimentTimeSeriesVariationSlice>;
 }
 /**
  * 
@@ -2035,49 +2072,49 @@ export interface ExperimentTimeSeriesVariationSlice {
      * @type {number}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    value?: number;
+    'value'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    count?: number;
+    'count'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    cumulativeValue?: number;
+    'cumulativeValue'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    cumulativeCount?: number;
+    'cumulativeCount'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    conversionRate?: number;
+    'conversionRate'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    cumulativeConversionRate?: number;
+    'cumulativeConversionRate'?: number;
     /**
      * 
      * @type {ConfidenceIntervalRep}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    confidenceInterval?: ConfidenceIntervalRep;
+    'confidenceInterval'?: ConfidenceIntervalRep;
     /**
      * 
      * @type {ConfidenceIntervalRep}
      * @memberof ExperimentTimeSeriesVariationSlice
      */
-    cumulativeConfidenceInterval?: ConfidenceIntervalRep;
+    'cumulativeConfidenceInterval'?: ConfidenceIntervalRep;
 }
 /**
  * 
@@ -2090,49 +2127,49 @@ export interface ExperimentTotalsRep {
      * @type {number}
      * @memberof ExperimentTotalsRep
      */
-    cumulativeValue?: number;
+    'cumulativeValue'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTotalsRep
      */
-    cumulativeCount?: number;
+    'cumulativeCount'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTotalsRep
      */
-    cumulativeImpressionCount?: number;
+    'cumulativeImpressionCount'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTotalsRep
      */
-    cumulativeConversionRate?: number;
+    'cumulativeConversionRate'?: number;
     /**
      * 
      * @type {ConfidenceIntervalRep}
      * @memberof ExperimentTotalsRep
      */
-    cumulativeConfidenceInterval?: ConfidenceIntervalRep;
+    'cumulativeConfidenceInterval'?: ConfidenceIntervalRep;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTotalsRep
      */
-    pValue?: number;
+    'pValue'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTotalsRep
      */
-    improvement?: number;
+    'improvement'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExperimentTotalsRep
      */
-    minSampleSize?: number;
+    'minSampleSize'?: number;
 }
 /**
  * 
@@ -2145,13 +2182,13 @@ export interface ExpiringUserTargetError {
      * @type {number}
      * @memberof ExpiringUserTargetError
      */
-    instructionIndex: number;
+    'instructionIndex': number;
     /**
      * 
      * @type {string}
      * @memberof ExpiringUserTargetError
      */
-    message: string;
+    'message': string;
 }
 /**
  * 
@@ -2164,13 +2201,13 @@ export interface ExpiringUserTargetGetResponse {
      * @type {Array<ExpiringUserTargetItem>}
      * @memberof ExpiringUserTargetGetResponse
      */
-    items: Array<ExpiringUserTargetItem>;
+    'items': Array<ExpiringUserTargetItem>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof ExpiringUserTargetGetResponse
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -2183,43 +2220,43 @@ export interface ExpiringUserTargetItem {
      * @type {string}
      * @memberof ExpiringUserTargetItem
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {number}
      * @memberof ExpiringUserTargetItem
      */
-    _version: number;
+    '_version': number;
     /**
      * 
      * @type {number}
      * @memberof ExpiringUserTargetItem
      */
-    expirationDate: number;
+    'expirationDate': number;
     /**
      * A unique key used to represent the user
      * @type {string}
      * @memberof ExpiringUserTargetItem
      */
-    userKey: string;
+    'userKey': string;
     /**
      * A segment\'s target type. Included when expiring user targets are updated on a user segment.
      * @type {string}
      * @memberof ExpiringUserTargetItem
      */
-    targetType?: string;
+    'targetType'?: string;
     /**
      * A unique key used to represent the flag variation. Included when expiring user targets are updated on a feature flag.
      * @type {string}
      * @memberof ExpiringUserTargetItem
      */
-    variationId?: string;
+    'variationId'?: string;
     /**
      * 
      * @type {ResourceIDResponse}
      * @memberof ExpiringUserTargetItem
      */
-    _resourceId: ResourceIDResponse;
+    '_resourceId': ResourceIDResponse;
 }
 /**
  * 
@@ -2232,37 +2269,74 @@ export interface ExpiringUserTargetPatchResponse {
      * @type {Array<ExpiringUserTargetItem>}
      * @memberof ExpiringUserTargetPatchResponse
      */
-    items: Array<ExpiringUserTargetItem>;
+    'items': Array<ExpiringUserTargetItem>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof ExpiringUserTargetPatchResponse
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof ExpiringUserTargetPatchResponse
      */
-    totalInstructions?: number;
+    'totalInstructions'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExpiringUserTargetPatchResponse
      */
-    successfulInstructions?: number;
+    'successfulInstructions'?: number;
     /**
      * 
      * @type {number}
      * @memberof ExpiringUserTargetPatchResponse
      */
-    failedInstructions?: number;
+    'failedInstructions'?: number;
     /**
      * 
      * @type {Array<ExpiringUserTargetError>}
      * @memberof ExpiringUserTargetPatchResponse
      */
-    errors?: Array<ExpiringUserTargetError>;
+    'errors'?: Array<ExpiringUserTargetError>;
+}
+/**
+ * 
+ * @export
+ * @interface Extinction
+ */
+export interface Extinction {
+    /**
+     * The identifier for the revision where flag became extinct. For example, a commit SHA.
+     * @type {string}
+     * @memberof Extinction
+     */
+    'revision': string;
+    /**
+     * Description of the extinction. For example, the commit message for the revision.
+     * @type {string}
+     * @memberof Extinction
+     */
+    'message': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof Extinction
+     */
+    'time': number;
+    /**
+     * The feature flag key
+     * @type {string}
+     * @memberof Extinction
+     */
+    'flagKey': string;
+    /**
+     * The project key
+     * @type {string}
+     * @memberof Extinction
+     */
+    'projKey': string;
 }
 /**
  * 
@@ -2275,50 +2349,13 @@ export interface ExtinctionCollectionRep {
      * @type {{ [key: string]: Link; }}
      * @memberof ExtinctionCollectionRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * An array of extinction events
-     * @type {{ [key: string]: Array<ExtinctionRep>; }}
+     * @type {{ [key: string]: Array<Extinction>; }}
      * @memberof ExtinctionCollectionRep
      */
-    items: { [key: string]: Array<ExtinctionRep>; };
-}
-/**
- * 
- * @export
- * @interface ExtinctionRep
- */
-export interface ExtinctionRep {
-    /**
-     * The identifier for the revision where flag became extinct. For example, a commit SHA.
-     * @type {string}
-     * @memberof ExtinctionRep
-     */
-    revision: string;
-    /**
-     * Description of the extinction. For example, the commit message for the revision.
-     * @type {string}
-     * @memberof ExtinctionRep
-     */
-    message: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ExtinctionRep
-     */
-    time: number;
-    /**
-     * The feature flag key
-     * @type {string}
-     * @memberof ExtinctionRep
-     */
-    flagKey: string;
-    /**
-     * The project key
-     * @type {string}
-     * @memberof ExtinctionRep
-     */
-    projKey: string;
+    'items': { [key: string]: Array<Extinction>; };
 }
 /**
  * 
@@ -2331,133 +2368,133 @@ export interface FeatureFlag {
      * @type {string}
      * @memberof FeatureFlag
      */
-    name: string;
+    'name': string;
     /**
      * Kind of feature flag
      * @type {string}
      * @memberof FeatureFlag
      */
-    kind: FeatureFlagKindEnum;
+    'kind': FeatureFlagKindEnum;
     /**
      * Description of the feature flag
      * @type {string}
      * @memberof FeatureFlag
      */
-    description?: string;
+    'description'?: string;
     /**
      * A unique key used to reference the flag in your code
      * @type {string}
      * @memberof FeatureFlag
      */
-    key: string;
+    'key': string;
     /**
      * Version of the feature flag
      * @type {number}
      * @memberof FeatureFlag
      */
-    _version: number;
+    '_version': number;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlag
      */
-    creationDate: number;
+    'creationDate': number;
     /**
      * Deprecated, use clientSideAvailability. Whether or not this flag should be made available to the client-side JavaScript SDK
      * @type {boolean}
      * @memberof FeatureFlag
      */
-    includeInSnippet?: boolean;
+    'includeInSnippet'?: boolean;
     /**
      * 
      * @type {ClientSideAvailability}
      * @memberof FeatureFlag
      */
-    clientSideAvailability?: ClientSideAvailability;
+    'clientSideAvailability'?: ClientSideAvailability;
     /**
      * An array of possible variations for the flag
      * @type {Array<Variation>}
      * @memberof FeatureFlag
      */
-    variations: Array<Variation>;
+    'variations': Array<Variation>;
     /**
      * 
      * @type {any}
      * @memberof FeatureFlag
      */
-    variationJsonSchema?: any | null;
+    'variationJsonSchema'?: any;
     /**
      * Whether or not the flag is a temporary flag
      * @type {boolean}
      * @memberof FeatureFlag
      */
-    temporary: boolean;
+    'temporary': boolean;
     /**
      * Tags for the feature flag
      * @type {Array<string>}
      * @memberof FeatureFlag
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FeatureFlag
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * Associated maintainerId for the feature flag
      * @type {string}
      * @memberof FeatureFlag
      */
-    maintainerId?: string;
+    'maintainerId'?: string;
     /**
      * 
      * @type {MemberSummaryRep}
      * @memberof FeatureFlag
      */
-    _maintainer?: MemberSummaryRep;
+    '_maintainer'?: MemberSummaryRep;
     /**
      * 
      * @type {Array<string>}
      * @memberof FeatureFlag
      */
-    goalIds?: Array<string>;
+    'goalIds'?: Array<string>;
     /**
      * 
      * @type {ExperimentInfoRep}
      * @memberof FeatureFlag
      */
-    experiments: ExperimentInfoRep;
+    'experiments': ExperimentInfoRep;
     /**
      * 
      * @type {{ [key: string]: CustomProperty; }}
      * @memberof FeatureFlag
      */
-    customProperties: { [key: string]: CustomProperty; };
+    'customProperties': { [key: string]: CustomProperty; };
     /**
      * Boolean indicating if the feature flag is archived
      * @type {boolean}
      * @memberof FeatureFlag
      */
-    archived: boolean;
+    'archived': boolean;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlag
      */
-    archivedDate?: number;
+    'archivedDate'?: number;
     /**
      * 
      * @type {Defaults}
      * @memberof FeatureFlag
      */
-    defaults?: Defaults;
+    'defaults'?: Defaults;
     /**
      * 
      * @type {{ [key: string]: FeatureFlagConfig; }}
      * @memberof FeatureFlag
      */
-    environments: { [key: string]: FeatureFlagConfig; };
+    'environments': { [key: string]: FeatureFlagConfig; };
 }
 
 /**
@@ -2480,67 +2517,67 @@ export interface FeatureFlagBody {
      * @type {string}
      * @memberof FeatureFlagBody
      */
-    name: string;
+    'name': string;
     /**
      * A unique key to reference the flag in your code
      * @type {string}
      * @memberof FeatureFlagBody
      */
-    key: string;
+    'key': string;
     /**
      * Description of the feature flag
      * @type {string}
      * @memberof FeatureFlagBody
      */
-    description?: string;
+    'description'?: string;
     /**
      * Deprecated, use clientSideAvailability. Whether or not this flag should be made available to the client-side JavaScript SDK
      * @type {boolean}
      * @memberof FeatureFlagBody
      */
-    includeInSnippet?: boolean;
+    'includeInSnippet'?: boolean;
     /**
      * 
      * @type {ClientSideAvailabilityPost}
      * @memberof FeatureFlagBody
      */
-    clientSideAvailability?: ClientSideAvailabilityPost;
+    'clientSideAvailability'?: ClientSideAvailabilityPost;
     /**
      * An array of possible variations for the flag
-     * @type {Array<Variate>}
+     * @type {Array<Variation>}
      * @memberof FeatureFlagBody
      */
-    variations?: Array<Variate>;
+    'variations'?: Array<Variation>;
     /**
      * 
      * @type {any}
      * @memberof FeatureFlagBody
      */
-    variationJsonSchema?: any | null;
+    'variationJsonSchema'?: any;
     /**
      * Whether or not the flag is a temporary flag
      * @type {boolean}
      * @memberof FeatureFlagBody
      */
-    temporary?: boolean;
+    'temporary'?: boolean;
     /**
      * Tags for the feature flag
      * @type {Array<string>}
      * @memberof FeatureFlagBody
      */
-    tags?: Array<string>;
+    'tags'?: Array<string>;
     /**
      * 
      * @type {{ [key: string]: CustomProperty; }}
      * @memberof FeatureFlagBody
      */
-    customProperties?: { [key: string]: CustomProperty; };
+    'customProperties'?: { [key: string]: CustomProperty; };
     /**
      * 
      * @type {Defaults}
      * @memberof FeatureFlagBody
      */
-    defaults?: Defaults;
+    'defaults'?: Defaults;
 }
 /**
  * 
@@ -2553,109 +2590,109 @@ export interface FeatureFlagConfig {
      * @type {boolean}
      * @memberof FeatureFlagConfig
      */
-    on: boolean;
+    'on': boolean;
     /**
      * 
      * @type {boolean}
      * @memberof FeatureFlagConfig
      */
-    archived: boolean;
+    'archived': boolean;
     /**
      * 
      * @type {string}
      * @memberof FeatureFlagConfig
      */
-    salt: string;
+    'salt': string;
     /**
      * 
      * @type {string}
      * @memberof FeatureFlagConfig
      */
-    sel: string;
+    'sel': string;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlagConfig
      */
-    lastModified: number;
+    'lastModified': number;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlagConfig
      */
-    version: number;
+    'version': number;
     /**
      * 
      * @type {Array<Target>}
      * @memberof FeatureFlagConfig
      */
-    targets: Array<Target>;
+    'targets': Array<Target>;
     /**
      * 
      * @type {Array<Rule>}
      * @memberof FeatureFlagConfig
      */
-    rules: Array<Rule>;
+    'rules': Array<Rule>;
     /**
      * 
      * @type {VariationOrRolloutRep}
      * @memberof FeatureFlagConfig
      */
-    fallthrough: VariationOrRolloutRep;
+    'fallthrough': VariationOrRolloutRep;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlagConfig
      */
-    offVariation?: number;
+    'offVariation'?: number;
     /**
      * 
      * @type {Array<Prerequisite>}
      * @memberof FeatureFlagConfig
      */
-    prerequisites: Array<Prerequisite>;
+    'prerequisites': Array<Prerequisite>;
     /**
      * 
      * @type {Link}
      * @memberof FeatureFlagConfig
      */
-    _site: Link;
+    '_site': Link;
     /**
      * 
      * @type {AccessRep}
      * @memberof FeatureFlagConfig
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
     /**
      * 
      * @type {string}
      * @memberof FeatureFlagConfig
      */
-    _environmentName: string;
+    '_environmentName': string;
     /**
      * 
      * @type {boolean}
      * @memberof FeatureFlagConfig
      */
-    trackEvents: boolean;
+    'trackEvents': boolean;
     /**
      * 
      * @type {boolean}
      * @memberof FeatureFlagConfig
      */
-    trackEventsFallthrough: boolean;
+    'trackEventsFallthrough': boolean;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlagConfig
      */
-    _debugEventsUntilDate?: number;
+    '_debugEventsUntilDate'?: number;
     /**
      * 
      * @type {FlagSummary}
      * @memberof FeatureFlagConfig
      */
-    _summary?: FlagSummary;
+    '_summary'?: FlagSummary;
 }
 /**
  * 
@@ -2668,49 +2705,49 @@ export interface FeatureFlagScheduledChange {
      * @type {string}
      * @memberof FeatureFlagScheduledChange
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlagScheduledChange
      */
-    _creationDate: number;
+    '_creationDate': number;
     /**
      * 
      * @type {string}
      * @memberof FeatureFlagScheduledChange
      */
-    _maintainerId: string;
+    '_maintainerId': string;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlagScheduledChange
      */
-    _version: number;
+    '_version': number;
     /**
      * 
      * @type {number}
      * @memberof FeatureFlagScheduledChange
      */
-    executionDate: number;
+    'executionDate': number;
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof FeatureFlagScheduledChange
      */
-    instructions: Array<{ [key: string]: any; }>;
+    'instructions': Array<{ [key: string]: any; }>;
     /**
      * 
      * @type {any}
      * @memberof FeatureFlagScheduledChange
      */
-    conflicts?: any | null;
+    'conflicts'?: any;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FeatureFlagScheduledChange
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -2723,13 +2760,13 @@ export interface FeatureFlagScheduledChanges {
      * @type {Array<FeatureFlagScheduledChange>}
      * @memberof FeatureFlagScheduledChanges
      */
-    items: Array<FeatureFlagScheduledChange>;
+    'items': Array<FeatureFlagScheduledChange>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FeatureFlagScheduledChanges
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -2742,19 +2779,19 @@ export interface FeatureFlagStatus {
      * @type {string}
      * @memberof FeatureFlagStatus
      */
-    name: string;
+    'name': string;
     /**
      * Timestamp of last time flag was requested
      * @type {string}
      * @memberof FeatureFlagStatus
      */
-    lastRequested?: string;
+    'lastRequested'?: string;
     /**
      * Default value seen from code
      * @type {any}
      * @memberof FeatureFlagStatus
      */
-    _default?: any | null;
+    'default'?: any;
 }
 /**
  * 
@@ -2767,19 +2804,19 @@ export interface FeatureFlagStatusAcrossEnvironments {
      * @type {{ [key: string]: FeatureFlagStatus; }}
      * @memberof FeatureFlagStatusAcrossEnvironments
      */
-    environments?: { [key: string]: FeatureFlagStatus; };
+    'environments'?: { [key: string]: FeatureFlagStatus; };
     /**
      * feature flag key
      * @type {string}
      * @memberof FeatureFlagStatusAcrossEnvironments
      */
-    key?: string;
+    'key'?: string;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FeatureFlagStatusAcrossEnvironments
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -2792,13 +2829,13 @@ export interface FeatureFlagStatuses {
      * @type {{ [key: string]: Link; }}
      * @memberof FeatureFlagStatuses
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Array<FlagStatusRep>}
      * @memberof FeatureFlagStatuses
      */
-    items?: Array<FlagStatusRep>;
+    'items'?: Array<FlagStatusRep>;
 }
 /**
  * 
@@ -2811,19 +2848,19 @@ export interface FeatureFlags {
      * @type {Array<FeatureFlag>}
      * @memberof FeatureFlags
      */
-    items: Array<FeatureFlag>;
+    'items': Array<FeatureFlag>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FeatureFlags
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof FeatureFlags
      */
-    totalCount?: number;
+    'totalCount'?: number;
 }
 /**
  * 
@@ -2836,121 +2873,121 @@ export interface FlagConfigApprovalRequestResponse {
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {number}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    _version: number;
+    '_version': number;
     /**
      * 
      * @type {number}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    creationDate: number;
+    'creationDate': number;
     /**
      * 
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    serviceKind: string;
+    'serviceKind': string;
     /**
      * 
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    requestorId?: string;
+    'requestorId'?: string;
     /**
      * A human-friendly name for the approval request
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    reviewStatus: string;
+    'reviewStatus': string;
     /**
      * 
      * @type {Array<ReviewResponse>}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    allReviews: Array<ReviewResponse>;
+    'allReviews': Array<ReviewResponse>;
     /**
      * An array of member IDs. These members are notified to review the approval request.
      * @type {Array<string>}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    notifyMemberIds: Array<string>;
+    'notifyMemberIds': Array<string>;
     /**
      * 
      * @type {number}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    appliedDate?: number;
+    'appliedDate'?: number;
     /**
      * 
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    appliedByMemberId?: string;
+    'appliedByMemberId'?: string;
     /**
      * 
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    status: string;
+    'status': string;
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    instructions: Array<{ [key: string]: any; }>;
+    'instructions': Array<{ [key: string]: any; }>;
     /**
      * 
      * @type {Array<Conflict>}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    conflicts: Array<Conflict>;
+    'conflicts': Array<Conflict>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    executionDate?: number;
+    'executionDate'?: number;
     /**
      * ID of scheduled change to edit or delete
      * @type {string}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    operatingOnId?: string;
+    'operatingOnId'?: string;
     /**
      * 
      * @type {IntegrationMetadata}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    integrationMetadata?: IntegrationMetadata;
+    'integrationMetadata'?: IntegrationMetadata;
     /**
      * 
      * @type {CopiedFromEnv}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    source?: CopiedFromEnv;
+    'source'?: CopiedFromEnv;
     /**
      * 
      * @type {CustomWorkflowMeta}
      * @memberof FlagConfigApprovalRequestResponse
      */
-    customWorkflowMetadata?: CustomWorkflowMeta;
+    'customWorkflowMetadata'?: CustomWorkflowMeta;
 }
 /**
  * 
@@ -2963,13 +3000,13 @@ export interface FlagConfigApprovalRequestsResponse {
      * @type {Array<FlagConfigApprovalRequestResponse>}
      * @memberof FlagConfigApprovalRequestsResponse
      */
-    items: Array<FlagConfigApprovalRequestResponse>;
+    'items': Array<FlagConfigApprovalRequestResponse>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FlagConfigApprovalRequestsResponse
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
 }
 /**
  * 
@@ -2982,13 +3019,13 @@ export interface FlagCopyConfigEnvironment {
      * @type {string}
      * @memberof FlagCopyConfigEnvironment
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {number}
      * @memberof FlagCopyConfigEnvironment
      */
-    currentVersion?: number;
+    'currentVersion'?: number;
 }
 /**
  * 
@@ -3001,31 +3038,31 @@ export interface FlagCopyConfigPost {
      * @type {FlagCopyConfigEnvironment}
      * @memberof FlagCopyConfigPost
      */
-    source: FlagCopyConfigEnvironment;
+    'source': FlagCopyConfigEnvironment;
     /**
      * 
      * @type {FlagCopyConfigEnvironment}
      * @memberof FlagCopyConfigPost
      */
-    target: FlagCopyConfigEnvironment;
+    'target': FlagCopyConfigEnvironment;
     /**
      * 
      * @type {string}
      * @memberof FlagCopyConfigPost
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * 
      * @type {Array<string>}
      * @memberof FlagCopyConfigPost
      */
-    includedActions?: Array<FlagCopyConfigPostIncludedActionsEnum>;
+    'includedActions'?: Array<FlagCopyConfigPostIncludedActionsEnum>;
     /**
      * 
      * @type {Array<string>}
      * @memberof FlagCopyConfigPost
      */
-    excludedActions?: Array<FlagCopyConfigPostExcludedActionsEnum>;
+    'excludedActions'?: Array<FlagCopyConfigPostExcludedActionsEnum>;
 }
 
 /**
@@ -3064,127 +3101,127 @@ export interface FlagGlobalAttributesRep {
      * @type {string}
      * @memberof FlagGlobalAttributesRep
      */
-    name: string;
+    'name': string;
     /**
      * Kind of feature flag
      * @type {string}
      * @memberof FlagGlobalAttributesRep
      */
-    kind: FlagGlobalAttributesRepKindEnum;
+    'kind': FlagGlobalAttributesRepKindEnum;
     /**
      * Description of the feature flag
      * @type {string}
      * @memberof FlagGlobalAttributesRep
      */
-    description?: string;
+    'description'?: string;
     /**
      * A unique key used to reference the flag in your code
      * @type {string}
      * @memberof FlagGlobalAttributesRep
      */
-    key: string;
+    'key': string;
     /**
      * Version of the feature flag
      * @type {number}
      * @memberof FlagGlobalAttributesRep
      */
-    _version: number;
+    '_version': number;
     /**
      * 
      * @type {number}
      * @memberof FlagGlobalAttributesRep
      */
-    creationDate: number;
+    'creationDate': number;
     /**
      * Deprecated, use clientSideAvailability. Whether or not this flag should be made available to the client-side JavaScript SDK
      * @type {boolean}
      * @memberof FlagGlobalAttributesRep
      */
-    includeInSnippet?: boolean;
+    'includeInSnippet'?: boolean;
     /**
      * 
      * @type {ClientSideAvailability}
      * @memberof FlagGlobalAttributesRep
      */
-    clientSideAvailability?: ClientSideAvailability;
+    'clientSideAvailability'?: ClientSideAvailability;
     /**
      * An array of possible variations for the flag
      * @type {Array<Variation>}
      * @memberof FlagGlobalAttributesRep
      */
-    variations: Array<Variation>;
+    'variations': Array<Variation>;
     /**
      * 
      * @type {any}
      * @memberof FlagGlobalAttributesRep
      */
-    variationJsonSchema?: any | null;
+    'variationJsonSchema'?: any;
     /**
      * Whether or not the flag is a temporary flag
      * @type {boolean}
      * @memberof FlagGlobalAttributesRep
      */
-    temporary: boolean;
+    'temporary': boolean;
     /**
      * Tags for the feature flag
      * @type {Array<string>}
      * @memberof FlagGlobalAttributesRep
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FlagGlobalAttributesRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * Associated maintainerId for the feature flag
      * @type {string}
      * @memberof FlagGlobalAttributesRep
      */
-    maintainerId?: string;
+    'maintainerId'?: string;
     /**
      * 
      * @type {MemberSummaryRep}
      * @memberof FlagGlobalAttributesRep
      */
-    _maintainer?: MemberSummaryRep;
+    '_maintainer'?: MemberSummaryRep;
     /**
      * 
      * @type {Array<string>}
      * @memberof FlagGlobalAttributesRep
      */
-    goalIds?: Array<string>;
+    'goalIds'?: Array<string>;
     /**
      * 
      * @type {ExperimentInfoRep}
      * @memberof FlagGlobalAttributesRep
      */
-    experiments: ExperimentInfoRep;
+    'experiments': ExperimentInfoRep;
     /**
      * 
      * @type {{ [key: string]: CustomProperty; }}
      * @memberof FlagGlobalAttributesRep
      */
-    customProperties: { [key: string]: CustomProperty; };
+    'customProperties': { [key: string]: CustomProperty; };
     /**
      * Boolean indicating if the feature flag is archived
      * @type {boolean}
      * @memberof FlagGlobalAttributesRep
      */
-    archived: boolean;
+    'archived': boolean;
     /**
      * 
      * @type {number}
      * @memberof FlagGlobalAttributesRep
      */
-    archivedDate?: number;
+    'archivedDate'?: number;
     /**
      * 
      * @type {Defaults}
      * @memberof FlagGlobalAttributesRep
      */
-    defaults?: Defaults;
+    'defaults'?: Defaults;
 }
 
 /**
@@ -3207,25 +3244,25 @@ export interface FlagListingRep {
      * @type {string}
      * @memberof FlagListingRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof FlagListingRep
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof FlagListingRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {Link}
      * @memberof FlagListingRep
      */
-    _site?: Link;
+    '_site'?: Link;
 }
 /**
  * 
@@ -3238,13 +3275,13 @@ export interface FlagScheduledChangesInput {
      * @type {string}
      * @memberof FlagScheduledChangesInput
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof FlagScheduledChangesInput
      */
-    instructions: Array<{ [key: string]: any; }>;
+    'instructions': Array<{ [key: string]: any; }>;
 }
 /**
  * 
@@ -3257,25 +3294,25 @@ export interface FlagStatusRep {
      * @type {{ [key: string]: Link; }}
      * @memberof FlagStatusRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * Status of the flag
      * @type {string}
      * @memberof FlagStatusRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * Timestamp of last time flag was requested
      * @type {string}
      * @memberof FlagStatusRep
      */
-    lastRequested?: string;
+    'lastRequested'?: string;
     /**
      * Default value seen from code
      * @type {any}
      * @memberof FlagStatusRep
      */
-    _default?: any | null;
+    'default'?: any;
 }
 /**
  * 
@@ -3288,7 +3325,7 @@ export interface FlagSummary {
      * @type {number}
      * @memberof FlagSummary
      */
-    prerequisites: number;
+    'prerequisites': number;
 }
 /**
  * 
@@ -3301,13 +3338,13 @@ export interface ForbiddenErrorRep {
      * @type {string}
      * @memberof ForbiddenErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof ForbiddenErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -3320,50 +3357,31 @@ export interface HunkRep {
      * @type {number}
      * @memberof HunkRep
      */
-    startingLineNumber: number;
+    'startingLineNumber': number;
     /**
      * Contextual lines of code that include the referenced feature flag
      * @type {string}
      * @memberof HunkRep
      */
-    lines?: string;
+    'lines'?: string;
     /**
      * The project key
      * @type {string}
      * @memberof HunkRep
      */
-    projKey?: string;
+    'projKey'?: string;
     /**
      * The feature flag key
      * @type {string}
      * @memberof HunkRep
      */
-    flagKey?: string;
+    'flagKey'?: string;
     /**
      * An array of flag key aliases
      * @type {Array<string>}
      * @memberof HunkRep
      */
-    aliases?: Array<string>;
-}
-/**
- * 
- * @export
- * @interface InlineResponse200
- */
-export interface InlineResponse200 {
-    /**
-     * 
-     * @type {string}
-     * @memberof InlineResponse200
-     */
-    href?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof InlineResponse200
-     */
-    type?: string;
+    'aliases'?: Array<string>;
 }
 /**
  * 
@@ -3376,25 +3394,25 @@ export interface IntegrationMetadata {
      * @type {string}
      * @memberof IntegrationMetadata
      */
-    externalId: string;
+    'externalId': string;
     /**
      * 
      * @type {IntegrationStatus}
      * @memberof IntegrationMetadata
      */
-    externalStatus: IntegrationStatus;
+    'externalStatus': IntegrationStatus;
     /**
      * 
      * @type {string}
      * @memberof IntegrationMetadata
      */
-    externalUrl: string;
+    'externalUrl': string;
     /**
      * 
      * @type {number}
      * @memberof IntegrationMetadata
      */
-    lastChecked: number;
+    'lastChecked': number;
 }
 /**
  * 
@@ -3407,13 +3425,13 @@ export interface IntegrationStatus {
      * @type {string}
      * @memberof IntegrationStatus
      */
-    display: string;
+    'display': string;
     /**
      * 
      * @type {string}
      * @memberof IntegrationStatus
      */
-    value: string;
+    'value': string;
 }
 /**
  * 
@@ -3426,13 +3444,13 @@ export interface InvalidRequestErrorRep {
      * @type {string}
      * @memberof InvalidRequestErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof InvalidRequestErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -3445,13 +3463,13 @@ export interface IpList {
      * @type {Array<string>}
      * @memberof IpList
      */
-    addresses: Array<string>;
+    'addresses': Array<string>;
     /**
      * 
      * @type {Array<string>}
      * @memberof IpList
      */
-    outboundAddresses: Array<string>;
+    'outboundAddresses': Array<string>;
 }
 /**
  * 
@@ -3464,7 +3482,7 @@ export interface LastSeenMetadata {
      * @type {string}
      * @memberof LastSeenMetadata
      */
-    tokenId?: string;
+    'tokenId'?: string;
 }
 /**
  * 
@@ -3477,13 +3495,13 @@ export interface Link {
      * @type {string}
      * @memberof Link
      */
-    href?: string;
+    'href'?: string;
     /**
      * 
      * @type {string}
      * @memberof Link
      */
-    type?: string;
+    'type'?: string;
 }
 /**
  * 
@@ -3496,109 +3514,109 @@ export interface Member {
      * @type {{ [key: string]: Link; }}
      * @memberof Member
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * The member\'s ID
      * @type {string}
      * @memberof Member
      */
-    _id: string;
+    '_id': string;
     /**
      * The member\'s first name
      * @type {string}
      * @memberof Member
      */
-    firstName?: string;
+    'firstName'?: string;
     /**
      * The member\'s last name
      * @type {string}
      * @memberof Member
      */
-    lastName?: string;
+    'lastName'?: string;
     /**
      * The member\'s built-in role. If the member has no custom roles, this role will be in effect.
      * @type {string}
      * @memberof Member
      */
-    role: string;
+    'role': string;
     /**
      * The member\'s email address
      * @type {string}
      * @memberof Member
      */
-    email: string;
+    'email': string;
     /**
      * Whether or not the member has a pending invitation
      * @type {boolean}
      * @memberof Member
      */
-    _pendingInvite: boolean;
+    '_pendingInvite': boolean;
     /**
      * Whether or not the member\'s email address has been verified
      * @type {boolean}
      * @memberof Member
      */
-    _verified: boolean;
+    '_verified': boolean;
     /**
      * 
      * @type {string}
      * @memberof Member
      */
-    _pendingEmail?: string;
+    '_pendingEmail'?: string;
     /**
      * The set of custom roles (as keys) assigned to the member
      * @type {Array<string>}
      * @memberof Member
      */
-    customRoles: Array<string>;
+    'customRoles': Array<string>;
     /**
      * Whether or not multi-factor authentication is enabled for this member
      * @type {string}
      * @memberof Member
      */
-    mfa: string;
+    'mfa': string;
     /**
      * Default dashboards that the member has chosen to ignore
      * @type {Array<string>}
      * @memberof Member
      */
-    excludedDashboards: Array<string>;
+    'excludedDashboards': Array<string>;
     /**
      * 
      * @type {number}
      * @memberof Member
      */
-    _lastSeen: number;
+    '_lastSeen': number;
     /**
      * 
      * @type {LastSeenMetadata}
      * @memberof Member
      */
-    _lastSeenMetadata?: LastSeenMetadata;
+    '_lastSeenMetadata'?: LastSeenMetadata;
     /**
      * 
      * @type {IntegrationMetadata}
      * @memberof Member
      */
-    _integrationMetadata?: IntegrationMetadata;
+    '_integrationMetadata'?: IntegrationMetadata;
     /**
      * 
      * @type {Array<MemberTeamSummaryRep>}
      * @memberof Member
      */
-    teams?: Array<MemberTeamSummaryRep>;
+    'teams'?: Array<MemberTeamSummaryRep>;
     /**
      * 
      * @type {Array<MemberPermissionGrantSummaryRep>}
      * @memberof Member
      */
-    permissionGrants?: Array<MemberPermissionGrantSummaryRep>;
+    'permissionGrants'?: Array<MemberPermissionGrantSummaryRep>;
     /**
      * 
      * @type {number}
      * @memberof Member
      */
-    creationDate: number;
+    'creationDate': number;
 }
 /**
  * 
@@ -3611,31 +3629,31 @@ export interface MemberDataRep {
      * @type {{ [key: string]: Link; }}
      * @memberof MemberDataRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof MemberDataRep
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {string}
      * @memberof MemberDataRep
      */
-    email?: string;
+    'email'?: string;
     /**
      * 
      * @type {string}
      * @memberof MemberDataRep
      */
-    firstName?: string;
+    'firstName'?: string;
     /**
      * 
      * @type {string}
      * @memberof MemberDataRep
      */
-    lastName?: string;
+    'lastName'?: string;
 }
 /**
  * 
@@ -3648,19 +3666,19 @@ export interface MemberPermissionGrantSummaryRep {
      * @type {string}
      * @memberof MemberPermissionGrantSummaryRep
      */
-    actionSet: string;
+    'actionSet': string;
     /**
      * 
      * @type {Array<string>}
      * @memberof MemberPermissionGrantSummaryRep
      */
-    actions: Array<string>;
+    'actions': Array<string>;
     /**
      * 
      * @type {string}
      * @memberof MemberPermissionGrantSummaryRep
      */
-    resource: string;
+    'resource': string;
 }
 /**
  * 
@@ -3673,37 +3691,37 @@ export interface MemberSummaryRep {
      * @type {{ [key: string]: Link; }}
      * @memberof MemberSummaryRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof MemberSummaryRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof MemberSummaryRep
      */
-    firstName?: string;
+    'firstName'?: string;
     /**
      * 
      * @type {string}
      * @memberof MemberSummaryRep
      */
-    lastName?: string;
+    'lastName'?: string;
     /**
      * 
      * @type {string}
      * @memberof MemberSummaryRep
      */
-    role: string;
+    'role': string;
     /**
      * 
      * @type {string}
      * @memberof MemberSummaryRep
      */
-    email: string;
+    'email': string;
 }
 /**
  * 
@@ -3716,19 +3734,19 @@ export interface MemberTeamSummaryRep {
      * @type {Array<string>}
      * @memberof MemberTeamSummaryRep
      */
-    customRoleKeys: Array<string>;
+    'customRoleKeys': Array<string>;
     /**
      * 
      * @type {string}
      * @memberof MemberTeamSummaryRep
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {string}
      * @memberof MemberTeamSummaryRep
      */
-    name: string;
+    'name': string;
 }
 /**
  * 
@@ -3741,19 +3759,19 @@ export interface Members {
      * @type {Array<Member>}
      * @memberof Members
      */
-    items: Array<Member>;
+    'items': Array<Member>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof Members
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof Members
      */
-    totalCount?: number;
+    'totalCount'?: number;
 }
 /**
  * 
@@ -3766,13 +3784,13 @@ export interface MethodNotAllowedErrorRep {
      * @type {string}
      * @memberof MethodNotAllowedErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof MethodNotAllowedErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -3785,13 +3803,13 @@ export interface MetricCollectionRep {
      * @type {Array<MetricListingRep>}
      * @memberof MetricCollectionRep
      */
-    items?: Array<MetricListingRep>;
+    'items'?: Array<MetricListingRep>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof MetricCollectionRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -3804,109 +3822,109 @@ export interface MetricListingRep {
      * @type {string}
      * @memberof MetricListingRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof MetricListingRep
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {string}
      * @memberof MetricListingRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof MetricListingRep
      */
-    kind: MetricListingRepKindEnum;
+    'kind': MetricListingRepKindEnum;
     /**
      * 
      * @type {number}
      * @memberof MetricListingRep
      */
-    _attachedFlagCount?: number;
+    '_attachedFlagCount'?: number;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof MetricListingRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Link}
      * @memberof MetricListingRep
      */
-    _site?: Link;
+    '_site'?: Link;
     /**
      * 
      * @type {AccessRep}
      * @memberof MetricListingRep
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
     /**
      * 
      * @type {Array<string>}
      * @memberof MetricListingRep
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {number}
      * @memberof MetricListingRep
      */
-    _creationDate: number;
+    '_creationDate': number;
     /**
      * 
      * @type {Modification}
      * @memberof MetricListingRep
      */
-    lastModified?: Modification;
+    'lastModified'?: Modification;
     /**
      * 
      * @type {string}
      * @memberof MetricListingRep
      */
-    maintainerId?: string;
+    'maintainerId'?: string;
     /**
      * 
      * @type {MemberSummaryRep}
      * @memberof MetricListingRep
      */
-    _maintainer?: MemberSummaryRep;
+    '_maintainer'?: MemberSummaryRep;
     /**
      * 
      * @type {string}
      * @memberof MetricListingRep
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {boolean}
      * @memberof MetricListingRep
      */
-    isNumeric?: boolean;
+    'isNumeric'?: boolean;
     /**
      * 
      * @type {number}
      * @memberof MetricListingRep
      */
-    successCriteria?: number;
+    'successCriteria'?: number;
     /**
      * 
      * @type {string}
      * @memberof MetricListingRep
      */
-    unit?: string;
+    'unit'?: string;
     /**
      * 
      * @type {string}
      * @memberof MetricListingRep
      */
-    eventKey?: string;
+    'eventKey'?: string;
 }
 
 /**
@@ -3930,73 +3948,73 @@ export interface MetricPost {
      * @type {string}
      * @memberof MetricPost
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {string}
      * @memberof MetricPost
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof MetricPost
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {string}
      * @memberof MetricPost
      */
-    kind: MetricPostKindEnum;
+    'kind': MetricPostKindEnum;
     /**
      * Required for click metrics
      * @type {string}
      * @memberof MetricPost
      */
-    selector?: string;
+    'selector'?: string;
     /**
      * Required for click and pageview metrics
      * @type {Array<UrlPost>}
      * @memberof MetricPost
      */
-    urls?: Array<UrlPost>;
+    'urls'?: Array<UrlPost>;
     /**
      * 
      * @type {boolean}
      * @memberof MetricPost
      */
-    isActive?: boolean;
+    'isActive'?: boolean;
     /**
      * 
      * @type {boolean}
      * @memberof MetricPost
      */
-    isNumeric?: boolean;
+    'isNumeric'?: boolean;
     /**
      * 
      * @type {string}
      * @memberof MetricPost
      */
-    unit?: string;
+    'unit'?: string;
     /**
      * Required for custom metrics
      * @type {string}
      * @memberof MetricPost
      */
-    eventKey?: string;
+    'eventKey'?: string;
     /**
      * 
      * @type {number}
      * @memberof MetricPost
      */
-    successCriteria?: number;
+    'successCriteria'?: number;
     /**
      * 
      * @type {Array<string>}
      * @memberof MetricPost
      */
-    tags?: Array<string>;
+    'tags'?: Array<string>;
 }
 
 /**
@@ -4020,139 +4038,139 @@ export interface MetricRep {
      * @type {string}
      * @memberof MetricRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    kind: MetricRepKindEnum;
+    'kind': MetricRepKindEnum;
     /**
      * 
      * @type {number}
      * @memberof MetricRep
      */
-    _attachedFlagCount?: number;
+    '_attachedFlagCount'?: number;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof MetricRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Link}
      * @memberof MetricRep
      */
-    _site?: Link;
+    '_site'?: Link;
     /**
      * 
      * @type {AccessRep}
      * @memberof MetricRep
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
     /**
      * 
      * @type {Array<string>}
      * @memberof MetricRep
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {number}
      * @memberof MetricRep
      */
-    _creationDate: number;
+    '_creationDate': number;
     /**
      * 
      * @type {Modification}
      * @memberof MetricRep
      */
-    lastModified?: Modification;
+    'lastModified'?: Modification;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    maintainerId?: string;
+    'maintainerId'?: string;
     /**
      * 
      * @type {MemberSummaryRep}
      * @memberof MetricRep
      */
-    _maintainer?: MemberSummaryRep;
+    '_maintainer'?: MemberSummaryRep;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {boolean}
      * @memberof MetricRep
      */
-    isNumeric?: boolean;
+    'isNumeric'?: boolean;
     /**
      * 
      * @type {number}
      * @memberof MetricRep
      */
-    successCriteria?: number;
+    'successCriteria'?: number;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    unit?: string;
+    'unit'?: string;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    eventKey?: string;
+    'eventKey'?: string;
     /**
      * 
      * @type {boolean}
      * @memberof MetricRep
      */
-    isActive?: boolean;
+    'isActive'?: boolean;
     /**
      * 
      * @type {Array<FlagListingRep>}
      * @memberof MetricRep
      */
-    _attachedFeatures?: Array<FlagListingRep>;
+    '_attachedFeatures'?: Array<FlagListingRep>;
     /**
      * 
      * @type {number}
      * @memberof MetricRep
      */
-    _version?: number;
+    '_version'?: number;
     /**
      * 
      * @type {string}
      * @memberof MetricRep
      */
-    selector?: string;
+    'selector'?: string;
     /**
      * 
      * @type {Array<any>}
      * @memberof MetricRep
      */
-    urls?: Array<any>;
+    'urls'?: Array<any>;
 }
 
 /**
@@ -4168,6 +4186,25 @@ export enum MetricRepKindEnum {
 /**
  * 
  * @export
+ * @interface MetricSeen
+ */
+export interface MetricSeen {
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MetricSeen
+     */
+    'ever'?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof MetricSeen
+     */
+    'minutesAgo'?: number;
+}
+/**
+ * 
+ * @export
  * @interface Modification
  */
 export interface Modification {
@@ -4176,7 +4213,7 @@ export interface Modification {
      * @type {string}
      * @memberof Modification
      */
-    date?: string;
+    'date'?: string;
 }
 /**
  * 
@@ -4189,19 +4226,19 @@ export interface MultiEnvironmentDependentFlag {
      * @type {string}
      * @memberof MultiEnvironmentDependentFlag
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof MultiEnvironmentDependentFlag
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {Array<DependentFlagEnvironment>}
      * @memberof MultiEnvironmentDependentFlag
      */
-    environments: Array<DependentFlagEnvironment>;
+    'environments': Array<DependentFlagEnvironment>;
 }
 /**
  * 
@@ -4214,19 +4251,19 @@ export interface MultiEnvironmentDependentFlags {
      * @type {Array<MultiEnvironmentDependentFlag>}
      * @memberof MultiEnvironmentDependentFlags
      */
-    items: Array<MultiEnvironmentDependentFlag>;
+    'items': Array<MultiEnvironmentDependentFlag>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof MultiEnvironmentDependentFlags
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Link}
      * @memberof MultiEnvironmentDependentFlags
      */
-    _site: Link;
+    '_site': Link;
 }
 /**
  * 
@@ -4239,37 +4276,37 @@ export interface NewMemberForm {
      * @type {string}
      * @memberof NewMemberForm
      */
-    email: string;
+    'email': string;
     /**
      * The member\'s password
      * @type {string}
      * @memberof NewMemberForm
      */
-    password?: string;
+    'password'?: string;
     /**
      * The member\'s first name
      * @type {string}
      * @memberof NewMemberForm
      */
-    firstName?: string;
+    'firstName'?: string;
     /**
      * The member\'s last name
      * @type {string}
      * @memberof NewMemberForm
      */
-    lastName?: string;
+    'lastName'?: string;
     /**
      * The member\'s built-in role
      * @type {string}
      * @memberof NewMemberForm
      */
-    role?: string;
+    'role'?: string;
     /**
      * The member\'s custom role
      * @type {Array<string>}
      * @memberof NewMemberForm
      */
-    customRoles?: Array<string>;
+    'customRoles'?: Array<string>;
 }
 /**
  * 
@@ -4282,13 +4319,13 @@ export interface NotFoundErrorRep {
      * @type {string}
      * @memberof NotFoundErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof NotFoundErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -4301,19 +4338,19 @@ export interface ParentResourceRep {
      * @type {{ [key: string]: Link; }}
      * @memberof ParentResourceRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof ParentResourceRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {any}
      * @memberof ParentResourceRep
      */
-    resource?: any | null;
+    'resource'?: any;
 }
 /**
  * 
@@ -4326,13 +4363,13 @@ export interface PatchFailedErrorRep {
      * @type {string}
      * @memberof PatchFailedErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof PatchFailedErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -4345,19 +4382,19 @@ export interface PatchOperation {
      * @type {string}
      * @memberof PatchOperation
      */
-    op: string;
+    'op': string;
     /**
      * A JSON Pointer string specifying the part of the document to operate on
      * @type {string}
      * @memberof PatchOperation
      */
-    path: string;
+    'path': string;
     /**
      * A JSON value used in \"add\", \"replace\", and \"test\" operations
      * @type {any}
      * @memberof PatchOperation
      */
-    value: any | null;
+    'value': any;
 }
 /**
  * 
@@ -4370,31 +4407,31 @@ export interface PatchSegmentInstruction {
      * @type {string}
      * @memberof PatchSegmentInstruction
      */
-    kind: string;
+    'kind': string;
     /**
      * A unique key used to represent the user
      * @type {string}
      * @memberof PatchSegmentInstruction
      */
-    userKey: string;
+    'userKey': string;
     /**
      * A segment\'s target type. Must be either <code>included</code> or <code>excluded</code>
      * @type {string}
      * @memberof PatchSegmentInstruction
      */
-    targetType: string;
+    'targetType': string;
     /**
      * Schedule user target expiration on a segment by including a timestamp
      * @type {number}
      * @memberof PatchSegmentInstruction
      */
-    value?: number;
+    'value'?: number;
     /**
      * Required if <code>kind</code> is <code>updateExpireUserTargetDate</code>
      * @type {number}
      * @memberof PatchSegmentInstruction
      */
-    version?: number;
+    'version'?: number;
 }
 /**
  * 
@@ -4407,13 +4444,13 @@ export interface PatchSegmentRequest {
      * @type {string}
      * @memberof PatchSegmentRequest
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * Semantic patch instructions for the desired changes to the resource
      * @type {Array<PatchSegmentInstruction>}
      * @memberof PatchSegmentRequest
      */
-    instructions: Array<PatchSegmentInstruction>;
+    'instructions': Array<PatchSegmentInstruction>;
 }
 /**
  * 
@@ -4426,13 +4463,13 @@ export interface PatchWithComment {
      * @type {Array<PatchOperation>}
      * @memberof PatchWithComment
      */
-    patch: Array<PatchOperation>;
+    'patch': Array<PatchOperation>;
     /**
      * 
      * @type {string}
      * @memberof PatchWithComment
      */
-    comment?: string;
+    'comment'?: string;
 }
 /**
  * 
@@ -4445,19 +4482,19 @@ export interface PermissionGrantInput {
      * @type {Array<string>}
      * @memberof PermissionGrantInput
      */
-    memberIDs?: Array<string>;
+    'memberIDs'?: Array<string>;
     /**
      * 
      * @type {Array<string>}
      * @memberof PermissionGrantInput
      */
-    actions?: Array<string>;
+    'actions'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof PermissionGrantInput
      */
-    actionSet?: string;
+    'actionSet'?: string;
 }
 /**
  * 
@@ -4470,25 +4507,25 @@ export interface PermissionGrantRep {
      * @type {string}
      * @memberof PermissionGrantRep
      */
-    actionSet?: string;
+    'actionSet'?: string;
     /**
      * 
      * @type {Array<string>}
      * @memberof PermissionGrantRep
      */
-    actions?: Array<string>;
+    'actions'?: Array<string>;
     /**
      * 
      * @type {Array<string>}
      * @memberof PermissionGrantRep
      */
-    memberIDs?: Array<string>;
+    'memberIDs'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof PermissionGrantRep
      */
-    resource?: string;
+    'resource'?: string;
 }
 /**
  * 
@@ -4501,7 +4538,7 @@ export interface PostApprovalRequestApplyRequest {
      * @type {string}
      * @memberof PostApprovalRequestApplyRequest
      */
-    comment?: string;
+    'comment'?: string;
 }
 /**
  * 
@@ -4514,13 +4551,13 @@ export interface PostApprovalRequestReviewRequest {
      * @type {string}
      * @memberof PostApprovalRequestReviewRequest
      */
-    kind?: string;
+    'kind'?: string;
     /**
      * 
      * @type {string}
      * @memberof PostApprovalRequestReviewRequest
      */
-    comment?: string;
+    'comment'?: string;
 }
 /**
  * 
@@ -4533,19 +4570,19 @@ export interface PostFlagScheduledChangesInput {
      * @type {string}
      * @memberof PostFlagScheduledChangesInput
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * 
      * @type {number}
      * @memberof PostFlagScheduledChangesInput
      */
-    executionDate: number;
+    'executionDate': number;
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof PostFlagScheduledChangesInput
      */
-    instructions: Array<{ [key: string]: any; }>;
+    'instructions': Array<{ [key: string]: any; }>;
 }
 /**
  * 
@@ -4558,13 +4595,13 @@ export interface Prerequisite {
      * @type {string}
      * @memberof Prerequisite
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {number}
      * @memberof Prerequisite
      */
-    variation: number;
+    'variation': number;
 }
 /**
  * 
@@ -4577,49 +4614,49 @@ export interface Project {
      * @type {{ [key: string]: Link; }}
      * @memberof Project
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof Project
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof Project
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {boolean}
      * @memberof Project
      */
-    includeInSnippetByDefault: boolean;
+    'includeInSnippetByDefault': boolean;
     /**
      * 
      * @type {ClientSideAvailability}
      * @memberof Project
      */
-    defaultClientSideAvailability?: ClientSideAvailability;
+    'defaultClientSideAvailability'?: ClientSideAvailability;
     /**
      * 
      * @type {string}
      * @memberof Project
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {Array<string>}
      * @memberof Project
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {Array<Environment>}
      * @memberof Project
      */
-    environments: Array<Environment>;
+    'environments': Array<Environment>;
 }
 /**
  * 
@@ -4632,43 +4669,43 @@ export interface ProjectListingRep {
      * @type {{ [key: string]: Link; }}
      * @memberof ProjectListingRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof ProjectListingRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof ProjectListingRep
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {boolean}
      * @memberof ProjectListingRep
      */
-    includeInSnippetByDefault: boolean;
+    'includeInSnippetByDefault': boolean;
     /**
      * 
      * @type {ClientSideAvailability}
      * @memberof ProjectListingRep
      */
-    defaultClientSideAvailability?: ClientSideAvailability;
+    'defaultClientSideAvailability'?: ClientSideAvailability;
     /**
      * 
      * @type {string}
      * @memberof ProjectListingRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {Array<string>}
      * @memberof ProjectListingRep
      */
-    tags: Array<string>;
+    'tags': Array<string>;
 }
 /**
  * 
@@ -4681,37 +4718,37 @@ export interface ProjectPost {
      * @type {string}
      * @memberof ProjectPost
      */
-    name: string;
+    'name': string;
     /**
      * A unique key used to reference the project in your code.
      * @type {string}
      * @memberof ProjectPost
      */
-    key: string;
+    'key': string;
     /**
      * Whether or not flags created in this project are made available to the client-side JavaScript SDK by default.
      * @type {boolean}
      * @memberof ProjectPost
      */
-    includeInSnippetByDefault?: boolean;
+    'includeInSnippetByDefault'?: boolean;
     /**
      * 
      * @type {DefaultClientSideAvailabilityPost}
      * @memberof ProjectPost
      */
-    defaultClientSideAvailability?: DefaultClientSideAvailabilityPost;
+    'defaultClientSideAvailability'?: DefaultClientSideAvailabilityPost;
     /**
      * 
      * @type {Array<string>}
      * @memberof ProjectPost
      */
-    tags?: Array<string>;
+    'tags'?: Array<string>;
     /**
      * Creates the provided environments for this project. If omitted default environments will be created instead.
-     * @type {Array<object>}
+     * @type {Array<EnvironmentPost>}
      * @memberof ProjectPost
      */
-    environments?: Array<object>;
+    'environments'?: Array<EnvironmentPost>;
 }
 /**
  * 
@@ -4724,13 +4761,13 @@ export interface Projects {
      * @type {{ [key: string]: Link; }}
      * @memberof Projects
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * List of projects.
      * @type {Array<Project>}
      * @memberof Projects
      */
-    items: Array<Project>;
+    'items': Array<Project>;
 }
 /**
  * 
@@ -4743,13 +4780,13 @@ export interface PubNubDetailRep {
      * @type {string}
      * @memberof PubNubDetailRep
      */
-    channel?: string;
+    'channel'?: string;
     /**
      * 
      * @type {string}
      * @memberof PubNubDetailRep
      */
-    cipherKey?: string;
+    'cipherKey'?: string;
 }
 /**
  * 
@@ -4762,31 +4799,31 @@ export interface PutBranch {
      * @type {string}
      * @memberof PutBranch
      */
-    name: string;
+    'name': string;
     /**
      * An ID representing the branch HEAD. For example, a commit SHA.
      * @type {string}
      * @memberof PutBranch
      */
-    head: string;
+    'head': string;
     /**
      * An optional ID used to prevent older data from overwriting newer data. If no sequence ID is included, the newly submitted data will always be saved.
      * @type {number}
      * @memberof PutBranch
      */
-    updateSequenceId?: number;
+    'updateSequenceId'?: number;
     /**
      * 
      * @type {number}
      * @memberof PutBranch
      */
-    syncTime: number;
+    'syncTime': number;
     /**
      * An array of flag references found on the branch
      * @type {Array<ReferenceRep>}
      * @memberof PutBranch
      */
-    references?: Array<ReferenceRep>;
+    'references'?: Array<ReferenceRep>;
 }
 /**
  * 
@@ -4799,13 +4836,13 @@ export interface RateLimitedErrorRep {
      * @type {string}
      * @memberof RateLimitedErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof RateLimitedErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -4818,19 +4855,19 @@ export interface ReferenceRep {
      * @type {string}
      * @memberof ReferenceRep
      */
-    path: string;
+    'path': string;
     /**
      * Programming language used in the file
      * @type {string}
      * @memberof ReferenceRep
      */
-    hint?: string;
+    'hint'?: string;
     /**
      * 
      * @type {Array<HunkRep>}
      * @memberof ReferenceRep
      */
-    hunks: Array<HunkRep>;
+    'hunks': Array<HunkRep>;
 }
 /**
  * 
@@ -4843,7 +4880,7 @@ export interface RelayAutoConfigCollectionRep {
      * @type {Array<RelayAutoConfigRep>}
      * @memberof RelayAutoConfigCollectionRep
      */
-    items: Array<RelayAutoConfigRep>;
+    'items': Array<RelayAutoConfigRep>;
 }
 /**
  * 
@@ -4856,13 +4893,13 @@ export interface RelayAutoConfigPost {
      * @type {string}
      * @memberof RelayAutoConfigPost
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {Array<StatementRep>}
      * @memberof RelayAutoConfigPost
      */
-    policy: Array<StatementRep>;
+    'policy': Array<StatementRep>;
 }
 /**
  * 
@@ -4875,55 +4912,55 @@ export interface RelayAutoConfigRep {
      * @type {string}
      * @memberof RelayAutoConfigRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {MemberSummaryRep}
      * @memberof RelayAutoConfigRep
      */
-    _creator?: MemberSummaryRep;
+    '_creator'?: MemberSummaryRep;
     /**
      * 
      * @type {AccessRep}
      * @memberof RelayAutoConfigRep
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
     /**
      * 
      * @type {string}
      * @memberof RelayAutoConfigRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {Array<StatementRep>}
      * @memberof RelayAutoConfigRep
      */
-    policy: Array<StatementRep>;
+    'policy': Array<StatementRep>;
     /**
      * 
      * @type {string}
      * @memberof RelayAutoConfigRep
      */
-    fullKey: string;
+    'fullKey': string;
     /**
      * 
      * @type {string}
      * @memberof RelayAutoConfigRep
      */
-    displayKey: string;
+    'displayKey': string;
     /**
      * 
      * @type {number}
      * @memberof RelayAutoConfigRep
      */
-    creationDate: number;
+    'creationDate': number;
     /**
      * 
      * @type {number}
      * @memberof RelayAutoConfigRep
      */
-    lastModified: number;
+    'lastModified': number;
 }
 /**
  * 
@@ -4936,13 +4973,13 @@ export interface RepositoryCollectionRep {
      * @type {{ [key: string]: Link; }}
      * @memberof RepositoryCollectionRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * An array of repositories
      * @type {Array<RepositoryRep>}
      * @memberof RepositoryCollectionRep
      */
-    items: Array<RepositoryRep>;
+    'items': Array<RepositoryRep>;
 }
 /**
  * 
@@ -4955,37 +4992,37 @@ export interface RepositoryPost {
      * @type {string}
      * @memberof RepositoryPost
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof RepositoryPost
      */
-    sourceLink?: string;
+    'sourceLink'?: string;
     /**
      * A template for constructing a valid URL to view the commit
      * @type {string}
      * @memberof RepositoryPost
      */
-    commitUrlTemplate?: string;
+    'commitUrlTemplate'?: string;
     /**
      * A template for constructing a valid URL to view the hunk
      * @type {string}
      * @memberof RepositoryPost
      */
-    hunkUrlTemplate?: string;
+    'hunkUrlTemplate'?: string;
     /**
      * Optionally specify a repository type. The default value is <code>custom</code>
      * @type {string}
      * @memberof RepositoryPost
      */
-    type?: RepositoryPostTypeEnum;
+    'type'?: RepositoryPostTypeEnum;
     /**
      * The default branch, if not specified, is <code>master</code>
      * @type {string}
      * @memberof RepositoryPost
      */
-    defaultBranch?: string;
+    'defaultBranch'?: string;
 }
 
 /**
@@ -5009,67 +5046,67 @@ export interface RepositoryRep {
      * @type {string}
      * @memberof RepositoryRep
      */
-    name: string;
+    'name': string;
     /**
      * A URL to access the repository
      * @type {string}
      * @memberof RepositoryRep
      */
-    sourceLink?: string;
+    'sourceLink'?: string;
     /**
      * A template for constructing a valid URL to view the commit
      * @type {string}
      * @memberof RepositoryRep
      */
-    commitUrlTemplate?: string;
+    'commitUrlTemplate'?: string;
     /**
      * A template for constructing a valid URL to view the hunk
      * @type {string}
      * @memberof RepositoryRep
      */
-    hunkUrlTemplate?: string;
+    'hunkUrlTemplate'?: string;
     /**
      * The type of repository
      * @type {string}
      * @memberof RepositoryRep
      */
-    type: RepositoryRepTypeEnum;
+    'type': RepositoryRepTypeEnum;
     /**
      * The repository\'s default branch
      * @type {string}
      * @memberof RepositoryRep
      */
-    defaultBranch: string;
+    'defaultBranch': string;
     /**
      * Whether or not a repository is enabled for code reference scanning
      * @type {boolean}
      * @memberof RepositoryRep
      */
-    enabled: boolean;
+    'enabled': boolean;
     /**
      * The version of the repository\'s saved information
      * @type {number}
      * @memberof RepositoryRep
      */
-    version: number;
+    'version': number;
     /**
      * An array of the repository\'s branches that have been scanned for code references
      * @type {Array<BranchRep>}
      * @memberof RepositoryRep
      */
-    branches?: Array<BranchRep>;
+    'branches'?: Array<BranchRep>;
     /**
      * 
      * @type {{ [key: string]: any; }}
      * @memberof RepositoryRep
      */
-    _links: { [key: string]: any; };
+    '_links': { [key: string]: any; };
     /**
      * 
      * @type {AccessRep}
      * @memberof RepositoryRep
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
 }
 
 /**
@@ -5093,13 +5130,13 @@ export interface ResourceAccess {
      * @type {string}
      * @memberof ResourceAccess
      */
-    action?: string;
+    'action'?: string;
     /**
      * 
      * @type {any}
      * @memberof ResourceAccess
      */
-    resource?: any | null;
+    'resource'?: any;
 }
 /**
  * 
@@ -5112,31 +5149,31 @@ export interface ResourceIDResponse {
      * @type {string}
      * @memberof ResourceIDResponse
      */
-    kind?: string;
+    'kind'?: string;
     /**
      * 
      * @type {string}
      * @memberof ResourceIDResponse
      */
-    projectKey?: string;
+    'projectKey'?: string;
     /**
      * 
      * @type {string}
      * @memberof ResourceIDResponse
      */
-    environmentKey?: string;
+    'environmentKey'?: string;
     /**
      * 
      * @type {string}
      * @memberof ResourceIDResponse
      */
-    flagKey?: string;
+    'flagKey'?: string;
     /**
      * 
      * @type {string}
      * @memberof ResourceIDResponse
      */
-    key?: string;
+    'key'?: string;
 }
 /**
  * 
@@ -5149,31 +5186,31 @@ export interface ReviewOutputRep {
      * @type {string}
      * @memberof ReviewOutputRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof ReviewOutputRep
      */
-    kind: string;
+    'kind': string;
     /**
      * 
      * @type {number}
      * @memberof ReviewOutputRep
      */
-    creationDate?: number;
+    'creationDate'?: number;
     /**
      * 
      * @type {string}
      * @memberof ReviewOutputRep
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * 
      * @type {string}
      * @memberof ReviewOutputRep
      */
-    memberId?: string;
+    'memberId'?: string;
 }
 /**
  * 
@@ -5186,31 +5223,31 @@ export interface ReviewResponse {
      * @type {string}
      * @memberof ReviewResponse
      */
-    _id: string;
+    '_id': string;
     /**
      * The type of review action to take. Either \"approve\", \"decline\" or \"comment\"
      * @type {string}
      * @memberof ReviewResponse
      */
-    kind: ReviewResponseKindEnum;
+    'kind': ReviewResponseKindEnum;
     /**
      * 
      * @type {number}
      * @memberof ReviewResponse
      */
-    creationDate?: number;
+    'creationDate'?: number;
     /**
      * A comment describing the approval response
      * @type {string}
      * @memberof ReviewResponse
      */
-    comment?: string;
+    'comment'?: string;
     /**
      * ID of account member that reviewed request
      * @type {string}
      * @memberof ReviewResponse
      */
-    memberId?: string;
+    'memberId'?: string;
 }
 
 /**
@@ -5234,25 +5271,25 @@ export interface Rollout {
      * @type {Array<WeightedVariation>}
      * @memberof Rollout
      */
-    variations: Array<WeightedVariation>;
+    'variations': Array<WeightedVariation>;
     /**
      * 
      * @type {ExperimentAllocationRep}
      * @memberof Rollout
      */
-    experimentAllocation?: ExperimentAllocationRep;
+    'experimentAllocation'?: ExperimentAllocationRep;
     /**
      * 
      * @type {number}
      * @memberof Rollout
      */
-    seed?: number;
+    'seed'?: number;
     /**
      * 
      * @type {string}
      * @memberof Rollout
      */
-    bucketBy?: string;
+    'bucketBy'?: string;
 }
 /**
  * 
@@ -5265,37 +5302,37 @@ export interface Rule {
      * @type {string}
      * @memberof Rule
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {number}
      * @memberof Rule
      */
-    variation?: number;
+    'variation'?: number;
     /**
      * 
      * @type {Rollout}
      * @memberof Rule
      */
-    rollout?: Rollout;
+    'rollout'?: Rollout;
     /**
      * 
      * @type {Array<Clause>}
      * @memberof Rule
      */
-    clauses: Array<Clause>;
+    'clauses': Array<Clause>;
     /**
      * 
      * @type {boolean}
      * @memberof Rule
      */
-    trackEvents: boolean;
+    'trackEvents': boolean;
     /**
      * 
      * @type {string}
      * @memberof Rule
      */
-    description?: string;
+    'description'?: string;
 }
 /**
  * 
@@ -5308,13 +5345,13 @@ export interface ScheduleConditionInputRep {
      * @type {number}
      * @memberof ScheduleConditionInputRep
      */
-    executionDate?: number;
+    'executionDate'?: number;
     /**
      * 
      * @type {boolean}
      * @memberof ScheduleConditionInputRep
      */
-    executeNow?: boolean;
+    'executeNow'?: boolean;
 }
 /**
  * 
@@ -5327,7 +5364,7 @@ export interface ScheduleConditionOutputRep {
      * @type {number}
      * @memberof ScheduleConditionOutputRep
      */
-    executionDate?: number;
+    'executionDate'?: number;
 }
 /**
  * 
@@ -5340,13 +5377,13 @@ export interface SdkListRep {
      * @type {{ [key: string]: any; }}
      * @memberof SdkListRep
      */
-    _links: { [key: string]: any; };
+    '_links': { [key: string]: any; };
     /**
      * 
      * @type {Array<string>}
      * @memberof SdkListRep
      */
-    sdks: Array<string>;
+    'sdks': Array<string>;
 }
 /**
  * 
@@ -5359,13 +5396,13 @@ export interface SdkVersionListRep {
      * @type {{ [key: string]: any; }}
      * @memberof SdkVersionListRep
      */
-    _links: { [key: string]: any; };
+    '_links': { [key: string]: any; };
     /**
      * 
      * @type {Array<SdkVersionRep>}
      * @memberof SdkVersionListRep
      */
-    sdkVersions: Array<SdkVersionRep>;
+    'sdkVersions': Array<SdkVersionRep>;
 }
 /**
  * 
@@ -5378,13 +5415,13 @@ export interface SdkVersionRep {
      * @type {string}
      * @memberof SdkVersionRep
      */
-    sdk: string;
+    'sdk': string;
     /**
      * 
      * @type {string}
      * @memberof SdkVersionRep
      */
-    version: string;
+    'version': string;
 }
 /**
  * 
@@ -5397,31 +5434,31 @@ export interface SegmentBody {
      * @type {string}
      * @memberof SegmentBody
      */
-    name: string;
+    'name': string;
     /**
      * A unique key used to reference the segment
      * @type {string}
      * @memberof SegmentBody
      */
-    key: string;
+    'key': string;
     /**
      * A description of the segment\'s purpose
      * @type {string}
      * @memberof SegmentBody
      */
-    description?: string;
+    'description'?: string;
     /**
      * Tags for the segment
      * @type {Array<string>}
      * @memberof SegmentBody
      */
-    tags?: Array<string>;
+    'tags'?: Array<string>;
     /**
      * 
      * @type {boolean}
      * @memberof SegmentBody
      */
-    unbounded?: boolean;
+    'unbounded'?: boolean;
 }
 /**
  * 
@@ -5434,37 +5471,37 @@ export interface SegmentMetadata {
      * @type {string}
      * @memberof SegmentMetadata
      */
-    envId?: string;
+    'envId'?: string;
     /**
      * 
      * @type {string}
      * @memberof SegmentMetadata
      */
-    segmentId?: string;
+    'segmentId'?: string;
     /**
      * 
      * @type {number}
      * @memberof SegmentMetadata
      */
-    version?: number;
+    'version'?: number;
     /**
      * 
      * @type {number}
      * @memberof SegmentMetadata
      */
-    includedCount?: number;
+    'includedCount'?: number;
     /**
      * 
      * @type {number}
      * @memberof SegmentMetadata
      */
-    excludedCount?: number;
+    'excludedCount'?: number;
     /**
      * 
      * @type {boolean}
      * @memberof SegmentMetadata
      */
-    deleted?: boolean;
+    'deleted'?: boolean;
 }
 /**
  * 
@@ -5477,13 +5514,13 @@ export interface SegmentUserList {
      * @type {Array<string>}
      * @memberof SegmentUserList
      */
-    add?: Array<string>;
+    'add'?: Array<string>;
     /**
      * 
      * @type {Array<string>}
      * @memberof SegmentUserList
      */
-    remove?: Array<string>;
+    'remove'?: Array<string>;
 }
 /**
  * 
@@ -5496,13 +5533,13 @@ export interface SegmentUserState {
      * @type {SegmentUserList}
      * @memberof SegmentUserState
      */
-    included?: SegmentUserList;
+    'included'?: SegmentUserList;
     /**
      * 
      * @type {SegmentUserList}
      * @memberof SegmentUserState
      */
-    excluded?: SegmentUserList;
+    'excluded'?: SegmentUserList;
 }
 /**
  * 
@@ -5515,19 +5552,19 @@ export interface SeriesListRep {
      * @type {{ [key: string]: any; }}
      * @memberof SeriesListRep
      */
-    _links: { [key: string]: any; };
+    '_links': { [key: string]: any; };
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof SeriesListRep
      */
-    metadata: Array<{ [key: string]: any; }>;
+    'metadata': Array<{ [key: string]: any; }>;
     /**
      * 
      * @type {Array<{ [key: string]: number; }>}
      * @memberof SeriesListRep
      */
-    series: Array<{ [key: string]: number; }>;
+    'series': Array<{ [key: string]: number; }>;
 }
 /**
  * 
@@ -5540,13 +5577,13 @@ export interface SourceFlag {
      * @type {string}
      * @memberof SourceFlag
      */
-    key: string;
+    'key': string;
     /**
      * 
      * @type {number}
      * @memberof SourceFlag
      */
-    version?: number;
+    'version'?: number;
 }
 /**
  * 
@@ -5559,19 +5596,19 @@ export interface StageInputRep {
      * @type {string}
      * @memberof StageInputRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {Array<ConditionInputRep>}
      * @memberof StageInputRep
      */
-    conditions?: Array<ConditionInputRep>;
+    'conditions'?: Array<ConditionInputRep>;
     /**
      * 
      * @type {ActionInputRep}
      * @memberof StageInputRep
      */
-    action?: ActionInputRep;
+    'action'?: ActionInputRep;
 }
 /**
  * 
@@ -5584,31 +5621,31 @@ export interface StageOutputRep {
      * @type {string}
      * @memberof StageOutputRep
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof StageOutputRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {Array<ConditionOutputRep>}
      * @memberof StageOutputRep
      */
-    conditions: Array<ConditionOutputRep>;
+    'conditions': Array<ConditionOutputRep>;
     /**
      * 
      * @type {ActionOutputRep}
      * @memberof StageOutputRep
      */
-    action: ActionOutputRep;
+    'action': ActionOutputRep;
     /**
      * 
      * @type {ExecutionOutputRep}
      * @memberof StageOutputRep
      */
-    _execution: ExecutionOutputRep;
+    '_execution': ExecutionOutputRep;
 }
 /**
  * 
@@ -5617,35 +5654,35 @@ export interface StageOutputRep {
  */
 export interface Statement {
     /**
-     * 
-     * @type {Array<object>}
-     * @memberof Statement
-     */
-    resources?: Array<object>;
-    /**
-     * 
-     * @type {Array<object>}
-     * @memberof Statement
-     */
-    notResources?: Array<object>;
-    /**
-     * 
+     * Resource specifier strings
      * @type {Array<string>}
      * @memberof Statement
      */
-    actions?: Array<string>;
+    'resources'?: Array<string>;
     /**
-     * 
+     * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
      * @memberof Statement
      */
-    notActions?: Array<string>;
+    'notResources'?: Array<string>;
+    /**
+     * Actions to perform on a resource
+     * @type {Array<string>}
+     * @memberof Statement
+     */
+    'actions'?: Array<string>;
+    /**
+     * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
+     * @type {Array<string>}
+     * @memberof Statement
+     */
+    'notActions'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof Statement
      */
-    effect: string;
+    'effect': string;
 }
 /**
  * 
@@ -5658,31 +5695,31 @@ export interface StatementPost {
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    resources: Array<string>;
+    'resources': Array<string>;
     /**
      * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    notResources?: Array<string>;
+    'notResources'?: Array<string>;
     /**
      * Actions to perform on a resource
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    actions: Array<string>;
+    'actions': Array<string>;
     /**
      * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    notActions?: Array<string>;
+    'notActions'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof StatementPost
      */
-    effect: string;
+    'effect': string;
 }
 /**
  * 
@@ -5695,31 +5732,31 @@ export interface StatementPostData {
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    resources: Array<string>;
+    'resources': Array<string>;
     /**
      * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    notResources?: Array<string>;
+    'notResources'?: Array<string>;
     /**
      * Actions to perform on a resource
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    actions: Array<string>;
+    'actions': Array<string>;
     /**
      * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    notActions?: Array<string>;
+    'notActions'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof StatementPostData
      */
-    effect: string;
+    'effect': string;
 }
 /**
  * 
@@ -5729,34 +5766,34 @@ export interface StatementPostData {
 export interface StatementRep {
     /**
      * Resource specifier strings
-     * @type {Array<object>}
+     * @type {Array<string>}
      * @memberof StatementRep
      */
-    resources?: Array<object>;
+    'resources'?: Array<string>;
     /**
      * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
-     * @type {Array<object>}
+     * @type {Array<string>}
      * @memberof StatementRep
      */
-    notResources?: Array<object>;
+    'notResources'?: Array<string>;
     /**
      * Actions to perform on a resource
      * @type {Array<string>}
      * @memberof StatementRep
      */
-    actions?: Array<string>;
+    'actions'?: Array<string>;
     /**
      * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
      * @type {Array<string>}
      * @memberof StatementRep
      */
-    notActions?: Array<string>;
+    'notActions'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof StatementRep
      */
-    effect?: string;
+    'effect': string;
 }
 /**
  * 
@@ -5769,13 +5806,13 @@ export interface StatisticCollectionRep {
      * @type {{ [key: string]: Array<StatisticRep>; }}
      * @memberof StatisticCollectionRep
      */
-    flags: { [key: string]: Array<StatisticRep>; };
+    'flags': { [key: string]: Array<StatisticRep>; };
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof StatisticCollectionRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
 }
 /**
  * 
@@ -5788,43 +5825,43 @@ export interface StatisticRep {
      * @type {string}
      * @memberof StatisticRep
      */
-    name: string;
+    'name': string;
     /**
      * 
      * @type {string}
      * @memberof StatisticRep
      */
-    sourceLink: string;
+    'sourceLink': string;
     /**
      * 
      * @type {string}
      * @memberof StatisticRep
      */
-    defaultBranch: string;
+    'defaultBranch': string;
     /**
      * 
      * @type {boolean}
      * @memberof StatisticRep
      */
-    enabled: boolean;
+    'enabled': boolean;
     /**
      * 
      * @type {number}
      * @memberof StatisticRep
      */
-    version: number;
+    'version': number;
     /**
      * 
      * @type {number}
      * @memberof StatisticRep
      */
-    hunkCount: number;
+    'hunkCount': number;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof StatisticRep
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
 }
 /**
  * 
@@ -5837,13 +5874,13 @@ export interface StatisticsRoot {
      * @type {Array<Link>}
      * @memberof StatisticsRoot
      */
-    projects?: Array<Link>;
+    'projects'?: Array<Link>;
     /**
      * 
      * @type {Link}
      * @memberof StatisticsRoot
      */
-    self?: Link;
+    'self'?: Link;
 }
 /**
  * 
@@ -5856,13 +5893,13 @@ export interface StatusConflictErrorRep {
      * @type {string}
      * @memberof StatusConflictErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof StatusConflictErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -5875,19 +5912,19 @@ export interface SubjectDataRep {
      * @type {{ [key: string]: Link; }}
      * @memberof SubjectDataRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof SubjectDataRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof SubjectDataRep
      */
-    avatarUrl?: string;
+    'avatarUrl'?: string;
 }
 /**
  * 
@@ -5900,13 +5937,13 @@ export interface Target {
      * @type {Array<string>}
      * @memberof Target
      */
-    values: Array<string>;
+    'values': Array<string>;
     /**
      * 
      * @type {number}
      * @memberof Target
      */
-    variation: number;
+    'variation': number;
 }
 /**
  * 
@@ -5919,19 +5956,19 @@ export interface TargetResourceRep {
      * @type {{ [key: string]: Link; }}
      * @memberof TargetResourceRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof TargetResourceRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {Array<any>}
      * @memberof TargetResourceRep
      */
-    resources?: Array<any>;
+    'resources'?: Array<any>;
 }
 /**
  * 
@@ -5944,19 +5981,19 @@ export interface TeamCollectionRep {
      * @type {Array<TeamRep>}
      * @memberof TeamCollectionRep
      */
-    items?: Array<TeamRep>;
+    'items'?: Array<TeamRep>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof TeamCollectionRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof TeamCollectionRep
      */
-    totalCount?: number;
+    'totalCount'?: number;
 }
 /**
  * 
@@ -5969,13 +6006,13 @@ export interface TeamPatchInput {
      * @type {string}
      * @memberof TeamPatchInput
      */
-    Comment?: string;
+    'Comment'?: string;
     /**
      * 
      * @type {Array<{ [key: string]: any; }>}
      * @memberof TeamPatchInput
      */
-    Instructions?: Array<{ [key: string]: any; }>;
+    'Instructions'?: Array<{ [key: string]: any; }>;
 }
 /**
  * 
@@ -5988,37 +6025,37 @@ export interface TeamPostInput {
      * @type {Array<string>}
      * @memberof TeamPostInput
      */
-    customRoleKeys?: Array<string>;
+    'customRoleKeys'?: Array<string>;
     /**
      * A description of the team
      * @type {string}
      * @memberof TeamPostInput
      */
-    description?: string;
+    'description'?: string;
     /**
      * The team\'s key or ID
      * @type {string}
      * @memberof TeamPostInput
      */
-    key: string;
+    'key': string;
     /**
      * A list of member IDs who belong to the team
      * @type {Array<string>}
      * @memberof TeamPostInput
      */
-    memberIDs?: Array<string>;
+    'memberIDs'?: Array<string>;
     /**
      * A human-friendly name for the team
      * @type {string}
      * @memberof TeamPostInput
      */
-    name: string;
+    'name': string;
     /**
      * A list of permission grants to apply to the team. Can use \"maintainTeam\" to add team maintainers
      * @type {Array<PermissionGrantInput>}
      * @memberof TeamPostInput
      */
-    permissionGrants?: Array<PermissionGrantInput>;
+    'permissionGrants'?: Array<PermissionGrantInput>;
 }
 /**
  * 
@@ -6031,73 +6068,73 @@ export interface TeamRep {
      * @type {Array<string>}
      * @memberof TeamRep
      */
-    customRoleKeys?: Array<string>;
+    'customRoleKeys'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof TeamRep
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {string}
      * @memberof TeamRep
      */
-    key?: string;
+    'key'?: string;
     /**
      * 
      * @type {Array<string>}
      * @memberof TeamRep
      */
-    memberIDs?: Array<string>;
+    'memberIDs'?: Array<string>;
     /**
      * 
      * @type {string}
      * @memberof TeamRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {Array<PermissionGrantRep>}
      * @memberof TeamRep
      */
-    permissionGrants?: Array<PermissionGrantRep>;
+    'permissionGrants'?: Array<PermissionGrantRep>;
     /**
      * 
      * @type {Array<string>}
      * @memberof TeamRep
      */
-    projectKeys?: Array<string>;
+    'projectKeys'?: Array<string>;
     /**
      * 
      * @type {AccessRep}
      * @memberof TeamRep
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
     /**
      * 
      * @type {number}
      * @memberof TeamRep
      */
-    _createdAt?: number;
+    '_createdAt'?: number;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof TeamRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof TeamRep
      */
-    _updatedAt?: number;
+    '_updatedAt'?: number;
     /**
      * 
      * @type {number}
      * @memberof TeamRep
      */
-    _version?: number;
+    '_version'?: number;
 }
 /**
  * 
@@ -6110,49 +6147,49 @@ export interface TitleRep {
      * @type {SubjectDataRep}
      * @memberof TitleRep
      */
-    subject?: SubjectDataRep;
+    'subject'?: SubjectDataRep;
     /**
      * 
      * @type {MemberDataRep}
      * @memberof TitleRep
      */
-    member?: MemberDataRep;
+    'member'?: MemberDataRep;
     /**
      * 
      * @type {TokenDataRep}
      * @memberof TitleRep
      */
-    token?: TokenDataRep;
+    'token'?: TokenDataRep;
     /**
      * 
      * @type {AuthorizedAppDataRep}
      * @memberof TitleRep
      */
-    app?: AuthorizedAppDataRep;
+    'app'?: AuthorizedAppDataRep;
     /**
      * 
      * @type {string}
      * @memberof TitleRep
      */
-    titleVerb?: string;
+    'titleVerb'?: string;
     /**
      * 
      * @type {string}
      * @memberof TitleRep
      */
-    title?: string;
+    'title'?: string;
     /**
      * 
      * @type {TargetResourceRep}
      * @memberof TitleRep
      */
-    target?: TargetResourceRep;
+    'target'?: TargetResourceRep;
     /**
      * 
      * @type {ParentResourceRep}
      * @memberof TitleRep
      */
-    parent?: ParentResourceRep;
+    'parent'?: ParentResourceRep;
 }
 /**
  * 
@@ -6165,97 +6202,97 @@ export interface Token {
      * @type {string}
      * @memberof Token
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof Token
      */
-    ownerId: string;
+    'ownerId': string;
     /**
      * 
      * @type {string}
      * @memberof Token
      */
-    memberId: string;
+    'memberId': string;
     /**
      * 
      * @type {MemberSummaryRep}
      * @memberof Token
      */
-    _member?: MemberSummaryRep;
+    '_member'?: MemberSummaryRep;
     /**
      * 
      * @type {string}
      * @memberof Token
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof Token
      */
-    description?: string;
+    'description'?: string;
     /**
      * 
      * @type {number}
      * @memberof Token
      */
-    creationDate: number;
+    'creationDate': number;
     /**
      * 
      * @type {number}
      * @memberof Token
      */
-    lastModified: number;
+    'lastModified': number;
     /**
      * 
      * @type {Array<string>}
      * @memberof Token
      */
-    customRoleIds?: Array<string>;
+    'customRoleIds'?: Array<string>;
     /**
      * 
      * @type {Array<StatementRep>}
      * @memberof Token
      */
-    inlineRole?: Array<StatementRep>;
+    'inlineRole'?: Array<StatementRep>;
     /**
      * 
      * @type {string}
      * @memberof Token
      */
-    role?: string;
+    'role'?: string;
     /**
      * 
      * @type {string}
      * @memberof Token
      */
-    token?: string;
+    'token'?: string;
     /**
      * 
      * @type {boolean}
      * @memberof Token
      */
-    serviceToken?: boolean;
+    'serviceToken'?: boolean;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof Token
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof Token
      */
-    defaultApiVersion?: number;
+    'defaultApiVersion'?: number;
     /**
      * 
      * @type {number}
      * @memberof Token
      */
-    lastUsed?: number;
+    'lastUsed'?: number;
 }
 /**
  * 
@@ -6268,31 +6305,31 @@ export interface TokenDataRep {
      * @type {{ [key: string]: Link; }}
      * @memberof TokenDataRep
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof TokenDataRep
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {string}
      * @memberof TokenDataRep
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof TokenDataRep
      */
-    ending?: string;
+    'ending'?: string;
     /**
      * 
      * @type {boolean}
      * @memberof TokenDataRep
      */
-    serviceToken?: boolean;
+    'serviceToken'?: boolean;
 }
 /**
  * 
@@ -6305,13 +6342,13 @@ export interface Tokens {
      * @type {Array<Token>}
      * @memberof Tokens
      */
-    items?: Array<Token>;
+    'items'?: Array<Token>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof Tokens
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -6324,13 +6361,13 @@ export interface UnauthorizedErrorRep {
      * @type {string}
      * @memberof UnauthorizedErrorRep
      */
-    code?: string;
+    'code'?: string;
     /**
      * 
      * @type {string}
      * @memberof UnauthorizedErrorRep
      */
-    message?: string;
+    'message'?: string;
 }
 /**
  * 
@@ -6343,25 +6380,25 @@ export interface UrlPost {
      * @type {string}
      * @memberof UrlPost
      */
-    kind?: UrlPostKindEnum;
+    'kind'?: UrlPostKindEnum;
     /**
      * 
      * @type {string}
      * @memberof UrlPost
      */
-    url?: string;
+    'url'?: string;
     /**
      * 
      * @type {string}
      * @memberof UrlPost
      */
-    substring?: string;
+    'substring'?: string;
     /**
      * 
      * @type {string}
      * @memberof UrlPost
      */
-    pattern?: string;
+    'pattern'?: string;
 }
 
 /**
@@ -6386,43 +6423,79 @@ export interface User {
      * @type {string}
      * @memberof User
      */
-    lastPing?: string;
+    'key'?: string;
     /**
      * 
      * @type {string}
      * @memberof User
      */
-    environmentId?: string;
+    'secondary'?: string;
     /**
      * 
      * @type {string}
      * @memberof User
      */
-    ownerId?: string;
+    'ip'?: string;
     /**
      * 
-     * @type {User}
+     * @type {string}
      * @memberof User
      */
-    user?: User;
+    'country'?: string;
     /**
      * 
-     * @type {any}
+     * @type {string}
      * @memberof User
      */
-    sortValue?: any | null;
+    'email'?: string;
     /**
      * 
-     * @type {{ [key: string]: Link; }}
+     * @type {string}
      * @memberof User
      */
-    _links?: { [key: string]: Link; };
+    'firstName'?: string;
     /**
      * 
-     * @type {AccessRep}
+     * @type {string}
      * @memberof User
      */
-    _access?: AccessRep;
+    'lastName'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof User
+     */
+    'avatar'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof User
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof User
+     */
+    'anonymous'?: boolean;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof User
+     */
+    'custom'?: { [key: string]: any; };
+    /**
+     * 
+     * @type {{ [key: string]: DerivedAttribute; }}
+     * @memberof User
+     */
+    'derived'?: { [key: string]: DerivedAttribute; };
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof User
+     */
+    'privateAttrs'?: Array<string>;
 }
 /**
  * 
@@ -6435,19 +6508,19 @@ export interface UserAttributeNamesRep {
      * @type {Array<string>}
      * @memberof UserAttributeNamesRep
      */
-    _private?: Array<string>;
+    'private'?: Array<string>;
     /**
      * custom attributes
      * @type {Array<string>}
      * @memberof UserAttributeNamesRep
      */
-    custom?: Array<string>;
+    'custom'?: Array<string>;
     /**
      * standard attributes
      * @type {Array<string>}
      * @memberof UserAttributeNamesRep
      */
-    standard?: Array<string>;
+    'standard'?: Array<string>;
 }
 /**
  * 
@@ -6460,19 +6533,19 @@ export interface UserFlagSetting {
      * @type {{ [key: string]: Link; }}
      * @memberof UserFlagSetting
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {any}
      * @memberof UserFlagSetting
      */
-    _value: any | null;
+    '_value': any;
     /**
      * 
      * @type {any}
      * @memberof UserFlagSetting
      */
-    setting: any | null;
+    'setting': any;
 }
 /**
  * 
@@ -6485,13 +6558,13 @@ export interface UserFlagSettings {
      * @type {{ [key: string]: UserFlagSetting; }}
      * @memberof UserFlagSettings
      */
-    items: { [key: string]: UserFlagSetting; };
+    'items': { [key: string]: UserFlagSetting; };
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof UserFlagSettings
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
 }
 /**
  * 
@@ -6504,31 +6577,80 @@ export interface UserRecord {
      * @type {string}
      * @memberof UserRecord
      */
-    lastPing?: string;
+    'lastPing'?: string;
     /**
      * 
      * @type {string}
      * @memberof UserRecord
      */
-    environmentId?: string;
+    'environmentId'?: string;
     /**
      * 
      * @type {string}
      * @memberof UserRecord
      */
-    ownerId?: string;
+    'ownerId'?: string;
     /**
      * 
      * @type {User}
      * @memberof UserRecord
      */
-    user?: User;
+    'user'?: User;
     /**
      * 
      * @type {any}
      * @memberof UserRecord
      */
-    sortValue?: any | null;
+    'sortValue'?: any;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof UserRecord
+     */
+    '_links'?: { [key: string]: Link; };
+    /**
+     * 
+     * @type {AccessRep}
+     * @memberof UserRecord
+     */
+    '_access'?: AccessRep;
+}
+/**
+ * 
+ * @export
+ * @interface UserRecordRep
+ */
+export interface UserRecordRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof UserRecordRep
+     */
+    'lastPing'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserRecordRep
+     */
+    'environmentId'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserRecordRep
+     */
+    'ownerId'?: string;
+    /**
+     * 
+     * @type {User}
+     * @memberof UserRecordRep
+     */
+    'user'?: User;
+    /**
+     * 
+     * @type {any}
+     * @memberof UserRecordRep
+     */
+    'sortValue'?: any;
 }
 /**
  * 
@@ -6541,115 +6663,115 @@ export interface UserSegment {
      * @type {string}
      * @memberof UserSegment
      */
-    name: string;
+    'name': string;
     /**
      * A description of the segment\'s purpose
      * @type {string}
      * @memberof UserSegment
      */
-    description?: string;
+    'description'?: string;
     /**
      * Tags for the segment
      * @type {Array<string>}
      * @memberof UserSegment
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {number}
      * @memberof UserSegment
      */
-    creationDate: number;
+    'creationDate': number;
     /**
      * A unique key used to reference the segment
      * @type {string}
      * @memberof UserSegment
      */
-    key: string;
+    'key': string;
     /**
      * Included users are always segment members, regardless of segment rules. For Big Segments this array is either empty or omitted entirely.
      * @type {Array<string>}
      * @memberof UserSegment
      */
-    included?: Array<string>;
+    'included'?: Array<string>;
     /**
      * Segment rules bypass excluded users, so they will never be included based on rules. Excluded users may still be included explicitly. This value is omitted for Big Segments.
      * @type {Array<string>}
      * @memberof UserSegment
      */
-    excluded?: Array<string>;
+    'excluded'?: Array<string>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof UserSegment
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Array<UserSegmentRule>}
      * @memberof UserSegment
      */
-    rules: Array<UserSegmentRule>;
+    'rules': Array<UserSegmentRule>;
     /**
      * 
      * @type {number}
      * @memberof UserSegment
      */
-    version: number;
+    'version': number;
     /**
      * 
      * @type {boolean}
      * @memberof UserSegment
      */
-    deleted: boolean;
+    'deleted': boolean;
     /**
      * 
      * @type {AccessRep}
      * @memberof UserSegment
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
     /**
      * 
      * @type {Array<FlagListingRep>}
      * @memberof UserSegment
      */
-    _flags?: Array<FlagListingRep>;
+    '_flags'?: Array<FlagListingRep>;
     /**
      * 
      * @type {boolean}
      * @memberof UserSegment
      */
-    unbounded?: boolean;
+    'unbounded'?: boolean;
     /**
      * 
      * @type {number}
      * @memberof UserSegment
      */
-    generation: number;
+    'generation': number;
     /**
      * 
      * @type {SegmentMetadata}
      * @memberof UserSegment
      */
-    _unboundedMetadata?: SegmentMetadata;
+    '_unboundedMetadata'?: SegmentMetadata;
     /**
      * 
      * @type {string}
      * @memberof UserSegment
      */
-    _external?: string;
+    '_external'?: string;
     /**
      * 
      * @type {string}
      * @memberof UserSegment
      */
-    _externalLink?: string;
+    '_externalLink'?: string;
     /**
      * 
      * @type {boolean}
      * @memberof UserSegment
      */
-    _importInProgress?: boolean;
+    '_importInProgress'?: boolean;
 }
 /**
  * 
@@ -6662,25 +6784,25 @@ export interface UserSegmentRule {
      * @type {string}
      * @memberof UserSegmentRule
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {Array<Clause>}
      * @memberof UserSegmentRule
      */
-    clauses: Array<Clause>;
+    'clauses': Array<Clause>;
     /**
      * 
      * @type {number}
      * @memberof UserSegmentRule
      */
-    weight?: number;
+    'weight'?: number;
     /**
      * 
      * @type {string}
      * @memberof UserSegmentRule
      */
-    bucketBy?: string;
+    'bucketBy'?: string;
 }
 /**
  * 
@@ -6693,13 +6815,13 @@ export interface UserSegments {
      * @type {Array<UserSegment>}
      * @memberof UserSegments
      */
-    items: Array<UserSegment>;
+    'items': Array<UserSegment>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof UserSegments
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
 }
 /**
  * 
@@ -6712,19 +6834,19 @@ export interface Users {
      * @type {{ [key: string]: Link; }}
      * @memberof Users
      */
-    _links?: { [key: string]: Link; };
+    '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {number}
      * @memberof Users
      */
-    totalCount: number;
+    'totalCount': number;
     /**
      * 
-     * @type {Array<User>}
+     * @type {Array<UserRecord>}
      * @memberof Users
      */
-    items: Array<User>;
+    'items': Array<UserRecord>;
 }
 /**
  * 
@@ -6737,44 +6859,13 @@ export interface ValuePut {
      * @type {any}
      * @memberof ValuePut
      */
-    setting?: any | null;
+    'setting'?: any;
     /**
      * 
      * @type {string}
      * @memberof ValuePut
      */
-    comment?: string;
-}
-/**
- * 
- * @export
- * @interface Variate
- */
-export interface Variate {
-    /**
-     * 
-     * @type {string}
-     * @memberof Variate
-     */
-    id?: string;
-    /**
-     * 
-     * @type {any}
-     * @memberof Variate
-     */
-    value: any | null;
-    /**
-     * 
-     * @type {string}
-     * @memberof Variate
-     */
-    description?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Variate
-     */
-    name?: string;
+    'comment'?: string;
 }
 /**
  * 
@@ -6787,25 +6878,25 @@ export interface Variation {
      * @type {string}
      * @memberof Variation
      */
-    _id?: string;
+    '_id'?: string;
     /**
      * 
      * @type {any}
      * @memberof Variation
      */
-    value: any | null;
+    'value': any;
     /**
      * Description of the variation
      * @type {string}
      * @memberof Variation
      */
-    description?: string;
+    'description'?: string;
     /**
      * A human-friendly name for the variation
      * @type {string}
      * @memberof Variation
      */
-    name?: string;
+    'name'?: string;
 }
 /**
  * 
@@ -6818,13 +6909,13 @@ export interface VariationOrRolloutRep {
      * @type {number}
      * @memberof VariationOrRolloutRep
      */
-    variation?: number;
+    'variation'?: number;
     /**
      * 
      * @type {Rollout}
      * @memberof VariationOrRolloutRep
      */
-    rollout?: Rollout;
+    'rollout'?: Rollout;
 }
 /**
  * 
@@ -6837,43 +6928,43 @@ export interface VariationSummary {
      * @type {number}
      * @memberof VariationSummary
      */
-    rules: number;
+    'rules': number;
     /**
      * 
      * @type {number}
      * @memberof VariationSummary
      */
-    nullRules: number;
+    'nullRules': number;
     /**
      * 
      * @type {number}
      * @memberof VariationSummary
      */
-    targets: number;
+    'targets': number;
     /**
      * 
      * @type {boolean}
      * @memberof VariationSummary
      */
-    isFallthrough?: boolean;
+    'isFallthrough'?: boolean;
     /**
      * 
      * @type {boolean}
      * @memberof VariationSummary
      */
-    isOff?: boolean;
+    'isOff'?: boolean;
     /**
      * 
      * @type {number}
      * @memberof VariationSummary
      */
-    rollout?: number;
+    'rollout'?: number;
     /**
      * 
      * @type {string}
      * @memberof VariationSummary
      */
-    bucketBy?: string;
+    'bucketBy'?: string;
 }
 /**
  * 
@@ -6886,25 +6977,25 @@ export interface VersionsRep {
      * @type {Array<number>}
      * @memberof VersionsRep
      */
-    validVersions: Array<number>;
+    'validVersions': Array<number>;
     /**
      * 
      * @type {number}
      * @memberof VersionsRep
      */
-    latestVersion: number;
+    'latestVersion': number;
     /**
      * 
      * @type {number}
      * @memberof VersionsRep
      */
-    currentVersion: number;
+    'currentVersion': number;
     /**
      * 
      * @type {boolean}
      * @memberof VersionsRep
      */
-    beta?: boolean;
+    'beta'?: boolean;
 }
 /**
  * 
@@ -6917,55 +7008,55 @@ export interface Webhook {
      * @type {{ [key: string]: Link; }}
      * @memberof Webhook
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
      * @memberof Webhook
      */
-    _id: string;
+    '_id': string;
     /**
      * 
      * @type {string}
      * @memberof Webhook
      */
-    name?: string;
+    'name'?: string;
     /**
      * 
      * @type {string}
      * @memberof Webhook
      */
-    url: string;
+    'url': string;
     /**
      * 
      * @type {string}
      * @memberof Webhook
      */
-    secret?: string;
+    'secret'?: string;
     /**
      * 
      * @type {Array<StatementRep>}
      * @memberof Webhook
      */
-    statements?: Array<StatementRep>;
+    'statements'?: Array<StatementRep>;
     /**
      * 
      * @type {boolean}
      * @memberof Webhook
      */
-    on: boolean;
+    'on': boolean;
     /**
      * 
      * @type {Array<string>}
      * @memberof Webhook
      */
-    tags: Array<string>;
+    'tags': Array<string>;
     /**
      * 
      * @type {AccessRep}
      * @memberof Webhook
      */
-    _access?: AccessRep;
+    '_access'?: AccessRep;
 }
 /**
  * 
@@ -6978,43 +7069,43 @@ export interface WebhookPost {
      * @type {string}
      * @memberof WebhookPost
      */
-    name?: string;
+    'name'?: string;
     /**
      * The URL of the remote webhook
      * @type {string}
      * @memberof WebhookPost
      */
-    url: string;
+    'url': string;
     /**
      * If sign is true, and the secret attribute is omitted, LaunchDarkly automatically generates a secret for you.
      * @type {string}
      * @memberof WebhookPost
      */
-    secret?: string;
+    'secret'?: string;
     /**
      * 
      * @type {Array<StatementPost>}
      * @memberof WebhookPost
      */
-    statements?: Array<StatementPost>;
+    'statements'?: Array<StatementPost>;
     /**
      * If sign is false, the webhook does not include a signature header, and the secret can be omitted.
      * @type {boolean}
      * @memberof WebhookPost
      */
-    sign: boolean;
+    'sign': boolean;
     /**
      * Whether or not this webhook is enabled.
      * @type {boolean}
      * @memberof WebhookPost
      */
-    on: boolean;
+    'on': boolean;
     /**
      * List of tags for this webhook
      * @type {Array<string>}
      * @memberof WebhookPost
      */
-    tags?: Array<string>;
+    'tags'?: Array<string>;
 }
 /**
  * 
@@ -7027,13 +7118,13 @@ export interface Webhooks {
      * @type {{ [key: string]: Link; }}
      * @memberof Webhooks
      */
-    _links: { [key: string]: Link; };
+    '_links': { [key: string]: Link; };
     /**
      * 
      * @type {Array<Webhook>}
      * @memberof Webhooks
      */
-    items: Array<Webhook>;
+    'items': Array<Webhook>;
 }
 /**
  * 
@@ -7046,19 +7137,19 @@ export interface WeightedVariation {
      * @type {number}
      * @memberof WeightedVariation
      */
-    variation: number;
+    'variation': number;
     /**
      * 
      * @type {number}
      * @memberof WeightedVariation
      */
-    weight: number;
+    'weight': number;
     /**
      * 
      * @type {boolean}
      * @memberof WeightedVariation
      */
-    _untracked?: boolean;
+    '_untracked'?: boolean;
 }
 
 /**
@@ -7074,7 +7165,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteToken: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        deleteToken: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('deleteToken', 'id', id)
             const localVarPath = `/api/v2/tokens/{id}`
@@ -7095,7 +7186,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -7111,7 +7202,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getToken: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        getToken: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('getToken', 'id', id)
             const localVarPath = `/api/v2/tokens/{id}`
@@ -7132,7 +7223,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -7148,7 +7239,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTokens: async (showAll?: boolean, options: any = {}): Promise<RequestArgs> => {
+        getTokens: async (showAll?: boolean, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/tokens`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -7170,7 +7261,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -7187,7 +7278,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchToken: async (id: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchToken: async (id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('patchToken', 'id', id)
             // verify required parameter 'patchOperation' is not null or undefined
@@ -7212,7 +7303,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -7229,7 +7320,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postToken: async (accessTokenPost: AccessTokenPost, options: any = {}): Promise<RequestArgs> => {
+        postToken: async (accessTokenPost: AccessTokenPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'accessTokenPost' is not null or undefined
             assertParamExists('postToken', 'accessTokenPost', accessTokenPost)
             const localVarPath = `/api/v2/tokens`;
@@ -7251,7 +7342,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(accessTokenPost, localVarRequestOptions, configuration)
@@ -7269,7 +7360,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetToken: async (id: string, expiry?: number, options: any = {}): Promise<RequestArgs> => {
+        resetToken: async (id: string, expiry?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('resetToken', 'id', id)
             const localVarPath = `/api/v2/tokens/{id}/reset`
@@ -7294,7 +7385,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -7320,7 +7411,7 @@ export const AccessTokensApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteToken(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteToken(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteToken(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7331,7 +7422,7 @@ export const AccessTokensApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getToken(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
+        async getToken(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getToken(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7342,7 +7433,7 @@ export const AccessTokensApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTokens(showAll?: boolean, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Tokens>> {
+        async getTokens(showAll?: boolean, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Tokens>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getTokens(showAll, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7354,7 +7445,7 @@ export const AccessTokensApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchToken(id: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
+        async patchToken(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchToken(id, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7365,7 +7456,7 @@ export const AccessTokensApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postToken(accessTokenPost: AccessTokenPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
+        async postToken(accessTokenPost: AccessTokenPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postToken(accessTokenPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7377,7 +7468,7 @@ export const AccessTokensApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetToken(id: string, expiry?: number, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
+        async resetToken(id: string, expiry?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Token>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.resetToken(id, expiry, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7471,7 +7562,7 @@ export class AccessTokensApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccessTokensApi
      */
-    public deleteToken(id: string, options?: any) {
+    public deleteToken(id: string, options?: AxiosRequestConfig) {
         return AccessTokensApiFp(this.configuration).deleteToken(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7483,7 +7574,7 @@ export class AccessTokensApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccessTokensApi
      */
-    public getToken(id: string, options?: any) {
+    public getToken(id: string, options?: AxiosRequestConfig) {
         return AccessTokensApiFp(this.configuration).getToken(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7495,7 +7586,7 @@ export class AccessTokensApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccessTokensApi
      */
-    public getTokens(showAll?: boolean, options?: any) {
+    public getTokens(showAll?: boolean, options?: AxiosRequestConfig) {
         return AccessTokensApiFp(this.configuration).getTokens(showAll, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7508,7 +7599,7 @@ export class AccessTokensApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccessTokensApi
      */
-    public patchToken(id: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchToken(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return AccessTokensApiFp(this.configuration).patchToken(id, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7520,7 +7611,7 @@ export class AccessTokensApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccessTokensApi
      */
-    public postToken(accessTokenPost: AccessTokenPost, options?: any) {
+    public postToken(accessTokenPost: AccessTokenPost, options?: AxiosRequestConfig) {
         return AccessTokensApiFp(this.configuration).postToken(accessTokenPost, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7533,7 +7624,7 @@ export class AccessTokensApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccessTokensApi
      */
-    public resetToken(id: string, expiry?: number, options?: any) {
+    public resetToken(id: string, expiry?: number, options?: AxiosRequestConfig) {
         return AccessTokensApiFp(this.configuration).resetToken(id, expiry, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -7552,7 +7643,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteMember: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        deleteMember: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('deleteMember', 'id', id)
             const localVarPath = `/api/v2/members/{id}`
@@ -7573,7 +7664,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -7589,7 +7680,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMember: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        getMember: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('getMember', 'id', id)
             const localVarPath = `/api/v2/members/{id}`
@@ -7610,7 +7701,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -7629,7 +7720,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMembers: async (limit?: number, offset?: number, filter?: string, sort?: string, options: any = {}): Promise<RequestArgs> => {
+        getMembers: async (limit?: number, offset?: number, filter?: string, sort?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/members`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -7663,7 +7754,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -7680,7 +7771,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchMember: async (id: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchMember: async (id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('patchMember', 'id', id)
             // verify required parameter 'patchOperation' is not null or undefined
@@ -7705,7 +7796,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -7722,7 +7813,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postMembers: async (newMemberForm: Array<NewMemberForm>, options: any = {}): Promise<RequestArgs> => {
+        postMembers: async (newMemberForm: Array<NewMemberForm>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'newMemberForm' is not null or undefined
             assertParamExists('postMembers', 'newMemberForm', newMemberForm)
             const localVarPath = `/api/v2/members`;
@@ -7744,7 +7835,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(newMemberForm, localVarRequestOptions, configuration)
@@ -7771,7 +7862,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteMember(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteMember(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteMember(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7782,7 +7873,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMember(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
+        async getMember(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getMember(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7796,7 +7887,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMembers(limit?: number, offset?: number, filter?: string, sort?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Members>> {
+        async getMembers(limit?: number, offset?: number, filter?: string, sort?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Members>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getMembers(limit, offset, filter, sort, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7808,7 +7899,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchMember(id: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
+        async patchMember(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchMember(id, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7819,7 +7910,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postMembers(newMemberForm: Array<NewMemberForm>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Members>> {
+        async postMembers(newMemberForm: Array<NewMemberForm>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Members>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postMembers(newMemberForm, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -7905,7 +7996,7 @@ export class AccountMembersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountMembersApi
      */
-    public deleteMember(id: string, options?: any) {
+    public deleteMember(id: string, options?: AxiosRequestConfig) {
         return AccountMembersApiFp(this.configuration).deleteMember(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7917,7 +8008,7 @@ export class AccountMembersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountMembersApi
      */
-    public getMember(id: string, options?: any) {
+    public getMember(id: string, options?: AxiosRequestConfig) {
         return AccountMembersApiFp(this.configuration).getMember(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7932,7 +8023,7 @@ export class AccountMembersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountMembersApi
      */
-    public getMembers(limit?: number, offset?: number, filter?: string, sort?: string, options?: any) {
+    public getMembers(limit?: number, offset?: number, filter?: string, sort?: string, options?: AxiosRequestConfig) {
         return AccountMembersApiFp(this.configuration).getMembers(limit, offset, filter, sort, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7945,7 +8036,7 @@ export class AccountMembersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountMembersApi
      */
-    public patchMember(id: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchMember(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return AccountMembersApiFp(this.configuration).patchMember(id, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -7957,7 +8048,7 @@ export class AccountMembersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountMembersApi
      */
-    public postMembers(newMemberForm: Array<NewMemberForm>, options?: any) {
+    public postMembers(newMemberForm: Array<NewMemberForm>, options?: AxiosRequestConfig) {
         return AccountMembersApiFp(this.configuration).postMembers(newMemberForm, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -7981,7 +8072,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getEvaluationsUsage: async (projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options: any = {}): Promise<RequestArgs> => {
+        getEvaluationsUsage: async (projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getEvaluationsUsage', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -8020,7 +8111,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8038,7 +8129,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getEventsUsage: async (type: string, from?: string, to?: string, options: any = {}): Promise<RequestArgs> => {
+        getEventsUsage: async (type: string, from?: string, to?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'type' is not null or undefined
             assertParamExists('getEventsUsage', 'type', type)
             const localVarPath = `/api/v2/usage/events/{type}`
@@ -8067,7 +8158,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8085,7 +8176,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMauSdksByType: async (from?: string, to?: string, sdktype?: string, options: any = {}): Promise<RequestArgs> => {
+        getMauSdksByType: async (from?: string, to?: string, sdktype?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/usage/mau/sdks`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -8115,7 +8206,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8138,7 +8229,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMauUsage: async (from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, options: any = {}): Promise<RequestArgs> => {
+        getMauUsage: async (from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/usage/mau`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -8188,7 +8279,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8205,7 +8296,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMauUsageByCategory: async (from?: string, to?: string, options: any = {}): Promise<RequestArgs> => {
+        getMauUsageByCategory: async (from?: string, to?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/usage/mau/bycategory`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -8231,7 +8322,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8250,7 +8341,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getStreamUsage: async (source: string, from?: string, to?: string, tz?: string, options: any = {}): Promise<RequestArgs> => {
+        getStreamUsage: async (source: string, from?: string, to?: string, tz?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'source' is not null or undefined
             assertParamExists('getStreamUsage', 'source', source)
             const localVarPath = `/api/v2/usage/streams/{source}`
@@ -8283,7 +8374,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8304,7 +8395,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getStreamUsageBySdkVersion: async (source: string, from?: string, to?: string, tz?: string, sdk?: string, version?: string, options: any = {}): Promise<RequestArgs> => {
+        getStreamUsageBySdkVersion: async (source: string, from?: string, to?: string, tz?: string, sdk?: string, version?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'source' is not null or undefined
             assertParamExists('getStreamUsageBySdkVersion', 'source', source)
             const localVarPath = `/api/v2/usage/streams/{source}/bysdkversion`
@@ -8345,7 +8436,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8361,7 +8452,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getStreamUsageSdkversion: async (source: string, options: any = {}): Promise<RequestArgs> => {
+        getStreamUsageSdkversion: async (source: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'source' is not null or undefined
             assertParamExists('getStreamUsageSdkversion', 'source', source)
             const localVarPath = `/api/v2/usage/streams/{source}/sdkversions`
@@ -8382,7 +8473,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8413,7 +8504,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getEvaluationsUsage(projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+        async getEvaluationsUsage(projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getEvaluationsUsage(projKey, envKey, flagKey, from, to, tz, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8426,7 +8517,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getEventsUsage(type: string, from?: string, to?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+        async getEventsUsage(type: string, from?: string, to?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getEventsUsage(type, from, to, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8439,7 +8530,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMauSdksByType(from?: string, to?: string, sdktype?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SdkListRep>> {
+        async getMauSdksByType(from?: string, to?: string, sdktype?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SdkListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getMauSdksByType(from, to, sdktype, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8457,7 +8548,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMauUsage(from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+        async getMauUsage(from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getMauUsage(from, to, project, environment, sdktype, sdk, anonymous, groupby, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8469,7 +8560,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMauUsageByCategory(from?: string, to?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+        async getMauUsageByCategory(from?: string, to?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getMauUsageByCategory(from, to, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8483,7 +8574,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getStreamUsage(source: string, from?: string, to?: string, tz?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+        async getStreamUsage(source: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getStreamUsage(source, from, to, tz, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8499,7 +8590,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getStreamUsageBySdkVersion(source: string, from?: string, to?: string, tz?: string, sdk?: string, version?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+        async getStreamUsageBySdkVersion(source: string, from?: string, to?: string, tz?: string, sdk?: string, version?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getStreamUsageBySdkVersion(source, from, to, tz, sdk, version, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8510,7 +8601,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getStreamUsageSdkversion(source: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SdkVersionListRep>> {
+        async getStreamUsageSdkversion(source: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SdkVersionListRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getStreamUsageSdkversion(source, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -8652,7 +8743,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getEvaluationsUsage(projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options?: any) {
+    public getEvaluationsUsage(projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getEvaluationsUsage(projKey, envKey, flagKey, from, to, tz, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -8666,7 +8757,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getEventsUsage(type: string, from?: string, to?: string, options?: any) {
+    public getEventsUsage(type: string, from?: string, to?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getEventsUsage(type, from, to, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -8680,7 +8771,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getMauSdksByType(from?: string, to?: string, sdktype?: string, options?: any) {
+    public getMauSdksByType(from?: string, to?: string, sdktype?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getMauSdksByType(from, to, sdktype, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -8699,7 +8790,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getMauUsage(from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, options?: any) {
+    public getMauUsage(from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getMauUsage(from, to, project, environment, sdktype, sdk, anonymous, groupby, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -8712,7 +8803,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getMauUsageByCategory(from?: string, to?: string, options?: any) {
+    public getMauUsageByCategory(from?: string, to?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getMauUsageByCategory(from, to, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -8727,7 +8818,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getStreamUsage(source: string, from?: string, to?: string, tz?: string, options?: any) {
+    public getStreamUsage(source: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getStreamUsage(source, from, to, tz, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -8744,7 +8835,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getStreamUsageBySdkVersion(source: string, from?: string, to?: string, tz?: string, sdk?: string, version?: string, options?: any) {
+    public getStreamUsageBySdkVersion(source: string, from?: string, to?: string, tz?: string, sdk?: string, version?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getStreamUsageBySdkVersion(source, from, to, tz, sdk, version, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -8756,7 +8847,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getStreamUsageSdkversion(source: string, options?: any) {
+    public getStreamUsageSdkversion(source: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getStreamUsageSdkversion(source, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -8778,7 +8869,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteApprovalRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: any = {}): Promise<RequestArgs> => {
+        deleteApprovalRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteApprovalRequest', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -8808,7 +8899,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8827,7 +8918,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getApproval: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: any = {}): Promise<RequestArgs> => {
+        getApproval: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getApproval', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -8857,7 +8948,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8875,7 +8966,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getApprovals: async (projectKey: string, featureFlagKey: string, environmentKey: string, options: any = {}): Promise<RequestArgs> => {
+        getApprovals: async (projectKey: string, featureFlagKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getApprovals', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -8902,7 +8993,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -8921,7 +9012,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postApprovalRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, createFlagConfigApprovalRequestRequest: CreateFlagConfigApprovalRequestRequest, options: any = {}): Promise<RequestArgs> => {
+        postApprovalRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, createFlagConfigApprovalRequestRequest: CreateFlagConfigApprovalRequestRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postApprovalRequest', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -8952,7 +9043,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(createFlagConfigApprovalRequestRequest, localVarRequestOptions, configuration)
@@ -8973,7 +9064,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postApprovalRequestApplyRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestApplyRequest: PostApprovalRequestApplyRequest, options: any = {}): Promise<RequestArgs> => {
+        postApprovalRequestApplyRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestApplyRequest: PostApprovalRequestApplyRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postApprovalRequestApplyRequest', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -9007,7 +9098,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(postApprovalRequestApplyRequest, localVarRequestOptions, configuration)
@@ -9028,7 +9119,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postApprovalRequestReview: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestReviewRequest: PostApprovalRequestReviewRequest, options: any = {}): Promise<RequestArgs> => {
+        postApprovalRequestReview: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestReviewRequest: PostApprovalRequestReviewRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postApprovalRequestReview', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -9062,7 +9153,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(postApprovalRequestReviewRequest, localVarRequestOptions, configuration)
@@ -9082,7 +9173,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postFlagCopyConfigApprovalRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, createCopyFlagConfigApprovalRequestRequest: CreateCopyFlagConfigApprovalRequestRequest, options: any = {}): Promise<RequestArgs> => {
+        postFlagCopyConfigApprovalRequest: async (projectKey: string, featureFlagKey: string, environmentKey: string, createCopyFlagConfigApprovalRequestRequest: CreateCopyFlagConfigApprovalRequestRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postFlagCopyConfigApprovalRequest', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -9113,7 +9204,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(createCopyFlagConfigApprovalRequestRequest, localVarRequestOptions, configuration)
@@ -9143,7 +9234,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteApprovalRequest(projectKey, featureFlagKey, environmentKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9157,7 +9248,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getApproval(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
+        async getApproval(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getApproval(projectKey, featureFlagKey, environmentKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9170,7 +9261,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getApprovals(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestsResponse>> {
+        async getApprovals(projectKey: string, featureFlagKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestsResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getApprovals(projectKey, featureFlagKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9184,7 +9275,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createFlagConfigApprovalRequestRequest: CreateFlagConfigApprovalRequestRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
+        async postApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createFlagConfigApprovalRequestRequest: CreateFlagConfigApprovalRequestRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postApprovalRequest(projectKey, featureFlagKey, environmentKey, createFlagConfigApprovalRequestRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9199,7 +9290,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postApprovalRequestApplyRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestApplyRequest: PostApprovalRequestApplyRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
+        async postApprovalRequestApplyRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestApplyRequest: PostApprovalRequestApplyRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postApprovalRequestApplyRequest(projectKey, featureFlagKey, environmentKey, id, postApprovalRequestApplyRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9214,7 +9305,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postApprovalRequestReview(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestReviewRequest: PostApprovalRequestReviewRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
+        async postApprovalRequestReview(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestReviewRequest: PostApprovalRequestReviewRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postApprovalRequestReview(projectKey, featureFlagKey, environmentKey, id, postApprovalRequestReviewRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9228,7 +9319,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postFlagCopyConfigApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createCopyFlagConfigApprovalRequestRequest: CreateCopyFlagConfigApprovalRequestRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
+        async postFlagCopyConfigApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createCopyFlagConfigApprovalRequestRequest: CreateCopyFlagConfigApprovalRequestRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postFlagCopyConfigApprovalRequest(projectKey, featureFlagKey, environmentKey, createCopyFlagConfigApprovalRequestRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9355,7 +9446,7 @@ export class ApprovalsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ApprovalsApi
      */
-    public deleteApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any) {
+    public deleteApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
         return ApprovalsApiFp(this.configuration).deleteApprovalRequest(projectKey, featureFlagKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -9370,7 +9461,7 @@ export class ApprovalsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ApprovalsApi
      */
-    public getApproval(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any) {
+    public getApproval(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
         return ApprovalsApiFp(this.configuration).getApproval(projectKey, featureFlagKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -9384,7 +9475,7 @@ export class ApprovalsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ApprovalsApi
      */
-    public getApprovals(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any) {
+    public getApprovals(projectKey: string, featureFlagKey: string, environmentKey: string, options?: AxiosRequestConfig) {
         return ApprovalsApiFp(this.configuration).getApprovals(projectKey, featureFlagKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -9399,7 +9490,7 @@ export class ApprovalsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ApprovalsApi
      */
-    public postApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createFlagConfigApprovalRequestRequest: CreateFlagConfigApprovalRequestRequest, options?: any) {
+    public postApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createFlagConfigApprovalRequestRequest: CreateFlagConfigApprovalRequestRequest, options?: AxiosRequestConfig) {
         return ApprovalsApiFp(this.configuration).postApprovalRequest(projectKey, featureFlagKey, environmentKey, createFlagConfigApprovalRequestRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -9415,7 +9506,7 @@ export class ApprovalsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ApprovalsApi
      */
-    public postApprovalRequestApplyRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestApplyRequest: PostApprovalRequestApplyRequest, options?: any) {
+    public postApprovalRequestApplyRequest(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestApplyRequest: PostApprovalRequestApplyRequest, options?: AxiosRequestConfig) {
         return ApprovalsApiFp(this.configuration).postApprovalRequestApplyRequest(projectKey, featureFlagKey, environmentKey, id, postApprovalRequestApplyRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -9431,7 +9522,7 @@ export class ApprovalsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ApprovalsApi
      */
-    public postApprovalRequestReview(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestReviewRequest: PostApprovalRequestReviewRequest, options?: any) {
+    public postApprovalRequestReview(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, postApprovalRequestReviewRequest: PostApprovalRequestReviewRequest, options?: AxiosRequestConfig) {
         return ApprovalsApiFp(this.configuration).postApprovalRequestReview(projectKey, featureFlagKey, environmentKey, id, postApprovalRequestReviewRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -9446,7 +9537,7 @@ export class ApprovalsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ApprovalsApi
      */
-    public postFlagCopyConfigApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createCopyFlagConfigApprovalRequestRequest: CreateCopyFlagConfigApprovalRequestRequest, options?: any) {
+    public postFlagCopyConfigApprovalRequest(projectKey: string, featureFlagKey: string, environmentKey: string, createCopyFlagConfigApprovalRequestRequest: CreateCopyFlagConfigApprovalRequestRequest, options?: AxiosRequestConfig) {
         return ApprovalsApiFp(this.configuration).postFlagCopyConfigApprovalRequest(projectKey, featureFlagKey, environmentKey, createCopyFlagConfigApprovalRequestRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -9469,7 +9560,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAuditLogEntries: async (before?: number, after?: number, q?: string, limit?: number, spec?: string, options: any = {}): Promise<RequestArgs> => {
+        getAuditLogEntries: async (before?: number, after?: number, q?: string, limit?: number, spec?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/auditlog`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -9507,7 +9598,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9523,7 +9614,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAuditLogEntry: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        getAuditLogEntry: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('getAuditLogEntry', 'id', id)
             const localVarPath = `/api/v2/auditlog/{id}`
@@ -9544,7 +9635,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9574,7 +9665,7 @@ export const AuditLogApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAuditLogEntries(before?: number, after?: number, q?: string, limit?: number, spec?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AuditLogEntryListingRepCollection>> {
+        async getAuditLogEntries(before?: number, after?: number, q?: string, limit?: number, spec?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AuditLogEntryListingRepCollection>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getAuditLogEntries(before, after, q, limit, spec, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9585,7 +9676,7 @@ export const AuditLogApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAuditLogEntry(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AuditLogEntryRep>> {
+        async getAuditLogEntry(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AuditLogEntryRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getAuditLogEntry(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -9645,7 +9736,7 @@ export class AuditLogApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AuditLogApi
      */
-    public getAuditLogEntries(before?: number, after?: number, q?: string, limit?: number, spec?: string, options?: any) {
+    public getAuditLogEntries(before?: number, after?: number, q?: string, limit?: number, spec?: string, options?: AxiosRequestConfig) {
         return AuditLogApiFp(this.configuration).getAuditLogEntries(before, after, q, limit, spec, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -9657,7 +9748,7 @@ export class AuditLogApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AuditLogApi
      */
-    public getAuditLogEntry(id: string, options?: any) {
+    public getAuditLogEntry(id: string, options?: AxiosRequestConfig) {
         return AuditLogApiFp(this.configuration).getAuditLogEntry(id, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -9677,7 +9768,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteBranches: async (repo: string, requestBody: Array<string>, options: any = {}): Promise<RequestArgs> => {
+        deleteBranches: async (repo: string, requestBody: Array<string>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('deleteBranches', 'repo', repo)
             // verify required parameter 'requestBody' is not null or undefined
@@ -9702,7 +9793,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(requestBody, localVarRequestOptions, configuration)
@@ -9719,7 +9810,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteRepository: async (repo: string, options: any = {}): Promise<RequestArgs> => {
+        deleteRepository: async (repo: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('deleteRepository', 'repo', repo)
             const localVarPath = `/api/v2/code-refs/repositories/{repo}`
@@ -9740,7 +9831,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9759,7 +9850,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getBranch: async (repo: string, branch: string, projKey?: string, flagKey?: string, options: any = {}): Promise<RequestArgs> => {
+        getBranch: async (repo: string, branch: string, projKey?: string, flagKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('getBranch', 'repo', repo)
             // verify required parameter 'branch' is not null or undefined
@@ -9791,7 +9882,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9807,7 +9898,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getBranches: async (repo: string, options: any = {}): Promise<RequestArgs> => {
+        getBranches: async (repo: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('getBranches', 'repo', repo)
             const localVarPath = `/api/v2/code-refs/repositories/{repo}/branches`
@@ -9828,7 +9919,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9847,7 +9938,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExtinctions: async (repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options: any = {}): Promise<RequestArgs> => {
+        getExtinctions: async (repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/code-refs/extinctions`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -9881,7 +9972,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9900,7 +9991,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getRepositories: async (withBranches?: string, withReferencesForDefaultBranch?: string, projKey?: string, flagKey?: string, options: any = {}): Promise<RequestArgs> => {
+        getRepositories: async (withBranches?: string, withReferencesForDefaultBranch?: string, projKey?: string, flagKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/code-refs/repositories`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -9934,7 +10025,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9950,7 +10041,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getRepository: async (repo: string, options: any = {}): Promise<RequestArgs> => {
+        getRepository: async (repo: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('getRepository', 'repo', repo)
             const localVarPath = `/api/v2/code-refs/repositories/{repo}`
@@ -9971,7 +10062,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -9986,7 +10077,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getRootStatistic: async (options: any = {}): Promise<RequestArgs> => {
+        getRootStatistic: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/code-refs/statistics`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -10004,7 +10095,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -10021,7 +10112,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getStatistics: async (projKey: string, flagKey?: string, options: any = {}): Promise<RequestArgs> => {
+        getStatistics: async (projKey: string, flagKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getStatistics', 'projKey', projKey)
             const localVarPath = `/api/v2/code-refs/statistics/{projKey}`
@@ -10046,7 +10137,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -10063,7 +10154,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchRepository: async (repo: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchRepository: async (repo: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('patchRepository', 'repo', repo)
             // verify required parameter 'patchOperation' is not null or undefined
@@ -10088,7 +10179,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -10103,17 +10194,17 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @summary Create extinction
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {Array<ExtinctionRep>} extinctionRep 
+         * @param {Array<Extinction>} extinction 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postExtinction: async (repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options: any = {}): Promise<RequestArgs> => {
+        postExtinction: async (repo: string, branch: string, extinction: Array<Extinction>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('postExtinction', 'repo', repo)
             // verify required parameter 'branch' is not null or undefined
             assertParamExists('postExtinction', 'branch', branch)
-            // verify required parameter 'extinctionRep' is not null or undefined
-            assertParamExists('postExtinction', 'extinctionRep', extinctionRep)
+            // verify required parameter 'extinction' is not null or undefined
+            assertParamExists('postExtinction', 'extinction', extinction)
             const localVarPath = `/api/v2/code-refs/repositories/{repo}/branches/{branch}/extinction-events`
                 .replace(`{${"repo"}}`, encodeURIComponent(String(repo)))
                 .replace(`{${"branch"}}`, encodeURIComponent(String(branch)));
@@ -10135,10 +10226,10 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(extinctionRep, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(extinction, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -10152,7 +10243,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postRepository: async (repositoryPost: RepositoryPost, options: any = {}): Promise<RequestArgs> => {
+        postRepository: async (repositoryPost: RepositoryPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repositoryPost' is not null or undefined
             assertParamExists('postRepository', 'repositoryPost', repositoryPost)
             const localVarPath = `/api/v2/code-refs/repositories`;
@@ -10174,7 +10265,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(repositoryPost, localVarRequestOptions, configuration)
@@ -10193,7 +10284,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putBranch: async (repo: string, branch: string, putBranch: PutBranch, options: any = {}): Promise<RequestArgs> => {
+        putBranch: async (repo: string, branch: string, putBranch: PutBranch, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repo' is not null or undefined
             assertParamExists('putBranch', 'repo', repo)
             // verify required parameter 'branch' is not null or undefined
@@ -10221,7 +10312,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(putBranch, localVarRequestOptions, configuration)
@@ -10249,7 +10340,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteBranches(repo: string, requestBody: Array<string>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteBranches(repo: string, requestBody: Array<string>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteBranches(repo, requestBody, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10260,7 +10351,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteRepository(repo: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteRepository(repo: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRepository(repo, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10274,7 +10365,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getBranch(repo: string, branch: string, projKey?: string, flagKey?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BranchRep>> {
+        async getBranch(repo: string, branch: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BranchRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getBranch(repo, branch, projKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10285,7 +10376,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getBranches(repo: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BranchCollectionRep>> {
+        async getBranches(repo: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BranchCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getBranches(repo, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10299,7 +10390,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExtinctionCollectionRep>> {
+        async getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExtinctionCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getExtinctions(repoName, branchName, projKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10313,7 +10404,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getRepositories(withBranches?: string, withReferencesForDefaultBranch?: string, projKey?: string, flagKey?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryCollectionRep>> {
+        async getRepositories(withBranches?: string, withReferencesForDefaultBranch?: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getRepositories(withBranches, withReferencesForDefaultBranch, projKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10324,7 +10415,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getRepository(repo: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryRep>> {
+        async getRepository(repo: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getRepository(repo, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10334,7 +10425,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getRootStatistic(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<StatisticsRoot>> {
+        async getRootStatistic(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<StatisticsRoot>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getRootStatistic(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10346,7 +10437,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getStatistics(projKey: string, flagKey?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<StatisticCollectionRep>> {
+        async getStatistics(projKey: string, flagKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<StatisticCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getStatistics(projKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10358,7 +10449,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchRepository(repo: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryRep>> {
+        async patchRepository(repo: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchRepository(repo, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10367,12 +10458,12 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @summary Create extinction
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {Array<ExtinctionRep>} extinctionRep 
+         * @param {Array<Extinction>} extinction 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postExtinction(repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postExtinction(repo, branch, extinctionRep, options);
+        async postExtinction(repo: string, branch: string, extinction: Array<Extinction>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postExtinction(repo, branch, extinction, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -10382,7 +10473,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postRepository(repositoryPost: RepositoryPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryRep>> {
+        async postRepository(repositoryPost: RepositoryPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postRepository(repositoryPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10395,7 +10486,7 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async putBranch(repo: string, branch: string, putBranch: PutBranch, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async putBranch(repo: string, branch: string, putBranch: PutBranch, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.putBranch(repo, branch, putBranch, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10525,12 +10616,12 @@ export const CodeReferencesApiFactory = function (configuration?: Configuration,
          * @summary Create extinction
          * @param {string} repo The repository name
          * @param {string} branch The url-encoded branch name
-         * @param {Array<ExtinctionRep>} extinctionRep 
+         * @param {Array<Extinction>} extinction 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postExtinction(repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options?: any): AxiosPromise<void> {
-            return localVarFp.postExtinction(repo, branch, extinctionRep, options).then((request) => request(axios, basePath));
+        postExtinction(repo: string, branch: string, extinction: Array<Extinction>, options?: any): AxiosPromise<void> {
+            return localVarFp.postExtinction(repo, branch, extinction, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a repository with the specified name.
@@ -10573,7 +10664,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public deleteBranches(repo: string, requestBody: Array<string>, options?: any) {
+    public deleteBranches(repo: string, requestBody: Array<string>, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).deleteBranches(repo, requestBody, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10585,7 +10676,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public deleteRepository(repo: string, options?: any) {
+    public deleteRepository(repo: string, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).deleteRepository(repo, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10600,7 +10691,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getBranch(repo: string, branch: string, projKey?: string, flagKey?: string, options?: any) {
+    public getBranch(repo: string, branch: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).getBranch(repo, branch, projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10612,7 +10703,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getBranches(repo: string, options?: any) {
+    public getBranches(repo: string, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).getBranches(repo, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10627,7 +10718,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options?: any) {
+    public getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).getExtinctions(repoName, branchName, projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10642,7 +10733,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getRepositories(withBranches?: string, withReferencesForDefaultBranch?: string, projKey?: string, flagKey?: string, options?: any) {
+    public getRepositories(withBranches?: string, withReferencesForDefaultBranch?: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).getRepositories(withBranches, withReferencesForDefaultBranch, projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10654,7 +10745,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getRepository(repo: string, options?: any) {
+    public getRepository(repo: string, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).getRepository(repo, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10665,7 +10756,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getRootStatistic(options?: any) {
+    public getRootStatistic(options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).getRootStatistic(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10678,7 +10769,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getStatistics(projKey: string, flagKey?: string, options?: any) {
+    public getStatistics(projKey: string, flagKey?: string, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).getStatistics(projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10691,7 +10782,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public patchRepository(repo: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchRepository(repo: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).patchRepository(repo, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10700,13 +10791,13 @@ export class CodeReferencesApi extends BaseAPI {
      * @summary Create extinction
      * @param {string} repo The repository name
      * @param {string} branch The url-encoded branch name
-     * @param {Array<ExtinctionRep>} extinctionRep 
+     * @param {Array<Extinction>} extinction 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public postExtinction(repo: string, branch: string, extinctionRep: Array<ExtinctionRep>, options?: any) {
-        return CodeReferencesApiFp(this.configuration).postExtinction(repo, branch, extinctionRep, options).then((request) => request(this.axios, this.basePath));
+    public postExtinction(repo: string, branch: string, extinction: Array<Extinction>, options?: AxiosRequestConfig) {
+        return CodeReferencesApiFp(this.configuration).postExtinction(repo, branch, extinction, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -10717,7 +10808,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public postRepository(repositoryPost: RepositoryPost, options?: any) {
+    public postRepository(repositoryPost: RepositoryPost, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).postRepository(repositoryPost, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -10731,7 +10822,7 @@ export class CodeReferencesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public putBranch(repo: string, branch: string, putBranch: PutBranch, options?: any) {
+    public putBranch(repo: string, branch: string, putBranch: PutBranch, options?: AxiosRequestConfig) {
         return CodeReferencesApiFp(this.configuration).putBranch(repo, branch, putBranch, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -10750,7 +10841,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteCustomRole: async (key: string, options: any = {}): Promise<RequestArgs> => {
+        deleteCustomRole: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'key' is not null or undefined
             assertParamExists('deleteCustomRole', 'key', key)
             const localVarPath = `/api/v2/roles/{key}`
@@ -10771,7 +10862,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -10787,7 +10878,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getCustomRole: async (key: string, options: any = {}): Promise<RequestArgs> => {
+        getCustomRole: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'key' is not null or undefined
             assertParamExists('getCustomRole', 'key', key)
             const localVarPath = `/api/v2/roles/{key}`
@@ -10808,7 +10899,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -10823,7 +10914,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getCustomRoles: async (options: any = {}): Promise<RequestArgs> => {
+        getCustomRoles: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/roles`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -10841,7 +10932,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -10858,7 +10949,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchCustomRole: async (key: string, patchWithComment: PatchWithComment, options: any = {}): Promise<RequestArgs> => {
+        patchCustomRole: async (key: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'key' is not null or undefined
             assertParamExists('patchCustomRole', 'key', key)
             // verify required parameter 'patchWithComment' is not null or undefined
@@ -10883,7 +10974,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchWithComment, localVarRequestOptions, configuration)
@@ -10900,7 +10991,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postCustomRole: async (customRolePost: CustomRolePost, options: any = {}): Promise<RequestArgs> => {
+        postCustomRole: async (customRolePost: CustomRolePost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'customRolePost' is not null or undefined
             assertParamExists('postCustomRole', 'customRolePost', customRolePost)
             const localVarPath = `/api/v2/roles`;
@@ -10922,7 +11013,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(customRolePost, localVarRequestOptions, configuration)
@@ -10949,7 +11040,7 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteCustomRole(key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteCustomRole(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteCustomRole(key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10960,7 +11051,7 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getCustomRole(key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
+        async getCustomRole(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getCustomRole(key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10970,7 +11061,7 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getCustomRoles(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRoles>> {
+        async getCustomRoles(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRoles>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getCustomRoles(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10982,7 +11073,7 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchCustomRole(key: string, patchWithComment: PatchWithComment, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
+        async patchCustomRole(key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchCustomRole(key, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -10993,7 +11084,7 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postCustomRole(customRolePost: CustomRolePost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
+        async postCustomRole(customRolePost: CustomRolePost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postCustomRole(customRolePost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11075,7 +11166,7 @@ export class CustomRolesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public deleteCustomRole(key: string, options?: any) {
+    public deleteCustomRole(key: string, options?: AxiosRequestConfig) {
         return CustomRolesApiFp(this.configuration).deleteCustomRole(key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11087,7 +11178,7 @@ export class CustomRolesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public getCustomRole(key: string, options?: any) {
+    public getCustomRole(key: string, options?: AxiosRequestConfig) {
         return CustomRolesApiFp(this.configuration).getCustomRole(key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11098,7 +11189,7 @@ export class CustomRolesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public getCustomRoles(options?: any) {
+    public getCustomRoles(options?: AxiosRequestConfig) {
         return CustomRolesApiFp(this.configuration).getCustomRoles(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11111,7 +11202,7 @@ export class CustomRolesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public patchCustomRole(key: string, patchWithComment: PatchWithComment, options?: any) {
+    public patchCustomRole(key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
         return CustomRolesApiFp(this.configuration).patchCustomRole(key, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11123,7 +11214,7 @@ export class CustomRolesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public postCustomRole(customRolePost: CustomRolePost, options?: any) {
+    public postCustomRole(customRolePost: CustomRolePost, options?: AxiosRequestConfig) {
         return CustomRolesApiFp(this.configuration).postCustomRole(customRolePost, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -11144,7 +11235,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteDestination: async (projKey: string, envKey: string, id: string, options: any = {}): Promise<RequestArgs> => {
+        deleteDestination: async (projKey: string, envKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('deleteDestination', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -11171,7 +11262,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -11189,7 +11280,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDestination: async (projKey: string, envKey: string, id: string, options: any = {}): Promise<RequestArgs> => {
+        getDestination: async (projKey: string, envKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getDestination', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -11216,7 +11307,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -11231,7 +11322,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDestinations: async (options: any = {}): Promise<RequestArgs> => {
+        getDestinations: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/destinations`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -11249,7 +11340,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -11268,7 +11359,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchDestination: async (projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchDestination: async (projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('patchDestination', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -11299,7 +11390,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -11318,7 +11409,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postDestination: async (projKey: string, envKey: string, destinationPost: DestinationPost, options: any = {}): Promise<RequestArgs> => {
+        postDestination: async (projKey: string, envKey: string, destinationPost: DestinationPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('postDestination', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -11346,7 +11437,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(destinationPost, localVarRequestOptions, configuration)
@@ -11375,7 +11466,7 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteDestination(projKey: string, envKey: string, id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteDestination(projKey, envKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11388,7 +11479,7 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getDestination(projKey: string, envKey: string, id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
+        async getDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getDestination(projKey, envKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11398,7 +11489,7 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getDestinations(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destinations>> {
+        async getDestinations(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destinations>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getDestinations(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11412,7 +11503,7 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchDestination(projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
+        async patchDestination(projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchDestination(projKey, envKey, id, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11425,7 +11516,7 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postDestination(projKey: string, envKey: string, destinationPost: DestinationPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
+        async postDestination(projKey: string, envKey: string, destinationPost: DestinationPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postDestination(projKey, envKey, destinationPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11517,7 +11608,7 @@ export class DataExportDestinationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public deleteDestination(projKey: string, envKey: string, id: string, options?: any) {
+    public deleteDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig) {
         return DataExportDestinationsApiFp(this.configuration).deleteDestination(projKey, envKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11531,7 +11622,7 @@ export class DataExportDestinationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public getDestination(projKey: string, envKey: string, id: string, options?: any) {
+    public getDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig) {
         return DataExportDestinationsApiFp(this.configuration).getDestination(projKey, envKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11542,7 +11633,7 @@ export class DataExportDestinationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public getDestinations(options?: any) {
+    public getDestinations(options?: AxiosRequestConfig) {
         return DataExportDestinationsApiFp(this.configuration).getDestinations(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11557,7 +11648,7 @@ export class DataExportDestinationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public patchDestination(projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchDestination(projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return DataExportDestinationsApiFp(this.configuration).patchDestination(projKey, envKey, id, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -11571,7 +11662,7 @@ export class DataExportDestinationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public postDestination(projKey: string, envKey: string, destinationPost: DestinationPost, options?: any) {
+    public postDestination(projKey: string, envKey: string, destinationPost: DestinationPost, options?: AxiosRequestConfig) {
         return DataExportDestinationsApiFp(this.configuration).postDestination(projKey, envKey, destinationPost, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -11591,7 +11682,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteEnvironment: async (projectKey: string, environmentKey: string, options: any = {}): Promise<RequestArgs> => {
+        deleteEnvironment: async (projectKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteEnvironment', 'projectKey', projectKey)
             // verify required parameter 'environmentKey' is not null or undefined
@@ -11615,7 +11706,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -11632,7 +11723,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getEnvironment: async (projectKey: string, environmentKey: string, options: any = {}): Promise<RequestArgs> => {
+        getEnvironment: async (projectKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getEnvironment', 'projectKey', projectKey)
             // verify required parameter 'environmentKey' is not null or undefined
@@ -11656,7 +11747,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -11674,7 +11765,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchEnvironment: async (projectKey: string, environmentKey: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchEnvironment: async (projectKey: string, environmentKey: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchEnvironment', 'projectKey', projectKey)
             // verify required parameter 'environmentKey' is not null or undefined
@@ -11702,7 +11793,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -11720,7 +11811,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postEnvironment: async (projectKey: string, environmentPost: EnvironmentPost, options: any = {}): Promise<RequestArgs> => {
+        postEnvironment: async (projectKey: string, environmentPost: EnvironmentPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postEnvironment', 'projectKey', projectKey)
             // verify required parameter 'environmentPost' is not null or undefined
@@ -11745,7 +11836,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(environmentPost, localVarRequestOptions, configuration)
@@ -11763,7 +11854,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetEnvironmentMobileKey: async (projectKey: string, envKey: string, options: any = {}): Promise<RequestArgs> => {
+        resetEnvironmentMobileKey: async (projectKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('resetEnvironmentMobileKey', 'projectKey', projectKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -11787,7 +11878,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -11805,7 +11896,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetEnvironmentSDKKey: async (projectKey: string, envKey: string, expiry?: number, options: any = {}): Promise<RequestArgs> => {
+        resetEnvironmentSDKKey: async (projectKey: string, envKey: string, expiry?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('resetEnvironmentSDKKey', 'projectKey', projectKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -11833,7 +11924,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -11860,7 +11951,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteEnvironment(projectKey: string, environmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteEnvironment(projectKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteEnvironment(projectKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11872,7 +11963,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getEnvironment(projectKey: string, environmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
+        async getEnvironment(projectKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getEnvironment(projectKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11885,7 +11976,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchEnvironment(projectKey: string, environmentKey: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
+        async patchEnvironment(projectKey: string, environmentKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchEnvironment(projectKey, environmentKey, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11897,7 +11988,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postEnvironment(projectKey: string, environmentPost: EnvironmentPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
+        async postEnvironment(projectKey: string, environmentPost: EnvironmentPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postEnvironment(projectKey, environmentPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11909,7 +12000,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetEnvironmentMobileKey(projectKey: string, envKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
+        async resetEnvironmentMobileKey(projectKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.resetEnvironmentMobileKey(projectKey, envKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -11922,7 +12013,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetEnvironmentSDKKey(projectKey: string, envKey: string, expiry?: number, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
+        async resetEnvironmentSDKKey(projectKey: string, envKey: string, expiry?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.resetEnvironmentSDKKey(projectKey, envKey, expiry, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12023,7 +12114,7 @@ export class EnvironmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public deleteEnvironment(projectKey: string, environmentKey: string, options?: any) {
+    public deleteEnvironment(projectKey: string, environmentKey: string, options?: AxiosRequestConfig) {
         return EnvironmentsApiFp(this.configuration).deleteEnvironment(projectKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -12036,7 +12127,7 @@ export class EnvironmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public getEnvironment(projectKey: string, environmentKey: string, options?: any) {
+    public getEnvironment(projectKey: string, environmentKey: string, options?: AxiosRequestConfig) {
         return EnvironmentsApiFp(this.configuration).getEnvironment(projectKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -12050,7 +12141,7 @@ export class EnvironmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public patchEnvironment(projectKey: string, environmentKey: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchEnvironment(projectKey: string, environmentKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return EnvironmentsApiFp(this.configuration).patchEnvironment(projectKey, environmentKey, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -12063,7 +12154,7 @@ export class EnvironmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public postEnvironment(projectKey: string, environmentPost: EnvironmentPost, options?: any) {
+    public postEnvironment(projectKey: string, environmentPost: EnvironmentPost, options?: AxiosRequestConfig) {
         return EnvironmentsApiFp(this.configuration).postEnvironment(projectKey, environmentPost, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -12076,7 +12167,7 @@ export class EnvironmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public resetEnvironmentMobileKey(projectKey: string, envKey: string, options?: any) {
+    public resetEnvironmentMobileKey(projectKey: string, envKey: string, options?: AxiosRequestConfig) {
         return EnvironmentsApiFp(this.configuration).resetEnvironmentMobileKey(projectKey, envKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -12090,7 +12181,7 @@ export class EnvironmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public resetEnvironmentSDKKey(projectKey: string, envKey: string, expiry?: number, options?: any) {
+    public resetEnvironmentSDKKey(projectKey: string, envKey: string, expiry?: number, options?: AxiosRequestConfig) {
         return EnvironmentsApiFp(this.configuration).resetEnvironmentSDKKey(projectKey, envKey, expiry, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -12114,7 +12205,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExperiment: async (projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options: any = {}): Promise<RequestArgs> => {
+        getExperiment: async (projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getExperiment', 'projKey', projKey)
             // verify required parameter 'flagKey' is not null or undefined
@@ -12152,7 +12243,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12171,7 +12262,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetExperiment: async (projKey: string, flagKey: string, envKey: string, metricKey: string, options: any = {}): Promise<RequestArgs> => {
+        resetExperiment: async (projKey: string, flagKey: string, envKey: string, metricKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('resetExperiment', 'projKey', projKey)
             // verify required parameter 'flagKey' is not null or undefined
@@ -12201,7 +12292,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12232,7 +12323,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentResultsRep>> {
+        async getExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentResultsRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getExperiment(projKey, flagKey, envKey, metricKey, from, to, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12246,7 +12337,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async resetExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.resetExperiment(projKey, flagKey, envKey, metricKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12311,7 +12402,7 @@ export class ExperimentsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ExperimentsBetaApi
      */
-    public getExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options?: any) {
+    public getExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options?: AxiosRequestConfig) {
         return ExperimentsBetaApiFp(this.configuration).getExperiment(projKey, flagKey, envKey, metricKey, from, to, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -12326,7 +12417,7 @@ export class ExperimentsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ExperimentsBetaApi
      */
-    public resetExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, options?: any) {
+    public resetExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, options?: AxiosRequestConfig) {
         return ExperimentsBetaApiFp(this.configuration).resetExperiment(projKey, flagKey, envKey, metricKey, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -12347,7 +12438,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        copyFeatureFlag: async (projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options: any = {}): Promise<RequestArgs> => {
+        copyFeatureFlag: async (projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('copyFeatureFlag', 'projKey', projKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -12375,7 +12466,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(flagCopyConfigPost, localVarRequestOptions, configuration)
@@ -12393,7 +12484,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteFeatureFlag: async (projKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        deleteFeatureFlag: async (projKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('deleteFeatureFlag', 'projKey', projKey)
             // verify required parameter 'key' is not null or undefined
@@ -12417,7 +12508,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12435,7 +12526,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringUserTargets: async (projKey: string, envKey: string, flagKey: string, options: any = {}): Promise<RequestArgs> => {
+        getExpiringUserTargets: async (projKey: string, envKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getExpiringUserTargets', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -12462,7 +12553,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12480,7 +12571,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlag: async (projKey: string, key: string, env?: string, options: any = {}): Promise<RequestArgs> => {
+        getFeatureFlag: async (projKey: string, key: string, env?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getFeatureFlag', 'projKey', projKey)
             // verify required parameter 'key' is not null or undefined
@@ -12508,7 +12599,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12526,7 +12617,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatus: async (projKey: string, envKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        getFeatureFlagStatus: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getFeatureFlagStatus', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -12553,7 +12644,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12571,7 +12662,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatusAcrossEnvironments: async (projKey: string, key: string, env?: string, options: any = {}): Promise<RequestArgs> => {
+        getFeatureFlagStatusAcrossEnvironments: async (projKey: string, key: string, env?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getFeatureFlagStatusAcrossEnvironments', 'projKey', projKey)
             // verify required parameter 'key' is not null or undefined
@@ -12599,7 +12690,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12616,7 +12707,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatuses: async (projKey: string, envKey: string, options: any = {}): Promise<RequestArgs> => {
+        getFeatureFlagStatuses: async (projKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getFeatureFlagStatuses', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -12640,7 +12731,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12665,7 +12756,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlags: async (projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options: any = {}): Promise<RequestArgs> => {
+        getFeatureFlags: async (projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getFeatureFlags', 'projKey', projKey)
             const localVarPath = `/api/v2/flags/{projKey}`
@@ -12722,7 +12813,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -12741,7 +12832,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringUserTargets: async (projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options: any = {}): Promise<RequestArgs> => {
+        patchExpiringUserTargets: async (projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('patchExpiringUserTargets', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -12772,7 +12863,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchWithComment, localVarRequestOptions, configuration)
@@ -12791,7 +12882,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchFeatureFlag: async (projKey: string, key: string, patchWithComment: PatchWithComment, options: any = {}): Promise<RequestArgs> => {
+        patchFeatureFlag: async (projKey: string, key: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('patchFeatureFlag', 'projKey', projKey)
             // verify required parameter 'key' is not null or undefined
@@ -12819,7 +12910,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchWithComment, localVarRequestOptions, configuration)
@@ -12838,7 +12929,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postFeatureFlag: async (projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options: any = {}): Promise<RequestArgs> => {
+        postFeatureFlag: async (projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('postFeatureFlag', 'projKey', projKey)
             // verify required parameter 'featureFlagBody' is not null or undefined
@@ -12867,7 +12958,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(featureFlagBody, localVarRequestOptions, configuration)
@@ -12896,7 +12987,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async copyFeatureFlag(projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+        async copyFeatureFlag(projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.copyFeatureFlag(projKey, featureFlagKey, flagCopyConfigPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12908,7 +12999,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteFeatureFlag(projKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteFeatureFlag(projKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteFeatureFlag(projKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12921,7 +13012,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExpiringUserTargets(projKey: string, envKey: string, flagKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
+        async getExpiringUserTargets(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringUserTargets(projKey, envKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12934,7 +13025,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlag(projKey: string, key: string, env?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+        async getFeatureFlag(projKey: string, key: string, env?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlag(projKey, key, env, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12947,7 +13038,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlagStatus(projKey: string, envKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagStatusRep>> {
+        async getFeatureFlagStatus(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagStatusRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatus(projKey, envKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12960,7 +13051,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlagStatusAcrossEnvironments(projKey: string, key: string, env?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatusAcrossEnvironments>> {
+        async getFeatureFlagStatusAcrossEnvironments(projKey: string, key: string, env?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatusAcrossEnvironments>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatusAcrossEnvironments(projKey, key, env, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12972,7 +13063,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlagStatuses(projKey: string, envKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatuses>> {
+        async getFeatureFlagStatuses(projKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatuses>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatuses(projKey, envKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -12992,7 +13083,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlags>> {
+        async getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlags>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlags(projKey, env, tag, limit, offset, query, archived, summary, filter, sort, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13006,7 +13097,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchExpiringUserTargets(projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
+        async patchExpiringUserTargets(projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringUserTargets(projKey, envKey, flagKey, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13019,7 +13110,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchFeatureFlag(projKey: string, key: string, patchWithComment: PatchWithComment, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+        async patchFeatureFlag(projKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchFeatureFlag(projKey, key, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13032,7 +13123,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postFeatureFlag(projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+        async postFeatureFlag(projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postFeatureFlag(projKey, featureFlagBody, clone, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13204,7 +13295,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public copyFeatureFlag(projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: any) {
+    public copyFeatureFlag(projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).copyFeatureFlag(projKey, featureFlagKey, flagCopyConfigPost, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13217,7 +13308,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public deleteFeatureFlag(projKey: string, key: string, options?: any) {
+    public deleteFeatureFlag(projKey: string, key: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).deleteFeatureFlag(projKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13231,7 +13322,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getExpiringUserTargets(projKey: string, envKey: string, flagKey: string, options?: any) {
+    public getExpiringUserTargets(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).getExpiringUserTargets(projKey, envKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13245,7 +13336,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlag(projKey: string, key: string, env?: string, options?: any) {
+    public getFeatureFlag(projKey: string, key: string, env?: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).getFeatureFlag(projKey, key, env, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13259,7 +13350,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlagStatus(projKey: string, envKey: string, key: string, options?: any) {
+    public getFeatureFlagStatus(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatus(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13273,7 +13364,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlagStatusAcrossEnvironments(projKey: string, key: string, env?: string, options?: any) {
+    public getFeatureFlagStatusAcrossEnvironments(projKey: string, key: string, env?: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatusAcrossEnvironments(projKey, key, env, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13286,7 +13377,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlagStatuses(projKey: string, envKey: string, options?: any) {
+    public getFeatureFlagStatuses(projKey: string, envKey: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatuses(projKey, envKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13307,7 +13398,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: any) {
+    public getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).getFeatureFlags(projKey, env, tag, limit, offset, query, archived, summary, filter, sort, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13322,7 +13413,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public patchExpiringUserTargets(projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options?: any) {
+    public patchExpiringUserTargets(projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).patchExpiringUserTargets(projKey, envKey, flagKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13336,7 +13427,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public patchFeatureFlag(projKey: string, key: string, patchWithComment: PatchWithComment, options?: any) {
+    public patchFeatureFlag(projKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).patchFeatureFlag(projKey, key, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13350,7 +13441,7 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public postFeatureFlag(projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: any) {
+    public postFeatureFlag(projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: AxiosRequestConfig) {
         return FeatureFlagsApiFp(this.configuration).postFeatureFlag(projKey, featureFlagBody, clone, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -13370,7 +13461,7 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDependentFlags: async (projKey: string, flagKey: string, options: any = {}): Promise<RequestArgs> => {
+        getDependentFlags: async (projKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getDependentFlags', 'projKey', projKey)
             // verify required parameter 'flagKey' is not null or undefined
@@ -13394,7 +13485,7 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -13412,7 +13503,7 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDependentFlagsByEnv: async (projKey: string, envKey: string, flagKey: string, options: any = {}): Promise<RequestArgs> => {
+        getDependentFlagsByEnv: async (projKey: string, envKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getDependentFlagsByEnv', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -13439,7 +13530,7 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -13466,7 +13557,7 @@ export const FeatureFlagsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getDependentFlags(projKey: string, flagKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MultiEnvironmentDependentFlags>> {
+        async getDependentFlags(projKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MultiEnvironmentDependentFlags>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getDependentFlags(projKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13479,7 +13570,7 @@ export const FeatureFlagsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DependentFlagsByEnvironment>> {
+        async getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DependentFlagsByEnvironment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getDependentFlagsByEnv(projKey, envKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13535,7 +13626,7 @@ export class FeatureFlagsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsBetaApi
      */
-    public getDependentFlags(projKey: string, flagKey: string, options?: any) {
+    public getDependentFlags(projKey: string, flagKey: string, options?: AxiosRequestConfig) {
         return FeatureFlagsBetaApiFp(this.configuration).getDependentFlags(projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13549,7 +13640,7 @@ export class FeatureFlagsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsBetaApi
      */
-    public getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: any) {
+    public getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig) {
         return FeatureFlagsBetaApiFp(this.configuration).getDependentFlagsByEnv(projKey, envKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -13569,7 +13660,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteMetric: async (projectKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        deleteMetric: async (projectKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteMetric', 'projectKey', projectKey)
             // verify required parameter 'key' is not null or undefined
@@ -13593,7 +13684,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -13610,7 +13701,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMetric: async (projectKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        getMetric: async (projectKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getMetric', 'projectKey', projectKey)
             // verify required parameter 'key' is not null or undefined
@@ -13634,7 +13725,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -13650,7 +13741,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMetrics: async (projectKey: string, options: any = {}): Promise<RequestArgs> => {
+        getMetrics: async (projectKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getMetrics', 'projectKey', projectKey)
             const localVarPath = `/api/v2/metrics/{projectKey}`
@@ -13671,7 +13762,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -13689,7 +13780,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchMetric: async (projectKey: string, key: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchMetric: async (projectKey: string, key: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchMetric', 'projectKey', projectKey)
             // verify required parameter 'key' is not null or undefined
@@ -13717,7 +13808,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -13735,7 +13826,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postMetric: async (projectKey: string, metricPost: MetricPost, options: any = {}): Promise<RequestArgs> => {
+        postMetric: async (projectKey: string, metricPost: MetricPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postMetric', 'projectKey', projectKey)
             // verify required parameter 'metricPost' is not null or undefined
@@ -13760,7 +13851,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(metricPost, localVarRequestOptions, configuration)
@@ -13788,7 +13879,7 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteMetric(projectKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteMetric(projectKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteMetric(projectKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13800,7 +13891,7 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMetric(projectKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
+        async getMetric(projectKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getMetric(projectKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13811,7 +13902,7 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMetrics(projectKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricCollectionRep>> {
+        async getMetrics(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getMetrics(projectKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13824,7 +13915,7 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchMetric(projectKey: string, key: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
+        async patchMetric(projectKey: string, key: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchMetric(projectKey, key, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13836,7 +13927,7 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postMetric(projectKey: string, metricPost: MetricPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
+        async postMetric(projectKey: string, metricPost: MetricPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postMetric(projectKey, metricPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -13924,7 +14015,7 @@ export class MetricsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public deleteMetric(projectKey: string, key: string, options?: any) {
+    public deleteMetric(projectKey: string, key: string, options?: AxiosRequestConfig) {
         return MetricsApiFp(this.configuration).deleteMetric(projectKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13937,7 +14028,7 @@ export class MetricsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public getMetric(projectKey: string, key: string, options?: any) {
+    public getMetric(projectKey: string, key: string, options?: AxiosRequestConfig) {
         return MetricsApiFp(this.configuration).getMetric(projectKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13949,7 +14040,7 @@ export class MetricsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public getMetrics(projectKey: string, options?: any) {
+    public getMetrics(projectKey: string, options?: AxiosRequestConfig) {
         return MetricsApiFp(this.configuration).getMetrics(projectKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13963,7 +14054,7 @@ export class MetricsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public patchMetric(projectKey: string, key: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchMetric(projectKey: string, key: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return MetricsApiFp(this.configuration).patchMetric(projectKey, key, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -13976,7 +14067,7 @@ export class MetricsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public postMetric(projectKey: string, metricPost: MetricPost, options?: any) {
+    public postMetric(projectKey: string, metricPost: MetricPost, options?: AxiosRequestConfig) {
         return MetricsApiFp(this.configuration).postMetric(projectKey, metricPost, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -13994,7 +14085,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getIps: async (options: any = {}): Promise<RequestArgs> => {
+        getIps: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/public-ip-list`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14012,7 +14103,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14027,7 +14118,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getOpenapiSpec: async (options: any = {}): Promise<RequestArgs> => {
+        getOpenapiSpec: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/openapi.json`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14045,7 +14136,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14060,7 +14151,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getRoot: async (options: any = {}): Promise<RequestArgs> => {
+        getRoot: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14078,7 +14169,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14093,7 +14184,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getVersions: async (options: any = {}): Promise<RequestArgs> => {
+        getVersions: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/versions`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14111,7 +14202,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14136,7 +14227,7 @@ export const OtherApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getIps(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IpList>> {
+        async getIps(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IpList>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getIps(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14146,7 +14237,7 @@ export const OtherApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getOpenapiSpec(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async getOpenapiSpec(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getOpenapiSpec(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14156,7 +14247,7 @@ export const OtherApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getRoot(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: InlineResponse200; }>> {
+        async getRoot(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<{ [key: string]: Link; }>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getRoot(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14166,7 +14257,7 @@ export const OtherApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getVersions(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VersionsRep>> {
+        async getVersions(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VersionsRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getVersions(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14204,7 +14295,7 @@ export const OtherApiFactory = function (configuration?: Configuration, basePath
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getRoot(options?: any): AxiosPromise<{ [key: string]: InlineResponse200; }> {
+        getRoot(options?: any): AxiosPromise<{ [key: string]: Link; }> {
             return localVarFp.getRoot(options).then((request) => request(axios, basePath));
         },
         /**
@@ -14233,7 +14324,7 @@ export class OtherApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof OtherApi
      */
-    public getIps(options?: any) {
+    public getIps(options?: AxiosRequestConfig) {
         return OtherApiFp(this.configuration).getIps(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -14244,7 +14335,7 @@ export class OtherApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof OtherApi
      */
-    public getOpenapiSpec(options?: any) {
+    public getOpenapiSpec(options?: AxiosRequestConfig) {
         return OtherApiFp(this.configuration).getOpenapiSpec(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -14255,7 +14346,7 @@ export class OtherApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof OtherApi
      */
-    public getRoot(options?: any) {
+    public getRoot(options?: AxiosRequestConfig) {
         return OtherApiFp(this.configuration).getRoot(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -14266,7 +14357,7 @@ export class OtherApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof OtherApi
      */
-    public getVersions(options?: any) {
+    public getVersions(options?: AxiosRequestConfig) {
         return OtherApiFp(this.configuration).getVersions(options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -14285,7 +14376,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteProject: async (projectKey: string, options: any = {}): Promise<RequestArgs> => {
+        deleteProject: async (projectKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteProject', 'projectKey', projectKey)
             const localVarPath = `/api/v2/projects/{projectKey}`
@@ -14306,7 +14397,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14322,7 +14413,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getProject: async (projectKey: string, options: any = {}): Promise<RequestArgs> => {
+        getProject: async (projectKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getProject', 'projectKey', projectKey)
             const localVarPath = `/api/v2/projects/{projectKey}`
@@ -14343,7 +14434,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14358,7 +14449,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getProjects: async (options: any = {}): Promise<RequestArgs> => {
+        getProjects: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/projects`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14376,7 +14467,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14386,14 +14477,14 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Update a project. Requires a [JSON Patch](http://tools.ietf.org/html/rfc6902) representation of the desired changes to the project.
+         * Update a project. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the project.
          * @summary Update project
          * @param {string} projectKey The project key
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchProject: async (projectKey: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchProject: async (projectKey: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchProject', 'projectKey', projectKey)
             // verify required parameter 'patchOperation' is not null or undefined
@@ -14418,7 +14509,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -14435,7 +14526,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postProject: async (projectPost: ProjectPost, options: any = {}): Promise<RequestArgs> => {
+        postProject: async (projectPost: ProjectPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectPost' is not null or undefined
             assertParamExists('postProject', 'projectPost', projectPost)
             const localVarPath = `/api/v2/projects`;
@@ -14457,7 +14548,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(projectPost, localVarRequestOptions, configuration)
@@ -14484,7 +14575,7 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteProject(projectKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteProject(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteProject(projectKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14495,7 +14586,7 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getProject(projectKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
+        async getProject(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getProject(projectKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14505,19 +14596,19 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getProjects(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Projects>> {
+        async getProjects(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Projects>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getProjects(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update a project. Requires a [JSON Patch](http://tools.ietf.org/html/rfc6902) representation of the desired changes to the project.
+         * Update a project. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the project.
          * @summary Update project
          * @param {string} projectKey The project key
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchProject(projectKey: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
+        async patchProject(projectKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchProject(projectKey, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14528,7 +14619,7 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postProject(projectPost: ProjectPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
+        async postProject(projectPost: ProjectPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postProject(projectPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14572,7 +14663,7 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.getProjects(options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a project. Requires a [JSON Patch](http://tools.ietf.org/html/rfc6902) representation of the desired changes to the project.
+         * Update a project. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the project.
          * @summary Update project
          * @param {string} projectKey The project key
          * @param {Array<PatchOperation>} patchOperation 
@@ -14610,7 +14701,7 @@ export class ProjectsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ProjectsApi
      */
-    public deleteProject(projectKey: string, options?: any) {
+    public deleteProject(projectKey: string, options?: AxiosRequestConfig) {
         return ProjectsApiFp(this.configuration).deleteProject(projectKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -14622,7 +14713,7 @@ export class ProjectsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ProjectsApi
      */
-    public getProject(projectKey: string, options?: any) {
+    public getProject(projectKey: string, options?: AxiosRequestConfig) {
         return ProjectsApiFp(this.configuration).getProject(projectKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -14633,12 +14724,12 @@ export class ProjectsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ProjectsApi
      */
-    public getProjects(options?: any) {
+    public getProjects(options?: AxiosRequestConfig) {
         return ProjectsApiFp(this.configuration).getProjects(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Update a project. Requires a [JSON Patch](http://tools.ietf.org/html/rfc6902) representation of the desired changes to the project.
+     * Update a project. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the project.
      * @summary Update project
      * @param {string} projectKey The project key
      * @param {Array<PatchOperation>} patchOperation 
@@ -14646,7 +14737,7 @@ export class ProjectsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ProjectsApi
      */
-    public patchProject(projectKey: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchProject(projectKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return ProjectsApiFp(this.configuration).patchProject(projectKey, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -14658,7 +14749,7 @@ export class ProjectsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ProjectsApi
      */
-    public postProject(projectPost: ProjectPost, options?: any) {
+    public postProject(projectPost: ProjectPost, options?: AxiosRequestConfig) {
         return ProjectsApiFp(this.configuration).postProject(projectPost, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -14677,7 +14768,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteRelayAutoConfig: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        deleteRelayAutoConfig: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('deleteRelayAutoConfig', 'id', id)
             const localVarPath = `/api/v2/account/relay-auto-configs/{id}`
@@ -14698,7 +14789,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14714,7 +14805,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getRelayProxyConfig: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        getRelayProxyConfig: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('getRelayProxyConfig', 'id', id)
             const localVarPath = `/api/v2/account/relay-auto-configs/{id}`
@@ -14735,7 +14826,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14750,7 +14841,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getRelayProxyConfigs: async (options: any = {}): Promise<RequestArgs> => {
+        getRelayProxyConfigs: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/account/relay-auto-configs`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14768,7 +14859,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14785,7 +14876,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchRelayAutoConfig: async (id: string, patchWithComment: PatchWithComment, options: any = {}): Promise<RequestArgs> => {
+        patchRelayAutoConfig: async (id: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('patchRelayAutoConfig', 'id', id)
             // verify required parameter 'patchWithComment' is not null or undefined
@@ -14810,7 +14901,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchWithComment, localVarRequestOptions, configuration)
@@ -14827,7 +14918,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postRelayAutoConfig: async (relayAutoConfigPost: RelayAutoConfigPost, options: any = {}): Promise<RequestArgs> => {
+        postRelayAutoConfig: async (relayAutoConfigPost: RelayAutoConfigPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'relayAutoConfigPost' is not null or undefined
             assertParamExists('postRelayAutoConfig', 'relayAutoConfigPost', relayAutoConfigPost)
             const localVarPath = `/api/v2/account/relay-auto-configs`;
@@ -14849,7 +14940,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(relayAutoConfigPost, localVarRequestOptions, configuration)
@@ -14867,7 +14958,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetRelayAutoConfig: async (id: string, expiry?: number, options: any = {}): Promise<RequestArgs> => {
+        resetRelayAutoConfig: async (id: string, expiry?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('resetRelayAutoConfig', 'id', id)
             const localVarPath = `/api/v2/account/relay-auto-configs/{id}/reset`
@@ -14892,7 +14983,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -14918,7 +15009,7 @@ export const RelayProxyConfigurationsApiFp = function(configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteRelayAutoConfig(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteRelayAutoConfig(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRelayAutoConfig(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14929,7 +15020,7 @@ export const RelayProxyConfigurationsApiFp = function(configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getRelayProxyConfig(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
+        async getRelayProxyConfig(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getRelayProxyConfig(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14939,7 +15030,7 @@ export const RelayProxyConfigurationsApiFp = function(configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getRelayProxyConfigs(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigCollectionRep>> {
+        async getRelayProxyConfigs(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getRelayProxyConfigs(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14951,7 +15042,7 @@ export const RelayProxyConfigurationsApiFp = function(configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchRelayAutoConfig(id: string, patchWithComment: PatchWithComment, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
+        async patchRelayAutoConfig(id: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchRelayAutoConfig(id, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14962,7 +15053,7 @@ export const RelayProxyConfigurationsApiFp = function(configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postRelayAutoConfig(relayAutoConfigPost: RelayAutoConfigPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
+        async postRelayAutoConfig(relayAutoConfigPost: RelayAutoConfigPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postRelayAutoConfig(relayAutoConfigPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -14974,7 +15065,7 @@ export const RelayProxyConfigurationsApiFp = function(configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetRelayAutoConfig(id: string, expiry?: number, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
+        async resetRelayAutoConfig(id: string, expiry?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RelayAutoConfigRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.resetRelayAutoConfig(id, expiry, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -15067,7 +15158,7 @@ export class RelayProxyConfigurationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof RelayProxyConfigurationsApi
      */
-    public deleteRelayAutoConfig(id: string, options?: any) {
+    public deleteRelayAutoConfig(id: string, options?: AxiosRequestConfig) {
         return RelayProxyConfigurationsApiFp(this.configuration).deleteRelayAutoConfig(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15079,7 +15170,7 @@ export class RelayProxyConfigurationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof RelayProxyConfigurationsApi
      */
-    public getRelayProxyConfig(id: string, options?: any) {
+    public getRelayProxyConfig(id: string, options?: AxiosRequestConfig) {
         return RelayProxyConfigurationsApiFp(this.configuration).getRelayProxyConfig(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15090,7 +15181,7 @@ export class RelayProxyConfigurationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof RelayProxyConfigurationsApi
      */
-    public getRelayProxyConfigs(options?: any) {
+    public getRelayProxyConfigs(options?: AxiosRequestConfig) {
         return RelayProxyConfigurationsApiFp(this.configuration).getRelayProxyConfigs(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15103,7 +15194,7 @@ export class RelayProxyConfigurationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof RelayProxyConfigurationsApi
      */
-    public patchRelayAutoConfig(id: string, patchWithComment: PatchWithComment, options?: any) {
+    public patchRelayAutoConfig(id: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
         return RelayProxyConfigurationsApiFp(this.configuration).patchRelayAutoConfig(id, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15115,7 +15206,7 @@ export class RelayProxyConfigurationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof RelayProxyConfigurationsApi
      */
-    public postRelayAutoConfig(relayAutoConfigPost: RelayAutoConfigPost, options?: any) {
+    public postRelayAutoConfig(relayAutoConfigPost: RelayAutoConfigPost, options?: AxiosRequestConfig) {
         return RelayProxyConfigurationsApiFp(this.configuration).postRelayAutoConfig(relayAutoConfigPost, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15128,7 +15219,7 @@ export class RelayProxyConfigurationsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof RelayProxyConfigurationsApi
      */
-    public resetRelayAutoConfig(id: string, expiry?: number, options?: any) {
+    public resetRelayAutoConfig(id: string, expiry?: number, options?: AxiosRequestConfig) {
         return RelayProxyConfigurationsApiFp(this.configuration).resetRelayAutoConfig(id, expiry, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -15150,7 +15241,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteFlagConfigScheduledChanges: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: any = {}): Promise<RequestArgs> => {
+        deleteFlagConfigScheduledChanges: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteFlagConfigScheduledChanges', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -15180,7 +15271,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15199,7 +15290,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagScheduledChange: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: any = {}): Promise<RequestArgs> => {
+        getFeatureFlagScheduledChange: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getFeatureFlagScheduledChange', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -15229,7 +15320,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15247,7 +15338,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFlagConfigScheduledChanges: async (projectKey: string, featureFlagKey: string, environmentKey: string, options: any = {}): Promise<RequestArgs> => {
+        getFlagConfigScheduledChanges: async (projectKey: string, featureFlagKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getFlagConfigScheduledChanges', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -15274,7 +15365,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15295,7 +15386,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchFlagConfigScheduledChange: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, flagScheduledChangesInput: FlagScheduledChangesInput, ignoreConflicts?: boolean, options: any = {}): Promise<RequestArgs> => {
+        patchFlagConfigScheduledChange: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, flagScheduledChangesInput: FlagScheduledChangesInput, ignoreConflicts?: boolean, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchFlagConfigScheduledChange', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -15333,7 +15424,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(flagScheduledChangesInput, localVarRequestOptions, configuration)
@@ -15354,7 +15445,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postFlagConfigScheduledChanges: async (projectKey: string, featureFlagKey: string, environmentKey: string, postFlagScheduledChangesInput: PostFlagScheduledChangesInput, ignoreConflicts?: boolean, options: any = {}): Promise<RequestArgs> => {
+        postFlagConfigScheduledChanges: async (projectKey: string, featureFlagKey: string, environmentKey: string, postFlagScheduledChangesInput: PostFlagScheduledChangesInput, ignoreConflicts?: boolean, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postFlagConfigScheduledChanges', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -15389,7 +15480,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(postFlagScheduledChangesInput, localVarRequestOptions, configuration)
@@ -15419,7 +15510,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteFlagConfigScheduledChanges(projectKey, featureFlagKey, environmentKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -15433,7 +15524,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlagScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChange>> {
+        async getFeatureFlagScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChange>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagScheduledChange(projectKey, featureFlagKey, environmentKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -15446,7 +15537,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChanges>> {
+        async getFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChanges>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getFlagConfigScheduledChanges(projectKey, featureFlagKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -15462,7 +15553,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchFlagConfigScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, flagScheduledChangesInput: FlagScheduledChangesInput, ignoreConflicts?: boolean, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChange>> {
+        async patchFlagConfigScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, flagScheduledChangesInput: FlagScheduledChangesInput, ignoreConflicts?: boolean, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChange>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchFlagConfigScheduledChange(projectKey, featureFlagKey, environmentKey, id, flagScheduledChangesInput, ignoreConflicts, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -15477,7 +15568,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, postFlagScheduledChangesInput: PostFlagScheduledChangesInput, ignoreConflicts?: boolean, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChange>> {
+        async postFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, postFlagScheduledChangesInput: PostFlagScheduledChangesInput, ignoreConflicts?: boolean, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagScheduledChange>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postFlagConfigScheduledChanges(projectKey, featureFlagKey, environmentKey, postFlagScheduledChangesInput, ignoreConflicts, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -15579,7 +15670,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ScheduledChangesApi
      */
-    public deleteFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any) {
+    public deleteFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
         return ScheduledChangesApiFp(this.configuration).deleteFlagConfigScheduledChanges(projectKey, featureFlagKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15594,7 +15685,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ScheduledChangesApi
      */
-    public getFeatureFlagScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any) {
+    public getFeatureFlagScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
         return ScheduledChangesApiFp(this.configuration).getFeatureFlagScheduledChange(projectKey, featureFlagKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15608,7 +15699,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ScheduledChangesApi
      */
-    public getFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any) {
+    public getFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, options?: AxiosRequestConfig) {
         return ScheduledChangesApiFp(this.configuration).getFlagConfigScheduledChanges(projectKey, featureFlagKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15625,7 +15716,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ScheduledChangesApi
      */
-    public patchFlagConfigScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, flagScheduledChangesInput: FlagScheduledChangesInput, ignoreConflicts?: boolean, options?: any) {
+    public patchFlagConfigScheduledChange(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, flagScheduledChangesInput: FlagScheduledChangesInput, ignoreConflicts?: boolean, options?: AxiosRequestConfig) {
         return ScheduledChangesApiFp(this.configuration).patchFlagConfigScheduledChange(projectKey, featureFlagKey, environmentKey, id, flagScheduledChangesInput, ignoreConflicts, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -15641,7 +15732,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ScheduledChangesApi
      */
-    public postFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, postFlagScheduledChangesInput: PostFlagScheduledChangesInput, ignoreConflicts?: boolean, options?: any) {
+    public postFlagConfigScheduledChanges(projectKey: string, featureFlagKey: string, environmentKey: string, postFlagScheduledChangesInput: PostFlagScheduledChangesInput, ignoreConflicts?: boolean, options?: AxiosRequestConfig) {
         return ScheduledChangesApiFp(this.configuration).postFlagConfigScheduledChanges(projectKey, featureFlagKey, environmentKey, postFlagScheduledChangesInput, ignoreConflicts, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -15662,7 +15753,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteSegment: async (projKey: string, envKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        deleteSegment: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('deleteSegment', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -15689,7 +15780,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15707,7 +15798,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringUserTargetsForSegment: async (projKey: string, envKey: string, segmentKey: string, options: any = {}): Promise<RequestArgs> => {
+        getExpiringUserTargetsForSegment: async (projKey: string, envKey: string, segmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getExpiringUserTargetsForSegment', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -15734,7 +15825,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15752,7 +15843,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegment: async (projKey: string, envKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        getSegment: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getSegment', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -15779,7 +15870,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15798,7 +15889,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegmentMembershipForUser: async (projKey: string, envKey: string, key: string, userKey: string, options: any = {}): Promise<RequestArgs> => {
+        getSegmentMembershipForUser: async (projKey: string, envKey: string, key: string, userKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getSegmentMembershipForUser', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -15828,7 +15919,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15845,7 +15936,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegments: async (projKey: string, envKey: string, options: any = {}): Promise<RequestArgs> => {
+        getSegments: async (projKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getSegments', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -15869,7 +15960,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -15888,7 +15979,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringUserTargetsForSegment: async (projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options: any = {}): Promise<RequestArgs> => {
+        patchExpiringUserTargetsForSegment: async (projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('patchExpiringUserTargetsForSegment', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -15919,7 +16010,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchSegmentRequest, localVarRequestOptions, configuration)
@@ -15939,7 +16030,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchSegment: async (projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options: any = {}): Promise<RequestArgs> => {
+        patchSegment: async (projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('patchSegment', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -15970,7 +16061,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchWithComment, localVarRequestOptions, configuration)
@@ -15989,7 +16080,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postSegment: async (projKey: string, envKey: string, segmentBody: SegmentBody, options: any = {}): Promise<RequestArgs> => {
+        postSegment: async (projKey: string, envKey: string, segmentBody: SegmentBody, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('postSegment', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -16017,7 +16108,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(segmentBody, localVarRequestOptions, configuration)
@@ -16037,7 +16128,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateBigSegmentTargets: async (projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options: any = {}): Promise<RequestArgs> => {
+        updateBigSegmentTargets: async (projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('updateBigSegmentTargets', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -16068,7 +16159,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(segmentUserState, localVarRequestOptions, configuration)
@@ -16097,7 +16188,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteSegment(projKey: string, envKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteSegment(projKey, envKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16110,7 +16201,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
+        async getExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringUserTargetsForSegment(projKey, envKey, segmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16123,7 +16214,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSegment(projKey: string, envKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
+        async getSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getSegment(projKey, envKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16137,7 +16228,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSegmentMembershipForUser(projKey: string, envKey: string, key: string, userKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentTarget>> {
+        async getSegmentMembershipForUser(projKey: string, envKey: string, key: string, userKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentTarget>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getSegmentMembershipForUser(projKey, envKey, key, userKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16149,7 +16240,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSegments(projKey: string, envKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegments>> {
+        async getSegments(projKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegments>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getSegments(projKey, envKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16163,7 +16254,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
+        async patchExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringUserTargetsForSegment(projKey, envKey, segmentKey, patchSegmentRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16177,7 +16268,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchSegment(projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
+        async patchSegment(projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchSegment(projKey, envKey, key, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16190,7 +16281,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postSegment(projKey: string, envKey: string, segmentBody: SegmentBody, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
+        async postSegment(projKey: string, envKey: string, segmentBody: SegmentBody, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postSegment(projKey, envKey, segmentBody, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16204,7 +16295,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateBigSegmentTargets(projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async updateBigSegmentTargets(projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.updateBigSegmentTargets(projKey, envKey, key, segmentUserState, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16349,7 +16440,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public deleteSegment(projKey: string, envKey: string, key: string, options?: any) {
+    public deleteSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).deleteSegment(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16363,7 +16454,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, options?: any) {
+    public getExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).getExpiringUserTargetsForSegment(projKey, envKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16377,7 +16468,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getSegment(projKey: string, envKey: string, key: string, options?: any) {
+    public getSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).getSegment(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16392,7 +16483,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getSegmentMembershipForUser(projKey: string, envKey: string, key: string, userKey: string, options?: any) {
+    public getSegmentMembershipForUser(projKey: string, envKey: string, key: string, userKey: string, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).getSegmentMembershipForUser(projKey, envKey, key, userKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16405,7 +16496,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getSegments(projKey: string, envKey: string, options?: any) {
+    public getSegments(projKey: string, envKey: string, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).getSegments(projKey, envKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16420,7 +16511,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public patchExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: any) {
+    public patchExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).patchExpiringUserTargetsForSegment(projKey, envKey, segmentKey, patchSegmentRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16435,7 +16526,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public patchSegment(projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options?: any) {
+    public patchSegment(projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).patchSegment(projKey, envKey, key, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16449,7 +16540,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public postSegment(projKey: string, envKey: string, segmentBody: SegmentBody, options?: any) {
+    public postSegment(projKey: string, envKey: string, segmentBody: SegmentBody, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).postSegment(projKey, envKey, segmentBody, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16464,7 +16555,7 @@ export class SegmentsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public updateBigSegmentTargets(projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options?: any) {
+    public updateBigSegmentTargets(projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).updateBigSegmentTargets(projKey, envKey, key, segmentUserState, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -16483,7 +16574,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTeam: async (key: string, options: any = {}): Promise<RequestArgs> => {
+        deleteTeam: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'key' is not null or undefined
             assertParamExists('deleteTeam', 'key', key)
             const localVarPath = `/api/v2/teams/{key}`
@@ -16504,7 +16595,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -16520,7 +16611,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeam: async (key: string, options: any = {}): Promise<RequestArgs> => {
+        getTeam: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'key' is not null or undefined
             assertParamExists('getTeam', 'key', key)
             const localVarPath = `/api/v2/teams/{key}`
@@ -16541,7 +16632,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -16559,7 +16650,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeams: async (limit?: number, offset?: number, filter?: string, options: any = {}): Promise<RequestArgs> => {
+        getTeams: async (limit?: number, offset?: number, filter?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/teams`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -16589,7 +16680,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -16606,7 +16697,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchTeam: async (key: string, teamPatchInput: TeamPatchInput, options: any = {}): Promise<RequestArgs> => {
+        patchTeam: async (key: string, teamPatchInput: TeamPatchInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'key' is not null or undefined
             assertParamExists('patchTeam', 'key', key)
             // verify required parameter 'teamPatchInput' is not null or undefined
@@ -16631,7 +16722,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(teamPatchInput, localVarRequestOptions, configuration)
@@ -16648,7 +16739,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postTeam: async (teamPostInput: TeamPostInput, options: any = {}): Promise<RequestArgs> => {
+        postTeam: async (teamPostInput: TeamPostInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'teamPostInput' is not null or undefined
             assertParamExists('postTeam', 'teamPostInput', teamPostInput)
             const localVarPath = `/api/v2/teams`;
@@ -16670,7 +16761,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(teamPostInput, localVarRequestOptions, configuration)
@@ -16697,7 +16788,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteTeam(key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteTeam(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTeam(key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16708,7 +16799,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTeam(key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamRep>> {
+        async getTeam(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getTeam(key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16721,7 +16812,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTeams(limit?: number, offset?: number, filter?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
+        async getTeams(limit?: number, offset?: number, filter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getTeams(limit, offset, filter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16733,7 +16824,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
+        async patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchTeam(key, teamPatchInput, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16744,7 +16835,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postTeam(teamPostInput: TeamPostInput, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamRep>> {
+        async postTeam(teamPostInput: TeamPostInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postTeam(teamPostInput, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16829,7 +16920,7 @@ export class TeamsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public deleteTeam(key: string, options?: any) {
+    public deleteTeam(key: string, options?: AxiosRequestConfig) {
         return TeamsBetaApiFp(this.configuration).deleteTeam(key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16841,7 +16932,7 @@ export class TeamsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public getTeam(key: string, options?: any) {
+    public getTeam(key: string, options?: AxiosRequestConfig) {
         return TeamsBetaApiFp(this.configuration).getTeam(key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16855,7 +16946,7 @@ export class TeamsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public getTeams(limit?: number, offset?: number, filter?: string, options?: any) {
+    public getTeams(limit?: number, offset?: number, filter?: string, options?: AxiosRequestConfig) {
         return TeamsBetaApiFp(this.configuration).getTeams(limit, offset, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16868,7 +16959,7 @@ export class TeamsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: any) {
+    public patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig) {
         return TeamsBetaApiFp(this.configuration).patchTeam(key, teamPatchInput, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -16880,7 +16971,7 @@ export class TeamsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public postTeam(teamPostInput: TeamPostInput, options?: any) {
+    public postTeam(teamPostInput: TeamPostInput, options?: AxiosRequestConfig) {
         return TeamsBetaApiFp(this.configuration).postTeam(teamPostInput, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -16901,7 +16992,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringFlagsForUser: async (projKey: string, userKey: string, envKey: string, options: any = {}): Promise<RequestArgs> => {
+        getExpiringFlagsForUser: async (projKey: string, userKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getExpiringFlagsForUser', 'projKey', projKey)
             // verify required parameter 'userKey' is not null or undefined
@@ -16928,7 +17019,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -16947,7 +17038,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUserFlagSetting: async (projKey: string, envKey: string, key: string, featureKey: string, options: any = {}): Promise<RequestArgs> => {
+        getUserFlagSetting: async (projKey: string, envKey: string, key: string, featureKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getUserFlagSetting', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -16977,7 +17068,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -16995,7 +17086,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUserFlagSettings: async (projKey: string, envKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        getUserFlagSettings: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getUserFlagSettings', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -17022,7 +17113,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -17041,7 +17132,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringFlagsForUser: async (projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options: any = {}): Promise<RequestArgs> => {
+        patchExpiringFlagsForUser: async (projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('patchExpiringFlagsForUser', 'projKey', projKey)
             // verify required parameter 'userKey' is not null or undefined
@@ -17072,7 +17163,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchWithComment, localVarRequestOptions, configuration)
@@ -17093,7 +17184,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putFlagSetting: async (projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options: any = {}): Promise<RequestArgs> => {
+        putFlagSetting: async (projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('putFlagSetting', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -17127,7 +17218,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(valuePut, localVarRequestOptions, configuration)
@@ -17156,7 +17247,7 @@ export const UserSettingsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
+        async getExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringFlagsForUser(projKey, userKey, envKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17170,7 +17261,7 @@ export const UserSettingsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUserFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSetting>> {
+        async getUserFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSetting>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getUserFlagSetting(projKey, envKey, key, featureKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17183,7 +17274,7 @@ export const UserSettingsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUserFlagSettings(projKey: string, envKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSettings>> {
+        async getUserFlagSettings(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSettings>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getUserFlagSettings(projKey, envKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17197,7 +17288,7 @@ export const UserSettingsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
+        async patchExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringFlagsForUser(projKey, userKey, envKey, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17212,7 +17303,7 @@ export const UserSettingsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async putFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async putFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.putFlagSetting(projKey, envKey, key, featureKey, valuePut, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17310,7 +17401,7 @@ export class UserSettingsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public getExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, options?: any) {
+    public getExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, options?: AxiosRequestConfig) {
         return UserSettingsApiFp(this.configuration).getExpiringFlagsForUser(projKey, userKey, envKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -17325,7 +17416,7 @@ export class UserSettingsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public getUserFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, options?: any) {
+    public getUserFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, options?: AxiosRequestConfig) {
         return UserSettingsApiFp(this.configuration).getUserFlagSetting(projKey, envKey, key, featureKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -17339,7 +17430,7 @@ export class UserSettingsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public getUserFlagSettings(projKey: string, envKey: string, key: string, options?: any) {
+    public getUserFlagSettings(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
         return UserSettingsApiFp(this.configuration).getUserFlagSettings(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -17354,7 +17445,7 @@ export class UserSettingsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public patchExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options?: any) {
+    public patchExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
         return UserSettingsApiFp(this.configuration).patchExpiringFlagsForUser(projKey, userKey, envKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -17370,7 +17461,7 @@ export class UserSettingsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public putFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options?: any) {
+    public putFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options?: AxiosRequestConfig) {
         return UserSettingsApiFp(this.configuration).putFlagSetting(projKey, envKey, key, featureKey, valuePut, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -17391,7 +17482,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteUser: async (projKey: string, envKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        deleteUser: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('deleteUser', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -17418,7 +17509,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -17442,7 +17533,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSearchUsers: async (projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options: any = {}): Promise<RequestArgs> => {
+        getSearchUsers: async (projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getSearchUsers', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -17494,7 +17585,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -17512,7 +17603,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUser: async (projKey: string, envKey: string, key: string, options: any = {}): Promise<RequestArgs> => {
+        getUser: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getUser', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -17539,7 +17630,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -17558,7 +17649,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUsers: async (projKey: string, envKey: string, limit?: number, searchAfter?: string, options: any = {}): Promise<RequestArgs> => {
+        getUsers: async (projKey: string, envKey: string, limit?: number, searchAfter?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getUsers', 'projKey', projKey)
             // verify required parameter 'envKey' is not null or undefined
@@ -17590,7 +17681,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -17618,7 +17709,7 @@ export const UsersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteUser(projKey: string, envKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteUser(projKey, envKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17637,7 +17728,7 @@ export const UsersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
+        async getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17650,7 +17741,7 @@ export const UsersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUser(projKey: string, envKey: string, key: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<User>> {
+        async getUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserRecord>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getUser(projKey, envKey, key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17664,7 +17755,7 @@ export const UsersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUsers(projKey: string, envKey: string, limit?: number, searchAfter?: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
+        async getUsers(projKey: string, envKey: string, limit?: number, searchAfter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getUsers(projKey, envKey, limit, searchAfter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17717,7 +17808,7 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUser(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<User> {
+        getUser(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<UserRecord> {
             return localVarFp.getUser(projKey, envKey, key, options).then((request) => request(axios, basePath));
         },
         /**
@@ -17753,7 +17844,7 @@ export class UsersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public deleteUser(projKey: string, envKey: string, key: string, options?: any) {
+    public deleteUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
         return UsersApiFp(this.configuration).deleteUser(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -17773,7 +17864,7 @@ export class UsersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: any) {
+    public getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: AxiosRequestConfig) {
         return UsersApiFp(this.configuration).getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -17787,7 +17878,7 @@ export class UsersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public getUser(projKey: string, envKey: string, key: string, options?: any) {
+    public getUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
         return UsersApiFp(this.configuration).getUser(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -17802,7 +17893,7 @@ export class UsersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public getUsers(projKey: string, envKey: string, limit?: number, searchAfter?: string, options?: any) {
+    public getUsers(projKey: string, envKey: string, limit?: number, searchAfter?: string, options?: AxiosRequestConfig) {
         return UsersApiFp(this.configuration).getUsers(projKey, envKey, limit, searchAfter, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -17822,7 +17913,7 @@ export const UsersBetaApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUserAttributeNames: async (projectKey: string, environmentKey: string, options: any = {}): Promise<RequestArgs> => {
+        getUserAttributeNames: async (projectKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getUserAttributeNames', 'projectKey', projectKey)
             // verify required parameter 'environmentKey' is not null or undefined
@@ -17846,7 +17937,7 @@ export const UsersBetaApiAxiosParamCreator = function (configuration?: Configura
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -17873,7 +17964,7 @@ export const UsersBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUserAttributeNames(projectKey: string, environmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserAttributeNamesRep>> {
+        async getUserAttributeNames(projectKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserAttributeNamesRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getUserAttributeNames(projectKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -17917,7 +18008,7 @@ export class UsersBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UsersBetaApi
      */
-    public getUserAttributeNames(projectKey: string, environmentKey: string, options?: any) {
+    public getUserAttributeNames(projectKey: string, environmentKey: string, options?: AxiosRequestConfig) {
         return UsersBetaApiFp(this.configuration).getUserAttributeNames(projectKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -17936,7 +18027,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteWebhook: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        deleteWebhook: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('deleteWebhook', 'id', id)
             const localVarPath = `/api/v2/webhooks/{id}`
@@ -17957,7 +18048,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -17972,7 +18063,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAllWebhooks: async (options: any = {}): Promise<RequestArgs> => {
+        getAllWebhooks: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/webhooks`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -17990,7 +18081,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -18006,7 +18097,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getWebhook: async (id: string, options: any = {}): Promise<RequestArgs> => {
+        getWebhook: async (id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('getWebhook', 'id', id)
             const localVarPath = `/api/v2/webhooks/{id}`
@@ -18027,7 +18118,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -18044,7 +18135,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchWebhook: async (id: string, patchOperation: Array<PatchOperation>, options: any = {}): Promise<RequestArgs> => {
+        patchWebhook: async (id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('patchWebhook', 'id', id)
             // verify required parameter 'patchOperation' is not null or undefined
@@ -18069,7 +18160,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
@@ -18086,7 +18177,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postWebhook: async (webhookPost: WebhookPost, options: any = {}): Promise<RequestArgs> => {
+        postWebhook: async (webhookPost: WebhookPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'webhookPost' is not null or undefined
             assertParamExists('postWebhook', 'webhookPost', webhookPost)
             const localVarPath = `/api/v2/webhooks`;
@@ -18108,7 +18199,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(webhookPost, localVarRequestOptions, configuration)
@@ -18135,7 +18226,7 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteWebhook(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteWebhook(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteWebhook(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -18145,7 +18236,7 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAllWebhooks(options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhooks>> {
+        async getAllWebhooks(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhooks>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getAllWebhooks(options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -18156,7 +18247,7 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getWebhook(id: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhook>> {
+        async getWebhook(id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhook>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getWebhook(id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -18168,7 +18259,7 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchWebhook(id: string, patchOperation: Array<PatchOperation>, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhook>> {
+        async patchWebhook(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhook>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchWebhook(id, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -18179,7 +18270,7 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postWebhook(webhookPost: WebhookPost, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhook>> {
+        async postWebhook(webhookPost: WebhookPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Webhook>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postWebhook(webhookPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -18261,7 +18352,7 @@ export class WebhooksApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WebhooksApi
      */
-    public deleteWebhook(id: string, options?: any) {
+    public deleteWebhook(id: string, options?: AxiosRequestConfig) {
         return WebhooksApiFp(this.configuration).deleteWebhook(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -18272,7 +18363,7 @@ export class WebhooksApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WebhooksApi
      */
-    public getAllWebhooks(options?: any) {
+    public getAllWebhooks(options?: AxiosRequestConfig) {
         return WebhooksApiFp(this.configuration).getAllWebhooks(options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -18284,7 +18375,7 @@ export class WebhooksApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WebhooksApi
      */
-    public getWebhook(id: string, options?: any) {
+    public getWebhook(id: string, options?: AxiosRequestConfig) {
         return WebhooksApiFp(this.configuration).getWebhook(id, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -18297,7 +18388,7 @@ export class WebhooksApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WebhooksApi
      */
-    public patchWebhook(id: string, patchOperation: Array<PatchOperation>, options?: any) {
+    public patchWebhook(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return WebhooksApiFp(this.configuration).patchWebhook(id, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -18309,7 +18400,7 @@ export class WebhooksApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WebhooksApi
      */
-    public postWebhook(webhookPost: WebhookPost, options?: any) {
+    public postWebhook(webhookPost: WebhookPost, options?: AxiosRequestConfig) {
         return WebhooksApiFp(this.configuration).postWebhook(webhookPost, options).then((request) => request(this.axios, this.basePath));
     }
 }
@@ -18331,7 +18422,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteWorkflow: async (projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options: any = {}): Promise<RequestArgs> => {
+        deleteWorkflow: async (projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteWorkflow', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -18361,7 +18452,56 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a specific workflow by ID
+         * @summary Get custom workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {string} workflowId The workflow ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getCustomWorkflow: async (projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getCustomWorkflow', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getCustomWorkflow', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getCustomWorkflow', 'environmentKey', environmentKey)
+            // verify required parameter 'workflowId' is not null or undefined
+            assertParamExists('getCustomWorkflow', 'workflowId', workflowId)
+            const localVarPath = `/api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/workflows/{workflowId}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"workflowId"}}`, encodeURIComponent(String(workflowId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -18379,7 +18519,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getWorkflows: async (projectKey: string, featureFlagKey: string, environmentKey: string, options: any = {}): Promise<RequestArgs> => {
+        getWorkflows: async (projectKey: string, featureFlagKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getWorkflows', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -18406,7 +18546,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
 
 
     
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
@@ -18425,7 +18565,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postWorkflow: async (projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options: any = {}): Promise<RequestArgs> => {
+        postWorkflow: async (projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postWorkflow', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -18456,7 +18596,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
     
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
-            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(customWorkflowInputRep, localVarRequestOptions, configuration)
@@ -18486,8 +18626,22 @@ export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a specific workflow by ID
+         * @summary Get custom workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {string} workflowId The workflow ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getCustomWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomWorkflowOutputRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getCustomWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -18499,7 +18653,7 @@ export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getWorkflows(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomWorkflowsListingOutputRep>> {
+        async getWorkflows(projectKey: string, featureFlagKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomWorkflowsListingOutputRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getWorkflows(projectKey, featureFlagKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -18513,7 +18667,7 @@ export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomWorkflowOutputRep>> {
+        async postWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomWorkflowOutputRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postWorkflow(projectKey, featureFlagKey, environmentKey, customWorkflowInputRep, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -18539,6 +18693,19 @@ export const WorkflowsBetaApiFactory = function (configuration?: Configuration, 
          */
         deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: any): AxiosPromise<void> {
             return localVarFp.deleteWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a specific workflow by ID
+         * @summary Get custom workflow
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} environmentKey The environment key
+         * @param {string} workflowId The workflow ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getCustomWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: any): AxiosPromise<CustomWorkflowOutputRep> {
+            return localVarFp.getCustomWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options).then((request) => request(axios, basePath));
         },
         /**
          * Get workflows from a feature flag
@@ -18586,8 +18753,23 @@ export class WorkflowsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WorkflowsBetaApi
      */
-    public deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: any) {
+    public deleteWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: AxiosRequestConfig) {
         return WorkflowsBetaApiFp(this.configuration).deleteWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a specific workflow by ID
+     * @summary Get custom workflow
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} environmentKey The environment key
+     * @param {string} workflowId The workflow ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof WorkflowsBetaApi
+     */
+    public getCustomWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, workflowId: string, options?: AxiosRequestConfig) {
+        return WorkflowsBetaApiFp(this.configuration).getCustomWorkflow(projectKey, featureFlagKey, environmentKey, workflowId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18600,7 +18782,7 @@ export class WorkflowsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WorkflowsBetaApi
      */
-    public getWorkflows(projectKey: string, featureFlagKey: string, environmentKey: string, options?: any) {
+    public getWorkflows(projectKey: string, featureFlagKey: string, environmentKey: string, options?: AxiosRequestConfig) {
         return WorkflowsBetaApiFp(this.configuration).getWorkflows(projectKey, featureFlagKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
@@ -18615,7 +18797,7 @@ export class WorkflowsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof WorkflowsBetaApi
      */
-    public postWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options?: any) {
+    public postWorkflow(projectKey: string, featureFlagKey: string, environmentKey: string, customWorkflowInputRep: CustomWorkflowInputRep, options?: AxiosRequestConfig) {
         return WorkflowsBetaApiFp(this.configuration).postWorkflow(projectKey, featureFlagKey, environmentKey, customWorkflowInputRep, options).then((request) => request(this.axios, this.basePath));
     }
 }
