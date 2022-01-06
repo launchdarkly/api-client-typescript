@@ -1244,6 +1244,37 @@ export interface CustomRoles {
 /**
  * 
  * @export
+ * @interface CustomRolesRep
+ */
+export interface CustomRolesRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomRolesRep
+     */
+    'key'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof CustomRolesRep
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof CustomRolesRep
+     */
+    'projects'?: Array<string>;
+    /**
+     * 
+     * @type {number}
+     * @memberof CustomRolesRep
+     */
+    'appliedOn'?: number;
+}
+/**
+ * 
+ * @export
  * @interface CustomWorkflowInputRep
  */
 export interface CustomWorkflowInputRep {
@@ -1835,6 +1866,97 @@ export interface ExecutionOutputRep {
      * @memberof ExecutionOutputRep
      */
     'status': string;
+}
+/**
+ * 
+ * @export
+ * @interface ExpandedTeamRep
+ */
+export interface ExpandedTeamRep {
+    /**
+     * 
+     * @type {Array<CustomRolesRep>}
+     * @memberof ExpandedTeamRep
+     */
+    'customRoles'?: Array<CustomRolesRep>;
+    /**
+     * 
+     * @type {Array<MemberSummaryRep>}
+     * @memberof ExpandedTeamRep
+     */
+    'teamMaintainers'?: Array<MemberSummaryRep>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ExpandedTeamRep
+     */
+    'customRoleKeys'?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof ExpandedTeamRep
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ExpandedTeamRep
+     */
+    'key'?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ExpandedTeamRep
+     */
+    'memberIDs'?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof ExpandedTeamRep
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {Array<PermissionGrantRep>}
+     * @memberof ExpandedTeamRep
+     */
+    'permissionGrants'?: Array<PermissionGrantRep>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ExpandedTeamRep
+     */
+    'projectKeys'?: Array<string>;
+    /**
+     * 
+     * @type {AccessRep}
+     * @memberof ExpandedTeamRep
+     */
+    '_access'?: AccessRep;
+    /**
+     * 
+     * @type {number}
+     * @memberof ExpandedTeamRep
+     */
+    '_createdAt'?: number;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof ExpandedTeamRep
+     */
+    '_links'?: { [key: string]: Link; };
+    /**
+     * 
+     * @type {number}
+     * @memberof ExpandedTeamRep
+     */
+    '_updatedAt'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ExpandedTeamRep
+     */
+    '_version'?: number;
 }
 /**
  * 
@@ -3330,6 +3452,25 @@ export interface FlagSummary {
 /**
  * 
  * @export
+ * @interface FlagTriggerInput
+ */
+export interface FlagTriggerInput {
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagTriggerInput
+     */
+    'comment'?: string;
+    /**
+     * The action to perform when triggering. It should pass an array with a single {\"kind\": <flag_action>} object. Currently supported flag actions are \"turnFlagOn\" and \"turnFlagOff\".
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof FlagTriggerInput
+     */
+    'instructions'?: Array<{ [key: string]: any; }>;
+}
+/**
+ * 
+ * @export
  * @interface ForbiddenErrorRep
  */
 export interface ForbiddenErrorRep {
@@ -3386,6 +3527,85 @@ export interface HunkRep {
 /**
  * 
  * @export
+ * @interface Integration
+ */
+export interface Integration {
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof Integration
+     */
+    '_links'?: { [key: string]: Link; };
+    /**
+     * 
+     * @type {string}
+     * @memberof Integration
+     */
+    '_id'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Integration
+     */
+    'kind'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Integration
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof Integration
+     */
+    'config'?: { [key: string]: any; };
+    /**
+     * 
+     * @type {Array<StatementRep>}
+     * @memberof Integration
+     */
+    'statements'?: Array<StatementRep>;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Integration
+     */
+    'on'?: boolean;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof Integration
+     */
+    'tags'?: Array<string>;
+    /**
+     * 
+     * @type {AccessRep}
+     * @memberof Integration
+     */
+    '_access'?: AccessRep;
+    /**
+     * 
+     * @type {IntegrationSubscriptionStatusRep}
+     * @memberof Integration
+     */
+    '_status'?: IntegrationSubscriptionStatusRep;
+    /**
+     * 
+     * @type {string}
+     * @memberof Integration
+     */
+    'url'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Integration
+     */
+    'apiKey'?: string;
+}
+/**
+ * 
+ * @export
  * @interface IntegrationMetadata
  */
 export interface IntegrationMetadata {
@@ -3432,6 +3652,93 @@ export interface IntegrationStatus {
      * @memberof IntegrationStatus
      */
     'value': string;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationStatusRep
+ */
+export interface IntegrationStatusRep {
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationStatusRep
+     */
+    'statusCode'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof IntegrationStatusRep
+     */
+    'responseBody'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationStatusRep
+     */
+    'timestamp'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationSubscriptionStatusRep
+ */
+export interface IntegrationSubscriptionStatusRep {
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationSubscriptionStatusRep
+     */
+    'successCount'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationSubscriptionStatusRep
+     */
+    'lastSuccess'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationSubscriptionStatusRep
+     */
+    'lastError'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationSubscriptionStatusRep
+     */
+    'errorCount'?: number;
+    /**
+     * 
+     * @type {Array<IntegrationStatusRep>}
+     * @memberof IntegrationSubscriptionStatusRep
+     */
+    'errors'?: Array<IntegrationStatusRep>;
+}
+/**
+ * 
+ * @export
+ * @interface Integrations
+ */
+export interface Integrations {
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof Integrations
+     */
+    '_links'?: { [key: string]: Link; };
+    /**
+     * 
+     * @type {Array<Integration>}
+     * @memberof Integrations
+     */
+    'items'?: Array<Integration>;
+    /**
+     * 
+     * @type {string}
+     * @memberof Integrations
+     */
+    'key'?: string;
 }
 /**
  * 
@@ -3658,6 +3965,31 @@ export interface MemberDataRep {
 /**
  * 
  * @export
+ * @interface MemberImportItemRep
+ */
+export interface MemberImportItemRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof MemberImportItemRep
+     */
+    'message'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemberImportItemRep
+     */
+    'status': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemberImportItemRep
+     */
+    'value': string;
+}
+/**
+ * 
+ * @export
  * @interface MemberPermissionGrantSummaryRep
  */
 export interface MemberPermissionGrantSummaryRep {
@@ -3747,6 +4079,19 @@ export interface MemberTeamSummaryRep {
      * @memberof MemberTeamSummaryRep
      */
     'name': string;
+}
+/**
+ * 
+ * @export
+ * @interface MemberTeamsFormPost
+ */
+export interface MemberTeamsFormPost {
+    /**
+     * List of team keys
+     * @type {Array<string>}
+     * @memberof MemberTeamsFormPost
+     */
+    'teamKeys': Array<string>;
 }
 /**
  * 
@@ -3909,10 +4254,10 @@ export interface MetricListingRep {
     'isNumeric'?: boolean;
     /**
      * 
-     * @type {number}
+     * @type {string}
      * @memberof MetricListingRep
      */
-    'successCriteria'?: number;
+    'successCriteria'?: MetricListingRepSuccessCriteriaEnum;
     /**
      * 
      * @type {string}
@@ -3935,6 +4280,14 @@ export enum MetricListingRepKindEnum {
     Pageview = 'pageview',
     Click = 'click',
     Custom = 'custom'
+}
+/**
+    * @export
+    * @enum {string}
+    */
+export enum MetricListingRepSuccessCriteriaEnum {
+    HigherThanBaseline = 'HigherThanBaseline',
+    LowerThanBaseline = 'LowerThanBaseline'
 }
 
 /**
@@ -4005,10 +4358,10 @@ export interface MetricPost {
     'eventKey'?: string;
     /**
      * 
-     * @type {number}
+     * @type {string}
      * @memberof MetricPost
      */
-    'successCriteria'?: number;
+    'successCriteria'?: MetricPostSuccessCriteriaEnum;
     /**
      * 
      * @type {Array<string>}
@@ -4025,6 +4378,14 @@ export enum MetricPostKindEnum {
     Pageview = 'pageview',
     Click = 'click',
     Custom = 'custom'
+}
+/**
+    * @export
+    * @enum {string}
+    */
+export enum MetricPostSuccessCriteriaEnum {
+    HigherThanBaseline = 'HigherThanBaseline',
+    LowerThanBaseline = 'LowerThanBaseline'
 }
 
 /**
@@ -4125,10 +4486,10 @@ export interface MetricRep {
     'isNumeric'?: boolean;
     /**
      * 
-     * @type {number}
+     * @type {string}
      * @memberof MetricRep
      */
-    'successCriteria'?: number;
+    'successCriteria'?: MetricRepSuccessCriteriaEnum;
     /**
      * 
      * @type {string}
@@ -4182,6 +4543,14 @@ export enum MetricRepKindEnum {
     Click = 'click',
     Custom = 'custom'
 }
+/**
+    * @export
+    * @enum {string}
+    */
+export enum MetricRepSuccessCriteriaEnum {
+    HigherThanBaseline = 'HigherThanBaseline',
+    LowerThanBaseline = 'LowerThanBaseline'
+}
 
 /**
  * 
@@ -4200,7 +4569,7 @@ export interface MetricSeen {
      * @type {number}
      * @memberof MetricSeen
      */
-    'minutesAgo'?: number;
+    'timestamp'?: number;
 }
 /**
  * 
@@ -4824,6 +5193,12 @@ export interface PutBranch {
      * @memberof PutBranch
      */
     'references'?: Array<ReferenceRep>;
+    /**
+     * 
+     * @type {number}
+     * @memberof PutBranch
+     */
+    'commitTime'?: number;
 }
 /**
  * 
@@ -4843,6 +5218,25 @@ export interface RateLimitedErrorRep {
      * @memberof RateLimitedErrorRep
      */
     'message'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface RecentTriggerBody
+ */
+export interface RecentTriggerBody {
+    /**
+     * 
+     * @type {number}
+     * @memberof RecentTriggerBody
+     */
+    'timestamp'?: number;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof RecentTriggerBody
+     */
+    'jsonBody'?: { [key: string]: any; };
 }
 /**
  * 
@@ -5333,6 +5727,12 @@ export interface Rule {
      * @memberof Rule
      */
     'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Rule
+     */
+    'ref'?: string;
 }
 /**
  * 
@@ -5929,6 +6329,55 @@ export interface SubjectDataRep {
 /**
  * 
  * @export
+ * @interface SubscriptionPost
+ */
+export interface SubscriptionPost {
+    /**
+     * A human-friendly name for your audit log subscription.
+     * @type {string}
+     * @memberof SubscriptionPost
+     */
+    'name': string;
+    /**
+     * 
+     * @type {Array<StatementPost>}
+     * @memberof SubscriptionPost
+     */
+    'statements'?: Array<StatementPost>;
+    /**
+     * Whether or not you want your subscription to actively send events.
+     * @type {boolean}
+     * @memberof SubscriptionPost
+     */
+    'on'?: boolean;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SubscriptionPost
+     */
+    'tags'?: Array<string>;
+    /**
+     * The unique set of fields required to configure an audit log subscription integration of this type. Refer to the \"formVariables\" field in the corresponding manifest.json  at https://github.com/launchdarkly/integration-framework/tree/master/integrations for a full list of fields for the integration you wish to configure.
+     * @type {{ [key: string]: any; }}
+     * @memberof SubscriptionPost
+     */
+    'config': { [key: string]: any; };
+    /**
+     * Slack webhook receiver URL. Only necessary for legacy Slack webhook integrations.
+     * @type {string}
+     * @memberof SubscriptionPost
+     */
+    'url'?: string;
+    /**
+     * Datadog API key. Only necessary for legacy Datadog webhook subscriptions.
+     * @type {string}
+     * @memberof SubscriptionPost
+     */
+    'apiKey'?: string;
+}
+/**
+ * 
+ * @export
  * @interface Target
  */
 export interface Target {
@@ -5994,6 +6443,19 @@ export interface TeamCollectionRep {
      * @memberof TeamCollectionRep
      */
     'totalCount'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface TeamImportsRep
+ */
+export interface TeamImportsRep {
+    /**
+     * 
+     * @type {Array<MemberImportItemRep>}
+     * @memberof TeamImportsRep
+     */
+    'items'?: Array<MemberImportItemRep>;
 }
 /**
  * 
@@ -6347,6 +6809,135 @@ export interface Tokens {
      * 
      * @type {{ [key: string]: Link; }}
      * @memberof Tokens
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface TriggerPost
+ */
+export interface TriggerPost {
+    /**
+     * 
+     * @type {string}
+     * @memberof TriggerPost
+     */
+    'comment'?: string;
+    /**
+     * The action to perform when triggering. It should pass an array with a single {\"kind\": <flag_action>} object. Currently supported flag actions are \"turnFlagOn\" and \"turnFlagOff\".
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof TriggerPost
+     */
+    'instructions'?: Array<{ [key: string]: any; }>;
+    /**
+     * The unique identifier of the integration you intend to set your trigger up with. \"generic-trigger\" should be used for integrations not explicitly supported.
+     * @type {string}
+     * @memberof TriggerPost
+     */
+    'integrationKey': string;
+}
+/**
+ * 
+ * @export
+ * @interface TriggerWorkflowCollectionRep
+ */
+export interface TriggerWorkflowCollectionRep {
+    /**
+     * 
+     * @type {Array<TriggerWorkflowRep>}
+     * @memberof TriggerWorkflowCollectionRep
+     */
+    'items'?: Array<TriggerWorkflowRep>;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof TriggerWorkflowCollectionRep
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface TriggerWorkflowRep
+ */
+export interface TriggerWorkflowRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof TriggerWorkflowRep
+     */
+    '_id'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof TriggerWorkflowRep
+     */
+    '_version'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof TriggerWorkflowRep
+     */
+    '_creationDate'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof TriggerWorkflowRep
+     */
+    '_maintainerId'?: string;
+    /**
+     * 
+     * @type {MemberSummaryRep}
+     * @memberof TriggerWorkflowRep
+     */
+    '_maintainer'?: MemberSummaryRep;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof TriggerWorkflowRep
+     */
+    'enabled'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof TriggerWorkflowRep
+     */
+    '_integrationKey'?: string;
+    /**
+     * 
+     * @type {Array<{ [key: string]: any; }>}
+     * @memberof TriggerWorkflowRep
+     */
+    'instructions'?: Array<{ [key: string]: any; }>;
+    /**
+     * 
+     * @type {number}
+     * @memberof TriggerWorkflowRep
+     */
+    '_lastTriggeredAt'?: number;
+    /**
+     * 
+     * @type {Array<RecentTriggerBody>}
+     * @memberof TriggerWorkflowRep
+     */
+    '_recentTriggerBodies'?: Array<RecentTriggerBody>;
+    /**
+     * 
+     * @type {number}
+     * @memberof TriggerWorkflowRep
+     */
+    '_triggerCount'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof TriggerWorkflowRep
+     */
+    'triggerURL'?: string;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof TriggerWorkflowRep
      */
     '_links'?: { [key: string]: Link; };
 }
@@ -7764,7 +8355,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             };
         },
         /**
-         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
+         *  Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.  To update fields in the account member object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array. For example, to add a new custom role to a member, use the following request body:  ```   [     {       \"op\": \"add\",       \"path\": \"/customRoles/0\",       \"value\": \"some-role-id\"     }   ] ```  Requests to update account members will not work if SCIM is enabled for the account. 
          * @summary Modify an account member
          * @param {string} id The member ID
          * @param {Array<PatchOperation>} patchOperation 
@@ -7800,6 +8391,49 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Add member to team(s)
+         * @summary Add member to teams
+         * @param {string} id The member ID
+         * @param {MemberTeamsFormPost} memberTeamsFormPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postMemberTeams: async (id: string, memberTeamsFormPost: MemberTeamsFormPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('postMemberTeams', 'id', id)
+            // verify required parameter 'memberTeamsFormPost' is not null or undefined
+            assertParamExists('postMemberTeams', 'memberTeamsFormPost', memberTeamsFormPost)
+            const localVarPath = `/api/v2/members/{id}/teams`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(memberTeamsFormPost, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -7892,7 +8526,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
+         *  Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.  To update fields in the account member object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array. For example, to add a new custom role to a member, use the following request body:  ```   [     {       \"op\": \"add\",       \"path\": \"/customRoles/0\",       \"value\": \"some-role-id\"     }   ] ```  Requests to update account members will not work if SCIM is enabled for the account. 
          * @summary Modify an account member
          * @param {string} id The member ID
          * @param {Array<PatchOperation>} patchOperation 
@@ -7901,6 +8535,18 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          */
         async patchMember(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchMember(id, patchOperation, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Add member to team(s)
+         * @summary Add member to teams
+         * @param {string} id The member ID
+         * @param {MemberTeamsFormPost} memberTeamsFormPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async postMemberTeams(id: string, memberTeamsFormPost: MemberTeamsFormPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postMemberTeams(id, memberTeamsFormPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -7958,7 +8604,7 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
             return localVarFp.getMembers(limit, offset, filter, sort, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
+         *  Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.  To update fields in the account member object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array. For example, to add a new custom role to a member, use the following request body:  ```   [     {       \"op\": \"add\",       \"path\": \"/customRoles/0\",       \"value\": \"some-role-id\"     }   ] ```  Requests to update account members will not work if SCIM is enabled for the account. 
          * @summary Modify an account member
          * @param {string} id The member ID
          * @param {Array<PatchOperation>} patchOperation 
@@ -7967,6 +8613,17 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
          */
         patchMember(id: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<Member> {
             return localVarFp.patchMember(id, patchOperation, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Add member to team(s)
+         * @summary Add member to teams
+         * @param {string} id The member ID
+         * @param {MemberTeamsFormPost} memberTeamsFormPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postMemberTeams(id: string, memberTeamsFormPost: MemberTeamsFormPost, options?: any): AxiosPromise<Member> {
+            return localVarFp.postMemberTeams(id, memberTeamsFormPost, options).then((request) => request(axios, basePath));
         },
         /**
          * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
@@ -8028,7 +8685,7 @@ export class AccountMembersApi extends BaseAPI {
     }
 
     /**
-     * Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member. Requests to update account members will not work if SCIM is enabled for the account.
+     *  Update a single account member. The request should be a valid JSON Patch document describing the changes to be made to the member.  To update fields in the account member object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array. For example, to add a new custom role to a member, use the following request body:  ```   [     {       \"op\": \"add\",       \"path\": \"/customRoles/0\",       \"value\": \"some-role-id\"     }   ] ```  Requests to update account members will not work if SCIM is enabled for the account. 
      * @summary Modify an account member
      * @param {string} id The member ID
      * @param {Array<PatchOperation>} patchOperation 
@@ -8038,6 +8695,19 @@ export class AccountMembersApi extends BaseAPI {
      */
     public patchMember(id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return AccountMembersApiFp(this.configuration).patchMember(id, patchOperation, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Add member to team(s)
+     * @summary Add member to teams
+     * @param {string} id The member ID
+     * @param {MemberTeamsFormPost} memberTeamsFormPost 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AccountMembersApi
+     */
+    public postMemberTeams(id: string, memberTeamsFormPost: MemberTeamsFormPost, options?: AxiosRequestConfig) {
+        return AccountMembersApiFp(this.configuration).postMemberTeams(id, memberTeamsFormPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -9935,10 +10605,12 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
          * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
          * @param {string} [projKey] Filter results to a specific project
          * @param {string} [flagKey] Filter results to a specific flag key
+         * @param {number} [from] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;to&#x60;.
+         * @param {number} [to] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;from&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExtinctions: async (repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getExtinctions: async (repoName?: string, branchName?: string, projKey?: string, flagKey?: string, from?: number, to?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/code-refs/extinctions`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -9968,6 +10640,14 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
 
             if (flagKey !== undefined) {
                 localVarQueryParameter['flagKey'] = flagKey;
+            }
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
             }
 
 
@@ -10387,11 +11067,13 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
          * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
          * @param {string} [projKey] Filter results to a specific project
          * @param {string} [flagKey] Filter results to a specific flag key
+         * @param {number} [from] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;to&#x60;.
+         * @param {number} [to] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;from&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExtinctionCollectionRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getExtinctions(repoName, branchName, projKey, flagKey, options);
+        async getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, from?: number, to?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExtinctionCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExtinctions(repoName, branchName, projKey, flagKey, from, to, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -10551,11 +11233,13 @@ export const CodeReferencesApiFactory = function (configuration?: Configuration,
          * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
          * @param {string} [projKey] Filter results to a specific project
          * @param {string} [flagKey] Filter results to a specific flag key
+         * @param {number} [from] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;to&#x60;.
+         * @param {number} [to] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;from&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options?: any): AxiosPromise<ExtinctionCollectionRep> {
-            return localVarFp.getExtinctions(repoName, branchName, projKey, flagKey, options).then((request) => request(axios, basePath));
+        getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, from?: number, to?: number, options?: any): AxiosPromise<ExtinctionCollectionRep> {
+            return localVarFp.getExtinctions(repoName, branchName, projKey, flagKey, from, to, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of connected repositories. Optionally, you can include branch metadata with the `withBranches` query parameter. Embed references for the default branch with `ReferencesForDefaultBranch`. You can also filter the list of code references by project key and flag key.
@@ -10714,12 +11398,14 @@ export class CodeReferencesApi extends BaseAPI {
      * @param {string} [branchName] Filter results to a specific branch. By default, only the default branch will be queried for extinctions.
      * @param {string} [projKey] Filter results to a specific project
      * @param {string} [flagKey] Filter results to a specific flag key
+     * @param {number} [from] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;to&#x60;.
+     * @param {number} [to] Filter results to a specific timeframe based on commit time, expressed as a Unix epoch time in milliseconds. Must be used with &#x60;from&#x60;.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, options?: AxiosRequestConfig) {
-        return CodeReferencesApiFp(this.configuration).getExtinctions(repoName, branchName, projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    public getExtinctions(repoName?: string, branchName?: string, projKey?: string, flagKey?: string, from?: number, to?: number, options?: AxiosRequestConfig) {
+        return CodeReferencesApiFp(this.configuration).getExtinctions(repoName, branchName, projKey, flagKey, from, to, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12748,7 +13434,6 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {string} [tag] Filter feature flags by tag
          * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
          * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next limit items
-         * @param {string} [query] A string that matches against the flags\&#39; keys and names. It is not case sensitive
          * @param {boolean} [archived] A boolean to filter the list to archived flags. When this is absent, only unarchived flags will be returned
          * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
          * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
@@ -12756,7 +13441,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlags: async (projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getFeatureFlags: async (projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projKey' is not null or undefined
             assertParamExists('getFeatureFlags', 'projKey', projKey)
             const localVarPath = `/api/v2/flags/{projKey}`
@@ -12789,10 +13474,6 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
             if (offset !== undefined) {
                 localVarQueryParameter['offset'] = offset;
-            }
-
-            if (query !== undefined) {
-                localVarQueryParameter['query'] = query;
             }
 
             if (archived !== undefined) {
@@ -12874,7 +13555,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/#section/Updates/Updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you receive a `400` response as your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/#section/Updates/Updates-via-JSON-Patch). 
+         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
          * @summary Update feature flag
          * @param {string} projKey The project key.
          * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
@@ -13075,7 +13756,6 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {string} [tag] Filter feature flags by tag
          * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
          * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next limit items
-         * @param {string} [query] A string that matches against the flags\&#39; keys and names. It is not case sensitive
          * @param {boolean} [archived] A boolean to filter the list to archived flags. When this is absent, only unarchived flags will be returned
          * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
          * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
@@ -13083,8 +13763,8 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlags>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlags(projKey, env, tag, limit, offset, query, archived, summary, filter, sort, options);
+        async getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlags>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlags(projKey, env, tag, limit, offset, archived, summary, filter, sort, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -13102,7 +13782,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/#section/Updates/Updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you receive a `400` response as your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/#section/Updates/Updates-via-JSON-Patch). 
+         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
          * @summary Update feature flag
          * @param {string} projKey The project key.
          * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
@@ -13227,7 +13907,6 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
          * @param {string} [tag] Filter feature flags by tag
          * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
          * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next limit items
-         * @param {string} [query] A string that matches against the flags\&#39; keys and names. It is not case sensitive
          * @param {boolean} [archived] A boolean to filter the list to archived flags. When this is absent, only unarchived flags will be returned
          * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
          * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
@@ -13235,8 +13914,8 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: any): AxiosPromise<FeatureFlags> {
-            return localVarFp.getFeatureFlags(projKey, env, tag, limit, offset, query, archived, summary, filter, sort, options).then((request) => request(axios, basePath));
+        getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: any): AxiosPromise<FeatureFlags> {
+            return localVarFp.getFeatureFlags(projKey, env, tag, limit, offset, archived, summary, filter, sort, options).then((request) => request(axios, basePath));
         },
         /**
          * Update the list of user targets on a feature flag that are scheduled for removal.
@@ -13252,7 +13931,7 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
             return localVarFp.patchExpiringUserTargets(projKey, envKey, flagKey, patchWithComment, options).then((request) => request(axios, basePath));
         },
         /**
-         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/#section/Updates/Updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you receive a `400` response as your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/#section/Updates/Updates-via-JSON-Patch). 
+         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
          * @summary Update feature flag
          * @param {string} projKey The project key.
          * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
@@ -13389,7 +14068,6 @@ export class FeatureFlagsApi extends BaseAPI {
      * @param {string} [tag] Filter feature flags by tag
      * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
      * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next limit items
-     * @param {string} [query] A string that matches against the flags\&#39; keys and names. It is not case sensitive
      * @param {boolean} [archived] A boolean to filter the list to archived flags. When this is absent, only unarchived flags will be returned
      * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
      * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
@@ -13398,8 +14076,8 @@ export class FeatureFlagsApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, query?: string, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).getFeatureFlags(projKey, env, tag, limit, offset, query, archived, summary, filter, sort, options).then((request) => request(this.axios, this.basePath));
+    public getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).getFeatureFlags(projKey, env, tag, limit, offset, archived, summary, filter, sort, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -13418,7 +14096,7 @@ export class FeatureFlagsApi extends BaseAPI {
     }
 
     /**
-     * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/#section/Updates/Updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you receive a `400` response as your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/#section/Updates/Updates-via-JSON-Patch). 
+     * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
      * @summary Update feature flag
      * @param {string} projKey The project key.
      * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
@@ -13642,6 +14320,930 @@ export class FeatureFlagsBetaApi extends BaseAPI {
      */
     public getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig) {
         return FeatureFlagsBetaApiFp(this.configuration).getDependentFlagsByEnv(projKey, envKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * FlagTriggersApi - axios parameter creator
+ * @export
+ */
+export const FlagTriggersApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
+         * @summary Create flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {TriggerPost} triggerPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createTriggerWorkflow: async (projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projKey' is not null or undefined
+            assertParamExists('createTriggerWorkflow', 'projKey', projKey)
+            // verify required parameter 'envKey' is not null or undefined
+            assertParamExists('createTriggerWorkflow', 'envKey', envKey)
+            // verify required parameter 'flagKey' is not null or undefined
+            assertParamExists('createTriggerWorkflow', 'flagKey', flagKey)
+            // verify required parameter 'triggerPost' is not null or undefined
+            assertParamExists('createTriggerWorkflow', 'triggerPost', triggerPost)
+            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}`
+                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(triggerPost, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a flag trigger by ID.
+         * @summary Delete flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {string} id The flag trigger ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteTriggerWorkflow: async (projKey: string, envKey: string, flagKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projKey' is not null or undefined
+            assertParamExists('deleteTriggerWorkflow', 'projKey', projKey)
+            // verify required parameter 'envKey' is not null or undefined
+            assertParamExists('deleteTriggerWorkflow', 'envKey', envKey)
+            // verify required parameter 'flagKey' is not null or undefined
+            assertParamExists('deleteTriggerWorkflow', 'flagKey', flagKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('deleteTriggerWorkflow', 'id', id)
+            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}/{id}`
+                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a flag trigger by ID.
+         * @summary Get flag trigger by ID
+         * @param {string} projKey The project key
+         * @param {string} flagKey The flag key
+         * @param {string} envKey The environment key
+         * @param {string} id The flag trigger ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTriggerWorkflowById: async (projKey: string, flagKey: string, envKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projKey' is not null or undefined
+            assertParamExists('getTriggerWorkflowById', 'projKey', projKey)
+            // verify required parameter 'flagKey' is not null or undefined
+            assertParamExists('getTriggerWorkflowById', 'flagKey', flagKey)
+            // verify required parameter 'envKey' is not null or undefined
+            assertParamExists('getTriggerWorkflowById', 'envKey', envKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('getTriggerWorkflowById', 'id', id)
+            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}/{id}`
+                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
+                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a list of all flag triggers.
+         * @summary List flag triggers
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTriggerWorkflows: async (projKey: string, envKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projKey' is not null or undefined
+            assertParamExists('getTriggerWorkflows', 'projKey', projKey)
+            // verify required parameter 'envKey' is not null or undefined
+            assertParamExists('getTriggerWorkflows', 'envKey', envKey)
+            // verify required parameter 'flagKey' is not null or undefined
+            assertParamExists('getTriggerWorkflows', 'flagKey', flagKey)
+            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}`
+                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {string} id The flag trigger ID
+         * @param {FlagTriggerInput} flagTriggerInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchTriggerWorkflow: async (projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projKey' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'projKey', projKey)
+            // verify required parameter 'envKey' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'envKey', envKey)
+            // verify required parameter 'flagKey' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'flagKey', flagKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'id', id)
+            // verify required parameter 'flagTriggerInput' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'flagTriggerInput', flagTriggerInput)
+            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}/{id}`
+                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(flagTriggerInput, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * FlagTriggersApi - functional programming interface
+ * @export
+ */
+export const FlagTriggersApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = FlagTriggersApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
+         * @summary Create flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {TriggerPost} triggerPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createTriggerWorkflow(projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createTriggerWorkflow(projKey, envKey, flagKey, triggerPost, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Delete a flag trigger by ID.
+         * @summary Delete flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {string} id The flag trigger ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTriggerWorkflow(projKey, envKey, flagKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a flag trigger by ID.
+         * @summary Get flag trigger by ID
+         * @param {string} projKey The project key
+         * @param {string} flagKey The flag key
+         * @param {string} envKey The environment key
+         * @param {string} id The flag trigger ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTriggerWorkflowById(projKey: string, flagKey: string, envKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTriggerWorkflowById(projKey, flagKey, envKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a list of all flag triggers.
+         * @summary List flag triggers
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTriggerWorkflows(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTriggerWorkflows(projKey, envKey, flagKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {string} id The flag trigger ID
+         * @param {FlagTriggerInput} flagTriggerInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchTriggerWorkflow(projKey, envKey, flagKey, id, flagTriggerInput, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * FlagTriggersApi - factory interface
+ * @export
+ */
+export const FlagTriggersApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = FlagTriggersApiFp(configuration)
+    return {
+        /**
+         * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
+         * @summary Create flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {TriggerPost} triggerPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createTriggerWorkflow(projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options?: any): AxiosPromise<TriggerWorkflowRep> {
+            return localVarFp.createTriggerWorkflow(projKey, envKey, flagKey, triggerPost, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a flag trigger by ID.
+         * @summary Delete flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {string} id The flag trigger ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteTriggerWorkflow(projKey, envKey, flagKey, id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a flag trigger by ID.
+         * @summary Get flag trigger by ID
+         * @param {string} projKey The project key
+         * @param {string} flagKey The flag key
+         * @param {string} envKey The environment key
+         * @param {string} id The flag trigger ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTriggerWorkflowById(projKey: string, flagKey: string, envKey: string, id: string, options?: any): AxiosPromise<TriggerWorkflowRep> {
+            return localVarFp.getTriggerWorkflowById(projKey, flagKey, envKey, id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a list of all flag triggers.
+         * @summary List flag triggers
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTriggerWorkflows(projKey: string, envKey: string, flagKey: string, options?: any): AxiosPromise<TriggerWorkflowCollectionRep> {
+            return localVarFp.getTriggerWorkflows(projKey, envKey, flagKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update flag trigger
+         * @param {string} projKey The project key
+         * @param {string} envKey The environment key
+         * @param {string} flagKey The flag key
+         * @param {string} id The flag trigger ID
+         * @param {FlagTriggerInput} flagTriggerInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: any): AxiosPromise<TriggerWorkflowRep> {
+            return localVarFp.patchTriggerWorkflow(projKey, envKey, flagKey, id, flagTriggerInput, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * FlagTriggersApi - object-oriented interface
+ * @export
+ * @class FlagTriggersApi
+ * @extends {BaseAPI}
+ */
+export class FlagTriggersApi extends BaseAPI {
+    /**
+     * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
+     * @summary Create flag trigger
+     * @param {string} projKey The project key
+     * @param {string} envKey The environment key
+     * @param {string} flagKey The flag key
+     * @param {TriggerPost} triggerPost 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagTriggersApi
+     */
+    public createTriggerWorkflow(projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).createTriggerWorkflow(projKey, envKey, flagKey, triggerPost, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a flag trigger by ID.
+     * @summary Delete flag trigger
+     * @param {string} projKey The project key
+     * @param {string} envKey The environment key
+     * @param {string} flagKey The flag key
+     * @param {string} id The flag trigger ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagTriggersApi
+     */
+    public deleteTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).deleteTriggerWorkflow(projKey, envKey, flagKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a flag trigger by ID.
+     * @summary Get flag trigger by ID
+     * @param {string} projKey The project key
+     * @param {string} flagKey The flag key
+     * @param {string} envKey The environment key
+     * @param {string} id The flag trigger ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagTriggersApi
+     */
+    public getTriggerWorkflowById(projKey: string, flagKey: string, envKey: string, id: string, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).getTriggerWorkflowById(projKey, flagKey, envKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a list of all flag triggers.
+     * @summary List flag triggers
+     * @param {string} projKey The project key
+     * @param {string} envKey The environment key
+     * @param {string} flagKey The flag key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagTriggersApi
+     */
+    public getTriggerWorkflows(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).getTriggerWorkflows(projKey, envKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
+     * @summary Update flag trigger
+     * @param {string} projKey The project key
+     * @param {string} envKey The environment key
+     * @param {string} flagKey The flag key
+     * @param {string} id The flag trigger ID
+     * @param {FlagTriggerInput} flagTriggerInput 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagTriggersApi
+     */
+    public patchTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).patchTriggerWorkflow(projKey, envKey, flagKey, id, flagTriggerInput, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * IntegrationAuditLogSubscriptionsApi - axios parameter creator
+ * @export
+ */
+export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create an audit log subscription.
+         * @summary Create audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {SubscriptionPost} subscriptionPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createSubscription: async (integrationKey: string, subscriptionPost: SubscriptionPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('createSubscription', 'integrationKey', integrationKey)
+            // verify required parameter 'subscriptionPost' is not null or undefined
+            assertParamExists('createSubscription', 'subscriptionPost', subscriptionPost)
+            const localVarPath = `/api/v2/integrations/{integrationKey}`
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(subscriptionPost, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete an audit log subscription.
+         * @summary Delete audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {string} id The subscription ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteSubscription: async (integrationKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('deleteSubscription', 'integrationKey', integrationKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('deleteSubscription', 'id', id)
+            const localVarPath = `/api/v2/integrations/{integrationKey}/{id}`
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get an audit log subscription by ID.
+         * @summary Get audit log subscription by ID
+         * @param {string} integrationKey The integration key
+         * @param {string} id The subscription ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSubscriptionByID: async (integrationKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('getSubscriptionByID', 'integrationKey', integrationKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('getSubscriptionByID', 'id', id)
+            const localVarPath = `/api/v2/integrations/{integrationKey}/{id}`
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get all audit log subscriptions associated with a given integration.
+         * @summary Get audit log subscriptions by integration
+         * @param {string} integrationKey The integration key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSubscriptions: async (integrationKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('getSubscriptions', 'integrationKey', integrationKey)
+            const localVarPath = `/api/v2/integrations/{integrationKey}`
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update an audit log subscription configuration. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the audit log subscription.
+         * @summary Update audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {string} id The ID of the audit log subscription
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateSubscription: async (integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('updateSubscription', 'integrationKey', integrationKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('updateSubscription', 'id', id)
+            // verify required parameter 'patchOperation' is not null or undefined
+            assertParamExists('updateSubscription', 'patchOperation', patchOperation)
+            const localVarPath = `/api/v2/integrations/{integrationKey}/{id}`
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * IntegrationAuditLogSubscriptionsApi - functional programming interface
+ * @export
+ */
+export const IntegrationAuditLogSubscriptionsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = IntegrationAuditLogSubscriptionsApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create an audit log subscription.
+         * @summary Create audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {SubscriptionPost} subscriptionPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createSubscription(integrationKey: string, subscriptionPost: SubscriptionPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Integration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createSubscription(integrationKey, subscriptionPost, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Delete an audit log subscription.
+         * @summary Delete audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {string} id The subscription ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteSubscription(integrationKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteSubscription(integrationKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get an audit log subscription by ID.
+         * @summary Get audit log subscription by ID
+         * @param {string} integrationKey The integration key
+         * @param {string} id The subscription ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getSubscriptionByID(integrationKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Integration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSubscriptionByID(integrationKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get all audit log subscriptions associated with a given integration.
+         * @summary Get audit log subscriptions by integration
+         * @param {string} integrationKey The integration key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getSubscriptions(integrationKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Integrations>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSubscriptions(integrationKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Update an audit log subscription configuration. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the audit log subscription.
+         * @summary Update audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {string} id The ID of the audit log subscription
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateSubscription(integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Integration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateSubscription(integrationKey, id, patchOperation, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * IntegrationAuditLogSubscriptionsApi - factory interface
+ * @export
+ */
+export const IntegrationAuditLogSubscriptionsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = IntegrationAuditLogSubscriptionsApiFp(configuration)
+    return {
+        /**
+         * Create an audit log subscription.
+         * @summary Create audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {SubscriptionPost} subscriptionPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createSubscription(integrationKey: string, subscriptionPost: SubscriptionPost, options?: any): AxiosPromise<Integration> {
+            return localVarFp.createSubscription(integrationKey, subscriptionPost, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete an audit log subscription.
+         * @summary Delete audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {string} id The subscription ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteSubscription(integrationKey: string, id: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteSubscription(integrationKey, id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get an audit log subscription by ID.
+         * @summary Get audit log subscription by ID
+         * @param {string} integrationKey The integration key
+         * @param {string} id The subscription ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSubscriptionByID(integrationKey: string, id: string, options?: any): AxiosPromise<Integration> {
+            return localVarFp.getSubscriptionByID(integrationKey, id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get all audit log subscriptions associated with a given integration.
+         * @summary Get audit log subscriptions by integration
+         * @param {string} integrationKey The integration key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSubscriptions(integrationKey: string, options?: any): AxiosPromise<Integrations> {
+            return localVarFp.getSubscriptions(integrationKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update an audit log subscription configuration. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the audit log subscription.
+         * @summary Update audit log subscription
+         * @param {string} integrationKey The integration key
+         * @param {string} id The ID of the audit log subscription
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateSubscription(integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<Integration> {
+            return localVarFp.updateSubscription(integrationKey, id, patchOperation, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * IntegrationAuditLogSubscriptionsApi - object-oriented interface
+ * @export
+ * @class IntegrationAuditLogSubscriptionsApi
+ * @extends {BaseAPI}
+ */
+export class IntegrationAuditLogSubscriptionsApi extends BaseAPI {
+    /**
+     * Create an audit log subscription.
+     * @summary Create audit log subscription
+     * @param {string} integrationKey The integration key
+     * @param {SubscriptionPost} subscriptionPost 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationAuditLogSubscriptionsApi
+     */
+    public createSubscription(integrationKey: string, subscriptionPost: SubscriptionPost, options?: AxiosRequestConfig) {
+        return IntegrationAuditLogSubscriptionsApiFp(this.configuration).createSubscription(integrationKey, subscriptionPost, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete an audit log subscription.
+     * @summary Delete audit log subscription
+     * @param {string} integrationKey The integration key
+     * @param {string} id The subscription ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationAuditLogSubscriptionsApi
+     */
+    public deleteSubscription(integrationKey: string, id: string, options?: AxiosRequestConfig) {
+        return IntegrationAuditLogSubscriptionsApiFp(this.configuration).deleteSubscription(integrationKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get an audit log subscription by ID.
+     * @summary Get audit log subscription by ID
+     * @param {string} integrationKey The integration key
+     * @param {string} id The subscription ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationAuditLogSubscriptionsApi
+     */
+    public getSubscriptionByID(integrationKey: string, id: string, options?: AxiosRequestConfig) {
+        return IntegrationAuditLogSubscriptionsApiFp(this.configuration).getSubscriptionByID(integrationKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get all audit log subscriptions associated with a given integration.
+     * @summary Get audit log subscriptions by integration
+     * @param {string} integrationKey The integration key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationAuditLogSubscriptionsApi
+     */
+    public getSubscriptions(integrationKey: string, options?: AxiosRequestConfig) {
+        return IntegrationAuditLogSubscriptionsApiFp(this.configuration).getSubscriptions(integrationKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update an audit log subscription configuration. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the audit log subscription.
+     * @summary Update audit log subscription
+     * @param {string} integrationKey The integration key
+     * @param {string} id The ID of the audit log subscription
+     * @param {Array<PatchOperation>} patchOperation 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationAuditLogSubscriptionsApi
+     */
+    public updateSubscription(integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return IntegrationAuditLogSubscriptionsApiFp(this.configuration).updateSubscription(integrationKey, id, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -15375,7 +16977,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             };
         },
         /**
-         * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches)
+         * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
          * @summary Update scheduled changes workflow
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag\&#39;s key
@@ -15542,7 +17144,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches)
+         * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
          * @summary Update scheduled changes workflow
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag\&#39;s key
@@ -15621,7 +17223,7 @@ export const ScheduledChangesApiFactory = function (configuration?: Configuratio
             return localVarFp.getFlagConfigScheduledChanges(projectKey, featureFlagKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches)
+         * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
          * @summary Update scheduled changes workflow
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag\&#39;s key
@@ -15704,7 +17306,7 @@ export class ScheduledChangesApi extends BaseAPI {
     }
 
     /**
-     * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches)
+     * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
      * @summary Update scheduled changes workflow
      * @param {string} projectKey The project key
      * @param {string} featureFlagKey The feature flag\&#39;s key
@@ -15970,7 +17572,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
+         * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
          * @summary Update expiring user targets for segment
          * @param {string} projKey The project key.
          * @param {string} envKey The environment key.
@@ -16021,7 +17623,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Updates).
+         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
          * @summary Patch segment
          * @param {string} projKey The project key.
          * @param {string} envKey The environment key.
@@ -16245,7 +17847,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
+         * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
          * @summary Update expiring user targets for segment
          * @param {string} projKey The project key.
          * @param {string} envKey The environment key.
@@ -16259,7 +17861,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Updates).
+         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
          * @summary Patch segment
          * @param {string} projKey The project key.
          * @param {string} envKey The environment key.
@@ -16370,7 +17972,7 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.getSegments(projKey, envKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
+         * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
          * @summary Update expiring user targets for segment
          * @param {string} projKey The project key.
          * @param {string} envKey The environment key.
@@ -16383,7 +17985,7 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.patchExpiringUserTargetsForSegment(projKey, envKey, segmentKey, patchSegmentRequest, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Updates).
+         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
          * @summary Patch segment
          * @param {string} projKey The project key.
          * @param {string} envKey The environment key.
@@ -16501,7 +18103,7 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/#section/Updates/Updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
+     * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
      * @summary Update expiring user targets for segment
      * @param {string} projKey The project key.
      * @param {string} envKey The environment key.
@@ -16516,7 +18118,7 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Updates).
+     * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
      * @summary Patch segment
      * @param {string} projKey The project key.
      * @param {string} envKey The environment key.
@@ -16771,6 +18373,52 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
+         * @summary Add members to team
+         * @param {string} key The team key
+         * @param {any} [file] CSV file containing email addresses
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postTeamMembers: async (key: string, file?: any, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'key' is not null or undefined
+            assertParamExists('postTeamMembers', 'key', key)
+            const localVarPath = `/api/v2/teams/{key}/members`
+                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            const localVarFormParams = new ((configuration && configuration.formDataCtor) || FormData)();
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+            if (file !== undefined) { 
+                localVarFormParams.append('file', file as any);
+            }
+    
+    
+            localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = localVarFormParams;
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -16799,7 +18447,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTeam(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamRep>> {
+        async getTeam(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpandedTeamRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getTeam(key, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16824,7 +18472,7 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
+        async patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpandedTeamRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchTeam(key, teamPatchInput, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -16837,6 +18485,18 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          */
         async postTeam(teamPostInput: TeamPostInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postTeam(teamPostInput, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
+         * @summary Add members to team
+         * @param {string} key The team key
+         * @param {any} [file] CSV file containing email addresses
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async postTeamMembers(key: string, file?: any, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamImportsRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postTeamMembers(key, file, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -16866,7 +18526,7 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeam(key: string, options?: any): AxiosPromise<TeamRep> {
+        getTeam(key: string, options?: any): AxiosPromise<ExpandedTeamRep> {
             return localVarFp.getTeam(key, options).then((request) => request(axios, basePath));
         },
         /**
@@ -16889,7 +18549,7 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: any): AxiosPromise<TeamCollectionRep> {
+        patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: any): AxiosPromise<ExpandedTeamRep> {
             return localVarFp.patchTeam(key, teamPatchInput, options).then((request) => request(axios, basePath));
         },
         /**
@@ -16901,6 +18561,17 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
          */
         postTeam(teamPostInput: TeamPostInput, options?: any): AxiosPromise<TeamRep> {
             return localVarFp.postTeam(teamPostInput, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
+         * @summary Add members to team
+         * @param {string} key The team key
+         * @param {any} [file] CSV file containing email addresses
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postTeamMembers(key: string, file?: any, options?: any): AxiosPromise<TeamImportsRep> {
+            return localVarFp.postTeamMembers(key, file, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -16973,6 +18644,19 @@ export class TeamsBetaApi extends BaseAPI {
      */
     public postTeam(teamPostInput: TeamPostInput, options?: AxiosRequestConfig) {
         return TeamsBetaApiFp(this.configuration).postTeam(teamPostInput, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
+     * @summary Add members to team
+     * @param {string} key The team key
+     * @param {any} [file] CSV file containing email addresses
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TeamsBetaApi
+     */
+    public postTeamMembers(key: string, file?: any, options?: AxiosRequestConfig) {
+        return TeamsBetaApiFp(this.configuration).postTeamMembers(key, file, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
