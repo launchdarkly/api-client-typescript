@@ -4083,13 +4083,13 @@ export interface MemberTeamSummaryRep {
 /**
  * 
  * @export
- * @interface MemberTeamsFormPost
+ * @interface MemberTeamsPostInput
  */
-export interface MemberTeamsFormPost {
+export interface MemberTeamsPostInput {
     /**
      * List of team keys
      * @type {Array<string>}
-     * @memberof MemberTeamsFormPost
+     * @memberof MemberTeamsPostInput
      */
     'teamKeys': Array<string>;
 }
@@ -6095,7 +6095,7 @@ export interface StatementPost {
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    'resources': Array<string>;
+    'resources'?: Array<string>;
     /**
      * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
@@ -6107,7 +6107,7 @@ export interface StatementPost {
      * @type {Array<string>}
      * @memberof StatementPost
      */
-    'actions': Array<string>;
+    'actions'?: Array<string>;
     /**
      * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
      * @type {Array<string>}
@@ -6132,7 +6132,7 @@ export interface StatementPostData {
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    'resources': Array<string>;
+    'resources'?: Array<string>;
     /**
      * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
      * @type {Array<string>}
@@ -6144,7 +6144,7 @@ export interface StatementPostData {
      * @type {Array<string>}
      * @memberof StatementPostData
      */
-    'actions': Array<string>;
+    'actions'?: Array<string>;
     /**
      * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
      * @type {Array<string>}
@@ -8401,15 +8401,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
          * Add member to team(s)
          * @summary Add member to teams
          * @param {string} id The member ID
-         * @param {MemberTeamsFormPost} memberTeamsFormPost 
+         * @param {MemberTeamsPostInput} memberTeamsPostInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postMemberTeams: async (id: string, memberTeamsFormPost: MemberTeamsFormPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        postMemberTeams: async (id: string, memberTeamsPostInput: MemberTeamsPostInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('postMemberTeams', 'id', id)
-            // verify required parameter 'memberTeamsFormPost' is not null or undefined
-            assertParamExists('postMemberTeams', 'memberTeamsFormPost', memberTeamsFormPost)
+            // verify required parameter 'memberTeamsPostInput' is not null or undefined
+            assertParamExists('postMemberTeams', 'memberTeamsPostInput', memberTeamsPostInput)
             const localVarPath = `/api/v2/members/{id}/teams`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -8433,7 +8433,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(memberTeamsFormPost, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(memberTeamsPostInput, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -8541,12 +8541,12 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
          * Add member to team(s)
          * @summary Add member to teams
          * @param {string} id The member ID
-         * @param {MemberTeamsFormPost} memberTeamsFormPost 
+         * @param {MemberTeamsPostInput} memberTeamsPostInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postMemberTeams(id: string, memberTeamsFormPost: MemberTeamsFormPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postMemberTeams(id, memberTeamsFormPost, options);
+        async postMemberTeams(id: string, memberTeamsPostInput: MemberTeamsPostInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Member>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postMemberTeams(id, memberTeamsPostInput, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -8618,12 +8618,12 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
          * Add member to team(s)
          * @summary Add member to teams
          * @param {string} id The member ID
-         * @param {MemberTeamsFormPost} memberTeamsFormPost 
+         * @param {MemberTeamsPostInput} memberTeamsPostInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postMemberTeams(id: string, memberTeamsFormPost: MemberTeamsFormPost, options?: any): AxiosPromise<Member> {
-            return localVarFp.postMemberTeams(id, memberTeamsFormPost, options).then((request) => request(axios, basePath));
+        postMemberTeams(id: string, memberTeamsPostInput: MemberTeamsPostInput, options?: any): AxiosPromise<Member> {
+            return localVarFp.postMemberTeams(id, memberTeamsPostInput, options).then((request) => request(axios, basePath));
         },
         /**
          * > ### Full use of this API resource is only available to accounts with paid subscriptions > > The ability to bulk invite members is a paid feature. Single members may be invited if not on a paid plan.  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
@@ -8701,13 +8701,13 @@ export class AccountMembersApi extends BaseAPI {
      * Add member to team(s)
      * @summary Add member to teams
      * @param {string} id The member ID
-     * @param {MemberTeamsFormPost} memberTeamsFormPost 
+     * @param {MemberTeamsPostInput} memberTeamsPostInput 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof AccountMembersApi
      */
-    public postMemberTeams(id: string, memberTeamsFormPost: MemberTeamsFormPost, options?: AxiosRequestConfig) {
-        return AccountMembersApiFp(this.configuration).postMemberTeams(id, memberTeamsFormPost, options).then((request) => request(this.axios, this.basePath));
+    public postMemberTeams(id: string, memberTeamsPostInput: MemberTeamsPostInput, options?: AxiosRequestConfig) {
+        return AccountMembersApiFp(this.configuration).postMemberTeams(id, memberTeamsPostInput, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12443,7 +12443,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable. > > If you try to patch the environment by setting both `required` and `requiredApprovalTags`, it fails and an error appears. Users can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on an Enterprise plan can require approval for flag updates by either mechanism. 
+         *  Update an environment. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the environment.  To update fields in the environment object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array.  ### Approval settings  This request only returns the `approvalSettings` key if the [Flag Approvals](https://docs.launchdarkly.com/home/feature-workflows/approvals) feature is enabled.  Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable.  If you try to patch the environment by setting both `required` and `requiredApprovalTags`, the request fails and an error appears. You can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on a Pro or Enterprise plan can require approval for flag updates by either mechanism. 
          * @summary Update environment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -12654,7 +12654,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable. > > If you try to patch the environment by setting both `required` and `requiredApprovalTags`, it fails and an error appears. Users can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on an Enterprise plan can require approval for flag updates by either mechanism. 
+         *  Update an environment. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the environment.  To update fields in the environment object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array.  ### Approval settings  This request only returns the `approvalSettings` key if the [Flag Approvals](https://docs.launchdarkly.com/home/feature-workflows/approvals) feature is enabled.  Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable.  If you try to patch the environment by setting both `required` and `requiredApprovalTags`, the request fails and an error appears. You can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on a Pro or Enterprise plan can require approval for flag updates by either mechanism. 
          * @summary Update environment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -12736,7 +12736,7 @@ export const EnvironmentsApiFactory = function (configuration?: Configuration, b
             return localVarFp.getEnvironment(projectKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable. > > If you try to patch the environment by setting both `required` and `requiredApprovalTags`, it fails and an error appears. Users can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on an Enterprise plan can require approval for flag updates by either mechanism. 
+         *  Update an environment. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the environment.  To update fields in the environment object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array.  ### Approval settings  This request only returns the `approvalSettings` key if the [Flag Approvals](https://docs.launchdarkly.com/home/feature-workflows/approvals) feature is enabled.  Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable.  If you try to patch the environment by setting both `required` and `requiredApprovalTags`, the request fails and an error appears. You can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on a Pro or Enterprise plan can require approval for flag updates by either mechanism. 
          * @summary Update environment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -12818,7 +12818,7 @@ export class EnvironmentsApi extends BaseAPI {
     }
 
     /**
-     * > ### Approval settings > > The `approvalSettings` key is only returned when the Flag Approvals feature is enabled. > > Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable. > > If you try to patch the environment by setting both `required` and `requiredApprovalTags`, it fails and an error appears. Users can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on an Enterprise plan can require approval for flag updates by either mechanism. 
+     *  Update an environment. Requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes to the environment.  To update fields in the environment object that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` appends to the beginning of the array.  ### Approval settings  This request only returns the `approvalSettings` key if the [Flag Approvals](https://docs.launchdarkly.com/home/feature-workflows/approvals) feature is enabled.  Only the `canReviewOwnRequest`, `canApplyDeclinedChanges`, `minNumApprovals`, `required` and `requiredApprovalTagsfields` are editable.  If you try to patch the environment by setting both `required` and `requiredApprovalTags`, the request fails and an error appears. You can specify either required approvals for all flags in an environment or those with specific tags, but not both. Only customers on a Pro or Enterprise plan can require approval for flag updates by either mechanism. 
      * @summary Update environment
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -15374,7 +15374,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
-         * Patch a environment by key.
+         * Patch a metric by key.
          * @summary Update metric
          * @param {string} projectKey The project key
          * @param {string} key The metric key
@@ -15509,7 +15509,7 @@ export const MetricsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Patch a environment by key.
+         * Patch a metric by key.
          * @summary Update metric
          * @param {string} projectKey The project key
          * @param {string} key The metric key
@@ -15576,7 +15576,7 @@ export const MetricsApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.getMetrics(projectKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Patch a environment by key.
+         * Patch a metric by key.
          * @summary Update metric
          * @param {string} projectKey The project key
          * @param {string} key The metric key
@@ -15647,7 +15647,7 @@ export class MetricsApi extends BaseAPI {
     }
 
     /**
-     * Patch a environment by key.
+     * Patch a metric by key.
      * @summary Update metric
      * @param {string} projectKey The project key
      * @param {string} key The metric key
