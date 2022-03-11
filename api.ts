@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * LaunchDarkly REST API
- * # Overview  ## Authentication  All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [Account settings](https://app.launchdarkly.com/settings/tokens) page.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and client-side SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations (fetching feature flag settings).  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export | | SDK keys                                                                                        | Can only access read-only SDK-specific resources and the firehose, restricted to a single environment | Server-side SDKs, Firehose API                     | | Mobile keys                                                                                     | Can only access read-only mobile SDK-specific resources, restricted to a single environment           | Mobile SDKs                                        | | Client-side ID                                                                                  | Single environment, only flags marked available to client-side                                        | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [Account Settings](https://app.launchdarkly.com/settings#/tokens) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Via request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [Account Settings](https://app.launchdarkly.com/settings/tokens) page.  ### Via session cookie  For testing purposes, you can make API calls directly from your web browser. If you\'re logged in to the application, the API will use your existing session to authenticate calls.  If you have a [role](https://docs.launchdarkly.com/home/team/built-in-roles) other than Admin, or have a [custom role](https://docs.launchdarkly.com/home/team/custom-roles) defined, you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses will also send a JSON body. Read [Errors](#section/Errors) for a more detailed description of the error format used by the API.  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PUT`, `POST`, `REPORT` and `PATCH` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource (for example, a single feature flag), you receive a _detailed representation_ containing all of the attributes of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object. - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link.  Each link has two attributes: an href (the URL) and a type (the content type). For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb, and support the [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) format. Some resources also support the [JSON Merge Patch](https://datatracker.ietf.org/doc/html/rfc7386) format. In addition, some resources support optional comments that can be submitted with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  ### Updates via JSON Patch  [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ```  You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  JSON Patch documents are always arrays. You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that aren\'t editable, like a resource\'s `_links`, have names that start with an underscore.  ### Updates via JSON Merge Patch  The API also supports the [JSON Merge Patch](https://datatracker.ietf.org/doc/html/rfc7386) format, as well as the [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource.  JSON Merge Patch is less expressive than JSON Patch but in many cases, it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates with comments  You can submit optional comments with `PATCH` changes. The [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource supports comments.  To submit a comment along with a JSON Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON Merge Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  ### Updates via semantic patches  The API also supports the Semantic patch format. A semantic `PATCH` is a way to specify the modifications to perform on a resource as a set of executable instructions.  JSON Patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, semantic patch instructions can also be defined independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  For example, in this feature flag configuration in environment Production:  ```json {     \"name\": \"Alternate sort order\",     \"kind\": \"boolean\",     \"key\": \"sort.order\",    ...     \"environments\": {         \"production\": {             \"on\": true,             \"archived\": false,             \"salt\": \"c29ydC5vcmRlcg==\",             \"sel\": \"8de1085cb7354b0ab41c0e778376dfd3\",             \"lastModified\": 1469131558260,             \"version\": 81,             \"targets\": [                 {                     \"values\": [                         \"Gerhard.Little@yahoo.com\"                     ],                     \"variation\": 0                 },                 {                     \"values\": [                         \"1461797806429-33-861961230\",                         \"438580d8-02ee-418d-9eec-0085cab2bdf0\"                     ],                     \"variation\": 1                 }             ],             \"rules\": [],             \"fallthrough\": {                 \"variation\": 0             },             \"offVariation\": 1,             \"prerequisites\": [],             \"_site\": {                 \"href\": \"/default/production/features/sort.order\",                 \"type\": \"text/html\"             }        }     } } ```  You can add a date you want a user to be removed from the feature flag\'s user targets. For example, “remove user 1461797806429-33-861961230 from the user target for variation 0 on the Alternate sort order flag in the production environment on Wed Jul 08 2020 at 15:27:41 pm”. This is done using the following:  ```json {   \"comment\": \"update expiring user targets\",   \"instructions\": [     {       \"kind\": \"removeExpireUserTargetDate\",       \"userKey\": \"userKey\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\"     },     {       \"kind\": \"updateExpireUserTargetDate\",       \"userKey\": \"userKey2\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1587582000000     },     {       \"kind\": \"addExpireUserTargetDate\",       \"userKey\": \"userKey3\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1594247266386     }   ] } ```  Here is another example. In this feature flag configuration:  ```json {   \"name\": \"New recommendations engine\",   \"key\": \"engine.enable\",   \"environments\": {     \"test\": {       \"on\": true     }   } } ```  You can change the feature flag\'s description with the following patch document as a set of executable instructions. For example, “add user X to targets for variation Y and remove user A from targets for variation B for test flag”:  ```json {   \"comment\": \"\",   \"instructions\": [     {       \"kind\": \"removeUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"852cb784-54ff-46b9-8c35-5498d2e4f270\"     },     {       \"kind\": \"addUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"1bb18465-33b6-49aa-a3bd-eeb6650b33ad\"     }   ] } ```  > ### Supported semantic patch API endpoints > > - [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) > - [Update expiring user targets on feature flag](/tag/Feature-flags#operation/patchExpiringUserTargets) > - [Update expiring user target for flags](/tag/User-settings#operation/patchExpiringFlagsForUser) > - [Update expiring user targets on segment](/tag/Segments#operation/patchExpiringUserTargetsForSegment)  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The general class of error is indicated by the `code`. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly support to debug a problem with a specific API call.  ### HTTP Status - Error Response Codes  | Code | Definition        | Desc.                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Bad Request       | A request that fails may return this HTTP response code.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Unauthorized      | User doesn\'t have permission to an API call.                                                | Ensure your SDK key is good.                                     | | 403  | Forbidden         | User does not have permission for operation.                                                | Ensure that the user or access token has proper permissions set. | | 409  | Conflict          | The API request could not be completed because it conflicted with a concurrent API request. | Retry your request.                                              | | 429  | Too many requests | See [Rate limiting](/#section/Rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise, a wildcard is returned: `Access-Control-Allow-Origin: *`. For more information on CORS, see the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](#section/Authentication). If you’re using session auth, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted users.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs will return a `429` status code. Calls to our APIs will include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that can be made to the API per ten seconds. All personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits will return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits will return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](/tag/Environments#operation/deleteEnvironment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that can be made to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger)  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  You can use this specification to generate client libraries to interact with our REST API in your language of choice.  This specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to ease use in navigating the APIs in the tooling.  ## Client libraries  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit [GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories).  ## Method Overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `PUT`, `PATCH`, and `DELETE` verbs will be inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `PUT`, `PATCH`, and `DELETE` requests via a `POST` request.  For example, if you wish to call one of our `PATCH` resources via a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](/#section/Beta-resources).  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you\'ll receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20191212 ```  The header value is the version number of the API version you\'d like to request. The number for each version corresponds to the date the version was released. In the example above the version `20191212` corresponds to December 12, 2019.  ### Setting the API version per access token  When creating an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426` (the version of the API that existed before versioning) so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing. 
+ * # Overview  ## Authentication  All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [Account settings](https://app.launchdarkly.com/settings/tokens) page.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and client-side SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations (fetching feature flag settings).  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export | | SDK keys                                                                                        | Can only access read-only SDK-specific resources and the firehose, restricted to a single environment | Server-side SDKs, Firehose API                     | | Mobile keys                                                                                     | Can only access read-only mobile SDK-specific resources, restricted to a single environment           | Mobile SDKs                                        | | Client-side ID                                                                                  | Single environment, only flags marked available to client-side                                        | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [Account Settings](https://app.launchdarkly.com/settings#/tokens) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Via request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [Account Settings](https://app.launchdarkly.com/settings/tokens) page.  ### Via session cookie  For testing purposes, you can make API calls directly from your web browser. If you\'re logged in to the application, the API will use your existing session to authenticate calls.  If you have a [role](https://docs.launchdarkly.com/home/team/built-in-roles) other than Admin, or have a [custom role](https://docs.launchdarkly.com/home/team/custom-roles) defined, you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses will also send a JSON body. Read [Errors](#section/Errors) for a more detailed description of the error format used by the API.  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PUT`, `POST`, `REPORT` and `PATCH` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource (for example, a single feature flag), you receive a _detailed representation_ containing all of the attributes of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object. - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link.  Each link has two attributes: an href (the URL) and a type (the content type). For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb, and support the [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) format. Some resources also support the [JSON Merge Patch](https://datatracker.ietf.org/doc/html/rfc7386) format. In addition, some resources support optional comments that can be submitted with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  ### Updates via JSON Patch  [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ```  You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  JSON Patch documents are always arrays. You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that aren\'t editable, like a resource\'s `_links`, have names that start with an underscore.  ### Updates via JSON Merge Patch  The API also supports the [JSON Merge Patch](https://datatracker.ietf.org/doc/html/rfc7386) format, as well as the [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource.  JSON Merge Patch is less expressive than JSON Patch but in many cases, it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates with comments  You can submit optional comments with `PATCH` changes. The [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) resource supports comments.  To submit a comment along with a JSON Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON Merge Patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  ### Updates via semantic patches  The API also supports the Semantic patch format. A semantic `PATCH` is a way to specify the modifications to perform on a resource as a set of executable instructions.  JSON Patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, semantic patch instructions can also be defined independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  For example, in this feature flag configuration in environment Production:  ```json {     \"name\": \"Alternate sort order\",     \"kind\": \"boolean\",     \"key\": \"sort.order\",    ...     \"environments\": {         \"production\": {             \"on\": true,             \"archived\": false,             \"salt\": \"c29ydC5vcmRlcg==\",             \"sel\": \"8de1085cb7354b0ab41c0e778376dfd3\",             \"lastModified\": 1469131558260,             \"version\": 81,             \"targets\": [                 {                     \"values\": [                         \"Gerhard.Little@yahoo.com\"                     ],                     \"variation\": 0                 },                 {                     \"values\": [                         \"1461797806429-33-861961230\",                         \"438580d8-02ee-418d-9eec-0085cab2bdf0\"                     ],                     \"variation\": 1                 }             ],             \"rules\": [],             \"fallthrough\": {                 \"variation\": 0             },             \"offVariation\": 1,             \"prerequisites\": [],             \"_site\": {                 \"href\": \"/default/production/features/sort.order\",                 \"type\": \"text/html\"             }        }     } } ```  You can add a date you want a user to be removed from the feature flag\'s user targets. For example, “remove user 1461797806429-33-861961230 from the user target for variation 0 on the Alternate sort order flag in the production environment on Wed Jul 08 2020 at 15:27:41 pm”. This is done using the following:  ```json {   \"comment\": \"update expiring user targets\",   \"instructions\": [     {       \"kind\": \"removeExpireUserTargetDate\",       \"userKey\": \"userKey\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\"     },     {       \"kind\": \"updateExpireUserTargetDate\",       \"userKey\": \"userKey2\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1587582000000     },     {       \"kind\": \"addExpireUserTargetDate\",       \"userKey\": \"userKey3\",       \"variationId\": \"978d53f9-7fe3-4a63-992d-97bcb4535dc8\",       \"value\": 1594247266386     }   ] } ```  Here is another example. In this feature flag configuration:  ```json {   \"name\": \"New recommendations engine\",   \"key\": \"engine.enable\",   \"environments\": {     \"test\": {       \"on\": true     }   } } ```  You can change the feature flag\'s description with the following patch document as a set of executable instructions. For example, “add user X to targets for variation Y and remove user A from targets for variation B for test flag”:  ```json {   \"comment\": \"\",   \"instructions\": [     {       \"kind\": \"removeUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"852cb784-54ff-46b9-8c35-5498d2e4f270\"     },     {       \"kind\": \"addUserTargets\",       \"values\": [\"438580d8-02ee-418d-9eec-0085cab2bdf0\"],       \"variationId\": \"1bb18465-33b6-49aa-a3bd-eeb6650b33ad\"     }   ] } ```  > ### Supported semantic patch API endpoints > > - [Update feature flag](/tag/Feature-flags#operation/patchFeatureFlag) > - [Update expiring user targets on feature flag](/tag/Feature-flags#operation/patchExpiringUserTargets) > - [Update expiring user target for flags](/tag/User-settings#operation/patchExpiringFlagsForUser) > - [Update expiring user targets on segment](/tag/Segments#operation/patchExpiringUserTargetsForSegment)  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The general class of error is indicated by the `code`. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly support to debug a problem with a specific API call.  ### HTTP Status - Error Response Codes  | Code | Definition        | Desc.                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Bad Request       | A request that fails may return this HTTP response code.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Unauthorized      | User doesn\'t have permission to an API call.                                                | Ensure your SDK key is good.                                     | | 403  | Forbidden         | User does not have permission for operation.                                                | Ensure that the user or access token has proper permissions set. | | 409  | Conflict          | The API request could not be completed because it conflicted with a concurrent API request. | Retry your request.                                              | | 429  | Too many requests | See [Rate limiting](/#section/Rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise, a wildcard is returned: `Access-Control-Allow-Origin: *`. For more information on CORS, see the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](#section/Authentication). If you’re using session auth, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted users.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs will return a `429` status code. Calls to our APIs will include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that can be made to the API per ten seconds. All personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits will return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits will return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](/tag/Environments#operation/deleteEnvironment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that can be made to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger)  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  You can use this specification to generate client libraries to interact with our REST API in your language of choice.  This specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to ease use in navigating the APIs in the tooling.  ## Client libraries  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit [GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories).  ## Method Overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `PUT`, `PATCH`, and `DELETE` verbs will be inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `PUT`, `PATCH`, and `DELETE` requests via a `POST` request.  For example, if you wish to call one of our `PATCH` resources via a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](/#section/Beta-resources).  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you\'ll receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20210729 ```  The header value is the version number of the API version you\'d like to request. The number for each version corresponds to the date the version was released in yyyymmdd format. In the example above the version `20210729` corresponds to July 29, 2021.  ### Setting the API version per access token  When creating an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426` (the version of the API that existed before versioning) so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing.  ### API version changelog  | Version | Changes | |---|---| | `20210729` | <ul><li>Changed the [create approval request](/tag/Approvals#operation/postApprovalRequest) return value. It now returns HTTP Status Code `201` instead of `200`.</li><li> Changed the [get users](/tag/Users#operation/getUser) return value. It now returns a user record, not a user. </li><li> Added additional optional fields to environment, segments, flags, members, and segments, including the ability to create Big Segments. </li><li> Added default values for flag variations when new environments are created. </li><li> Added filtering and pagination for getting flags and members, including `limit`, `number`, `filter`, and `sort` query parameters. </li><li> Added endpoints for expiring user targets for flags and segments, scheduled changes, access tokens, Relay Proxy configuration, integrations and subscriptions, and approvals. </li></ul> | | `20191212` | <ul><li>[List feature flags](/tag/Feature-flags#operation/getFeatureFlags) now defaults to sending summaries of feature flag configurations, equivalent to setting the query parameter `summary=true`. Summaries omit flag targeting rules and individual user targets from the payload. </li><li> Added endpoints for flags, flag status, projects, environments, users, audit logs, members, users, custom roles, segments, usage, streams, events, and data export. </li></ul> | | `20160426` | <ul><li>Initial versioning of API. Tokens created before versioning have their version set to this.</li></ul> | 
  *
  * The version of the OpenAPI document: 2.0
  * Contact: support@launchdarkly.com
@@ -24,77 +24,145 @@ import { BASE_PATH, COLLECTION_FORMATS, RequestArgs, BaseAPI, RequiredError } fr
 /**
  * 
  * @export
- * @interface AccessDeniedReasonRep
+ * @interface Access
  */
-export interface AccessDeniedReasonRep {
+export interface Access {
+    /**
+     * 
+     * @type {Array<AccessDenied>}
+     * @memberof Access
+     */
+    'denied': Array<AccessDenied>;
+    /**
+     * 
+     * @type {Array<AccessAllowedRep>}
+     * @memberof Access
+     */
+    'allowed': Array<AccessAllowedRep>;
+}
+/**
+ * 
+ * @export
+ * @interface AccessAllowedReason
+ */
+export interface AccessAllowedReason {
     /**
      * Resource specifier strings
      * @type {Array<string>}
-     * @memberof AccessDeniedReasonRep
+     * @memberof AccessAllowedReason
      */
     'resources'?: Array<string>;
     /**
-     * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
+     * Targeted resources are the resources NOT in this list. The \"resources\" and \"notActions\" fields must be empty to use this field.
      * @type {Array<string>}
-     * @memberof AccessDeniedReasonRep
+     * @memberof AccessAllowedReason
      */
     'notResources'?: Array<string>;
     /**
      * Actions to perform on a resource
      * @type {Array<string>}
-     * @memberof AccessDeniedReasonRep
+     * @memberof AccessAllowedReason
      */
     'actions'?: Array<string>;
     /**
-     * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
+     * Targeted actions are the actions NOT in this list. The \"actions\" and \"notResources\" fields must be empty to use this field.
      * @type {Array<string>}
-     * @memberof AccessDeniedReasonRep
+     * @memberof AccessAllowedReason
      */
     'notActions'?: Array<string>;
     /**
      * 
      * @type {string}
-     * @memberof AccessDeniedReasonRep
+     * @memberof AccessAllowedReason
      */
     'effect': string;
     /**
      * 
      * @type {string}
-     * @memberof AccessDeniedReasonRep
+     * @memberof AccessAllowedReason
      */
     'role_name'?: string;
 }
 /**
  * 
  * @export
- * @interface AccessDeniedRep
+ * @interface AccessAllowedRep
  */
-export interface AccessDeniedRep {
+export interface AccessAllowedRep {
     /**
      * 
      * @type {string}
-     * @memberof AccessDeniedRep
+     * @memberof AccessAllowedRep
      */
     'action': string;
     /**
      * 
-     * @type {AccessDeniedReasonRep}
-     * @memberof AccessDeniedRep
+     * @type {AccessAllowedReason}
+     * @memberof AccessAllowedRep
      */
-    'reason': AccessDeniedReasonRep;
+    'reason': AccessAllowedReason;
 }
 /**
  * 
  * @export
- * @interface AccessRep
+ * @interface AccessDenied
  */
-export interface AccessRep {
+export interface AccessDenied {
     /**
      * 
-     * @type {Array<AccessDeniedRep>}
-     * @memberof AccessRep
+     * @type {string}
+     * @memberof AccessDenied
      */
-    'denied': Array<AccessDeniedRep>;
+    'action': string;
+    /**
+     * 
+     * @type {AccessDeniedReason}
+     * @memberof AccessDenied
+     */
+    'reason': AccessDeniedReason;
+}
+/**
+ * 
+ * @export
+ * @interface AccessDeniedReason
+ */
+export interface AccessDeniedReason {
+    /**
+     * Resource specifier strings
+     * @type {Array<string>}
+     * @memberof AccessDeniedReason
+     */
+    'resources'?: Array<string>;
+    /**
+     * Targeted resources are the resources NOT in this list. The \"resources\" and \"notActions\" fields must be empty to use this field.
+     * @type {Array<string>}
+     * @memberof AccessDeniedReason
+     */
+    'notResources'?: Array<string>;
+    /**
+     * Actions to perform on a resource
+     * @type {Array<string>}
+     * @memberof AccessDeniedReason
+     */
+    'actions'?: Array<string>;
+    /**
+     * Targeted actions are the actions NOT in this list. The \"actions\" and \"notResources\" fields must be empty to use this field.
+     * @type {Array<string>}
+     * @memberof AccessDeniedReason
+     */
+    'notActions'?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof AccessDeniedReason
+     */
+    'effect': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AccessDeniedReason
+     */
+    'role_name'?: string;
 }
 /**
  * 
@@ -816,10 +884,28 @@ export interface ConditionBaseOutputRep {
 export interface ConditionInputRep {
     /**
      * 
+     * @type {string}
+     * @memberof ConditionInputRep
+     */
+    'scheduleKind'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof ConditionInputRep
      */
     'executionDate'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ConditionInputRep
+     */
+    'waitDuration'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionInputRep
+     */
+    'waitDurationUnit'?: string;
     /**
      * 
      * @type {boolean}
@@ -871,10 +957,28 @@ export interface ConditionOutputRep {
     '_execution': ExecutionOutputRep;
     /**
      * 
+     * @type {string}
+     * @memberof ConditionOutputRep
+     */
+    'scheduleKind'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof ConditionOutputRep
      */
     'executionDate'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ConditionOutputRep
+     */
+    'waitDuration'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ConditionOutputRep
+     */
+    'waitDurationUnit'?: string;
     /**
      * 
      * @type {string}
@@ -1113,10 +1217,10 @@ export interface CustomRole {
     '_links': { [key: string]: Link; };
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof CustomRole
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
     /**
      * 
      * @type {string}
@@ -1240,37 +1344,6 @@ export interface CustomRoles {
      * @memberof CustomRoles
      */
     'items'?: Array<CustomRole>;
-}
-/**
- * 
- * @export
- * @interface CustomRolesRep
- */
-export interface CustomRolesRep {
-    /**
-     * 
-     * @type {string}
-     * @memberof CustomRolesRep
-     */
-    'key'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof CustomRolesRep
-     */
-    'name'?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof CustomRolesRep
-     */
-    'projects'?: Array<string>;
-    /**
-     * 
-     * @type {number}
-     * @memberof CustomRolesRep
-     */
-    'appliedOn'?: number;
 }
 /**
  * 
@@ -1555,25 +1628,6 @@ export interface DependentFlagsByEnvironment {
 /**
  * 
  * @export
- * @interface DerivedAttribute
- */
-export interface DerivedAttribute {
-    /**
-     * 
-     * @type {any}
-     * @memberof DerivedAttribute
-     */
-    'value'?: any;
-    /**
-     * 
-     * @type {string}
-     * @memberof DerivedAttribute
-     */
-    'lastDerived'?: string;
-}
-/**
- * 
- * @export
  * @interface Destination
  */
 export interface Destination {
@@ -1621,10 +1675,10 @@ export interface Destination {
     'on'?: boolean;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof Destination
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
 }
 
 /**
@@ -1824,7 +1878,7 @@ export interface EnvironmentPost {
      */
     'defaultTtl'?: number;
     /**
-     * Secure mode ensures that a user of the client-side SDK cannot impersonate another user.
+     * Ensures that a user of the client-side SDK cannot impersonate another user.
      * @type {boolean}
      * @memberof EnvironmentPost
      */
@@ -1836,13 +1890,13 @@ export interface EnvironmentPost {
      */
     'defaultTrackEvents'?: boolean;
     /**
-     * Require confirmation for all flag and segment changes via the UI in this environment.
+     * Requires confirmation for all flag and segment changes via the UI in this environment.
      * @type {boolean}
      * @memberof EnvironmentPost
      */
     'confirmChanges'?: boolean;
     /**
-     * Require comments for all flag and segment changes via the UI in this environment.
+     * Requires comments for all flag and segment changes via the UI in this environment.
      * @type {boolean}
      * @memberof EnvironmentPost
      */
@@ -1853,6 +1907,12 @@ export interface EnvironmentPost {
      * @memberof EnvironmentPost
      */
     'tags'?: Array<string>;
+    /**
+     * 
+     * @type {SourceEnv}
+     * @memberof EnvironmentPost
+     */
+    'source'?: SourceEnv;
 }
 /**
  * 
@@ -1866,97 +1926,6 @@ export interface ExecutionOutputRep {
      * @memberof ExecutionOutputRep
      */
     'status': string;
-}
-/**
- * 
- * @export
- * @interface ExpandedTeamRep
- */
-export interface ExpandedTeamRep {
-    /**
-     * 
-     * @type {Array<CustomRolesRep>}
-     * @memberof ExpandedTeamRep
-     */
-    'customRoles'?: Array<CustomRolesRep>;
-    /**
-     * 
-     * @type {Array<MemberSummaryRep>}
-     * @memberof ExpandedTeamRep
-     */
-    'teamMaintainers'?: Array<MemberSummaryRep>;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ExpandedTeamRep
-     */
-    'customRoleKeys'?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ExpandedTeamRep
-     */
-    'description'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ExpandedTeamRep
-     */
-    'key'?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ExpandedTeamRep
-     */
-    'memberIDs'?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ExpandedTeamRep
-     */
-    'name'?: string;
-    /**
-     * 
-     * @type {Array<PermissionGrantRep>}
-     * @memberof ExpandedTeamRep
-     */
-    'permissionGrants'?: Array<PermissionGrantRep>;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ExpandedTeamRep
-     */
-    'projectKeys'?: Array<string>;
-    /**
-     * 
-     * @type {AccessRep}
-     * @memberof ExpandedTeamRep
-     */
-    '_access'?: AccessRep;
-    /**
-     * 
-     * @type {number}
-     * @memberof ExpandedTeamRep
-     */
-    '_createdAt'?: number;
-    /**
-     * 
-     * @type {{ [key: string]: Link; }}
-     * @memberof ExpandedTeamRep
-     */
-    '_links'?: { [key: string]: Link; };
-    /**
-     * 
-     * @type {number}
-     * @memberof ExpandedTeamRep
-     */
-    '_updatedAt'?: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof ExpandedTeamRep
-     */
-    '_version'?: number;
 }
 /**
  * 
@@ -2426,6 +2395,61 @@ export interface ExpiringUserTargetPatchResponse {
 /**
  * 
  * @export
+ * @interface Export
+ */
+export interface Export {
+    /**
+     * 
+     * @type {string}
+     * @memberof Export
+     */
+    'id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Export
+     */
+    'segmentKey': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof Export
+     */
+    'creationTime': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Export
+     */
+    'status': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof Export
+     */
+    'sizeBytes': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Export
+     */
+    'size': string;
+    /**
+     * 
+     * @type {InitiatorRep}
+     * @memberof Export
+     */
+    'initiator': InitiatorRep;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof Export
+     */
+    '_links': { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
  * @interface Extinction
  */
 export interface Extinction {
@@ -2571,10 +2595,10 @@ export interface FeatureFlag {
     'maintainerId'?: string;
     /**
      * 
-     * @type {MemberSummaryRep}
+     * @type {MemberSummary}
      * @memberof FeatureFlag
      */
-    '_maintainer'?: MemberSummaryRep;
+    '_maintainer'?: MemberSummary;
     /**
      * 
      * @type {Array<string>}
@@ -2665,7 +2689,7 @@ export interface FeatureFlagBody {
      */
     'clientSideAvailability'?: ClientSideAvailabilityPost;
     /**
-     * An array of possible variations for the flag
+     * An array of possible variations for the flag. The variation values must be unique.
      * @type {Array<Variation>}
      * @memberof FeatureFlagBody
      */
@@ -2781,10 +2805,10 @@ export interface FeatureFlagConfig {
     '_site': Link;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof FeatureFlagConfig
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
     /**
      * 
      * @type {string}
@@ -2983,6 +3007,31 @@ export interface FeatureFlags {
      * @memberof FeatureFlags
      */
     'totalCount'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof FeatureFlags
+     */
+    'totalCountWithDifferences'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface FileRep
+ */
+export interface FileRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof FileRep
+     */
+    'filename'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FileRep
+     */
+    'status'?: string;
 }
 /**
  * 
@@ -3304,10 +3353,10 @@ export interface FlagGlobalAttributesRep {
     'maintainerId'?: string;
     /**
      * 
-     * @type {MemberSummaryRep}
+     * @type {MemberSummary}
      * @memberof FlagGlobalAttributesRep
      */
-    '_maintainer'?: MemberSummaryRep;
+    '_maintainer'?: MemberSummary;
     /**
      * 
      * @type {Array<string>}
@@ -3355,6 +3404,178 @@ export enum FlagGlobalAttributesRepKindEnum {
     Multivariate = 'multivariate'
 }
 
+/**
+ * 
+ * @export
+ * @interface FlagLinkCollectionRep
+ */
+export interface FlagLinkCollectionRep {
+    /**
+     * 
+     * @type {Array<FlagLinkRep>}
+     * @memberof FlagLinkCollectionRep
+     */
+    'items': Array<FlagLinkRep>;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof FlagLinkCollectionRep
+     */
+    '_links': { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface FlagLinkMember
+ */
+export interface FlagLinkMember {
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof FlagLinkMember
+     */
+    '_links': { [key: string]: Link; };
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkMember
+     */
+    '_id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkMember
+     */
+    'firstName'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkMember
+     */
+    'lastName'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface FlagLinkPost
+ */
+export interface FlagLinkPost {
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkPost
+     */
+    'key'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkPost
+     */
+    'integrationKey'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof FlagLinkPost
+     */
+    'timestamp'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkPost
+     */
+    'deepLink'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkPost
+     */
+    'title'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkPost
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {{ [key: string]: string; }}
+     * @memberof FlagLinkPost
+     */
+    'metadata'?: { [key: string]: string; };
+}
+/**
+ * 
+ * @export
+ * @interface FlagLinkRep
+ */
+export interface FlagLinkRep {
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof FlagLinkRep
+     */
+    '_links': { [key: string]: Link; };
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkRep
+     */
+    '_key'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkRep
+     */
+    '_integrationKey'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkRep
+     */
+    '_id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkRep
+     */
+    '_deepLink': string;
+    /**
+     * 
+     * @type {TimestampRep}
+     * @memberof FlagLinkRep
+     */
+    '_timestamp': TimestampRep;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkRep
+     */
+    'title'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagLinkRep
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {{ [key: string]: string; }}
+     * @memberof FlagLinkRep
+     */
+    '_metadata'?: { [key: string]: string; };
+    /**
+     * 
+     * @type {number}
+     * @memberof FlagLinkRep
+     */
+    '_createdAt': number;
+    /**
+     * 
+     * @type {FlagLinkMember}
+     * @memberof FlagLinkRep
+     */
+    '_member'?: FlagLinkMember;
+}
 /**
  * 
  * @export
@@ -3527,6 +3748,74 @@ export interface HunkRep {
 /**
  * 
  * @export
+ * @interface Import
+ */
+export interface Import {
+    /**
+     * 
+     * @type {string}
+     * @memberof Import
+     */
+    'id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Import
+     */
+    'segmentKey': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof Import
+     */
+    'creationTime': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof Import
+     */
+    'mode': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Import
+     */
+    'status': string;
+    /**
+     * 
+     * @type {Array<FileRep>}
+     * @memberof Import
+     */
+    'files'?: Array<FileRep>;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof Import
+     */
+    '_links': { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface InitiatorRep
+ */
+export interface InitiatorRep {
+    /**
+     * 
+     * @type {string}
+     * @memberof InitiatorRep
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof InitiatorRep
+     */
+    'email'?: string;
+}
+/**
+ * 
+ * @export
  * @interface Integration
  */
 export interface Integration {
@@ -3580,10 +3869,10 @@ export interface Integration {
     'tags'?: Array<string>;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof Integration
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
     /**
      * 
      * @type {IntegrationSubscriptionStatusRep}
@@ -3602,6 +3891,210 @@ export interface Integration {
      * @memberof Integration
      */
     'apiKey'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationDeliveryConfiguration
+ */
+export interface IntegrationDeliveryConfiguration {
+    /**
+     * 
+     * @type {IntegrationDeliveryConfigurationLinks}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    '_links': IntegrationDeliveryConfigurationLinks;
+    /**
+     * 
+     * @type {string}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    '_id': string;
+    /**
+     * The integration key
+     * @type {string}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'integrationKey': string;
+    /**
+     * The project key
+     * @type {string}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'projectKey': string;
+    /**
+     * The environment key
+     * @type {string}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'environmentKey': string;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'config': { [key: string]: any; };
+    /**
+     * Whether or not the configuration is turned on
+     * @type {boolean}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'on': boolean;
+    /**
+     * List of tags for this configuration
+     * @type {Array<string>}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'tags': Array<string>;
+    /**
+     * Name of the configuration
+     * @type {string}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'name': string;
+    /**
+     * Version of the current configuration
+     * @type {number}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    'version': number;
+    /**
+     * 
+     * @type {Access}
+     * @memberof IntegrationDeliveryConfiguration
+     */
+    '_access'?: Access;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationDeliveryConfigurationCollection
+ */
+export interface IntegrationDeliveryConfigurationCollection {
+    /**
+     * 
+     * @type {IntegrationDeliveryConfigurationCollectionLinks}
+     * @memberof IntegrationDeliveryConfigurationCollection
+     */
+    '_links': IntegrationDeliveryConfigurationCollectionLinks;
+    /**
+     * 
+     * @type {Array<IntegrationDeliveryConfiguration>}
+     * @memberof IntegrationDeliveryConfigurationCollection
+     */
+    'items': Array<IntegrationDeliveryConfiguration>;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationDeliveryConfigurationCollectionLinks
+ */
+export interface IntegrationDeliveryConfigurationCollectionLinks {
+    /**
+     * 
+     * @type {Link}
+     * @memberof IntegrationDeliveryConfigurationCollectionLinks
+     */
+    'self': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof IntegrationDeliveryConfigurationCollectionLinks
+     */
+    'parent'?: Link;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationDeliveryConfigurationLinks
+ */
+export interface IntegrationDeliveryConfigurationLinks {
+    /**
+     * 
+     * @type {Link}
+     * @memberof IntegrationDeliveryConfigurationLinks
+     */
+    'self': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof IntegrationDeliveryConfigurationLinks
+     */
+    'parent': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof IntegrationDeliveryConfigurationLinks
+     */
+    'project': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof IntegrationDeliveryConfigurationLinks
+     */
+    'environment': Link;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationDeliveryConfigurationPost
+ */
+export interface IntegrationDeliveryConfigurationPost {
+    /**
+     * Default value is false
+     * @type {boolean}
+     * @memberof IntegrationDeliveryConfigurationPost
+     */
+    'on'?: boolean;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof IntegrationDeliveryConfigurationPost
+     */
+    'config': { [key: string]: any; };
+    /**
+     * Tags to associate with integration
+     * @type {Array<string>}
+     * @memberof IntegrationDeliveryConfigurationPost
+     */
+    'tags'?: Array<string>;
+    /**
+     * Name to identify integration
+     * @type {string}
+     * @memberof IntegrationDeliveryConfigurationPost
+     */
+    'name'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface IntegrationDeliveryConfigurationResponse
+ */
+export interface IntegrationDeliveryConfigurationResponse {
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationDeliveryConfigurationResponse
+     */
+    'statusCode'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof IntegrationDeliveryConfigurationResponse
+     */
+    'error'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof IntegrationDeliveryConfigurationResponse
+     */
+    'timestamp'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof IntegrationDeliveryConfigurationResponse
+     */
+    'responseBody'?: string;
 }
 /**
  * 
@@ -3965,25 +4458,25 @@ export interface MemberDataRep {
 /**
  * 
  * @export
- * @interface MemberImportItemRep
+ * @interface MemberImportItem
  */
-export interface MemberImportItemRep {
+export interface MemberImportItem {
     /**
      * 
      * @type {string}
-     * @memberof MemberImportItemRep
+     * @memberof MemberImportItem
      */
     'message'?: string;
     /**
      * 
      * @type {string}
-     * @memberof MemberImportItemRep
+     * @memberof MemberImportItem
      */
     'status': string;
     /**
      * 
      * @type {string}
-     * @memberof MemberImportItemRep
+     * @memberof MemberImportItem
      */
     'value': string;
 }
@@ -4015,43 +4508,43 @@ export interface MemberPermissionGrantSummaryRep {
 /**
  * 
  * @export
- * @interface MemberSummaryRep
+ * @interface MemberSummary
  */
-export interface MemberSummaryRep {
+export interface MemberSummary {
     /**
      * 
      * @type {{ [key: string]: Link; }}
-     * @memberof MemberSummaryRep
+     * @memberof MemberSummary
      */
     '_links': { [key: string]: Link; };
     /**
      * 
      * @type {string}
-     * @memberof MemberSummaryRep
+     * @memberof MemberSummary
      */
     '_id': string;
     /**
      * 
      * @type {string}
-     * @memberof MemberSummaryRep
+     * @memberof MemberSummary
      */
     'firstName'?: string;
     /**
      * 
      * @type {string}
-     * @memberof MemberSummaryRep
+     * @memberof MemberSummary
      */
     'lastName'?: string;
     /**
      * 
      * @type {string}
-     * @memberof MemberSummaryRep
+     * @memberof MemberSummary
      */
     'role': string;
     /**
      * 
      * @type {string}
-     * @memberof MemberSummaryRep
+     * @memberof MemberSummary
      */
     'email': string;
 }
@@ -4206,10 +4699,10 @@ export interface MetricListingRep {
     '_site'?: Link;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof MetricListingRep
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
     /**
      * 
      * @type {Array<string>}
@@ -4236,10 +4729,10 @@ export interface MetricListingRep {
     'maintainerId'?: string;
     /**
      * 
-     * @type {MemberSummaryRep}
+     * @type {MemberSummary}
      * @memberof MetricListingRep
      */
-    '_maintainer'?: MemberSummaryRep;
+    '_maintainer'?: MemberSummary;
     /**
      * 
      * @type {string}
@@ -4438,10 +4931,10 @@ export interface MetricRep {
     '_site'?: Link;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof MetricRep
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
     /**
      * 
      * @type {Array<string>}
@@ -4468,10 +4961,10 @@ export interface MetricRep {
     'maintainerId'?: string;
     /**
      * 
-     * @type {MemberSummaryRep}
+     * @type {MemberSummary}
      * @memberof MetricRep
      */
-    '_maintainer'?: MemberSummaryRep;
+    '_maintainer'?: MemberSummary;
     /**
      * 
      * @type {string}
@@ -4848,10 +5341,10 @@ export interface PatchWithComment {
 export interface PermissionGrantInput {
     /**
      * 
-     * @type {Array<string>}
+     * @type {string}
      * @memberof PermissionGrantInput
      */
-    'memberIDs'?: Array<string>;
+    'actionSet'?: string;
     /**
      * 
      * @type {Array<string>}
@@ -4860,41 +5353,10 @@ export interface PermissionGrantInput {
     'actions'?: Array<string>;
     /**
      * 
-     * @type {string}
+     * @type {Array<string>}
      * @memberof PermissionGrantInput
      */
-    'actionSet'?: string;
-}
-/**
- * 
- * @export
- * @interface PermissionGrantRep
- */
-export interface PermissionGrantRep {
-    /**
-     * 
-     * @type {string}
-     * @memberof PermissionGrantRep
-     */
-    'actionSet'?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof PermissionGrantRep
-     */
-    'actions'?: Array<string>;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof PermissionGrantRep
-     */
     'memberIDs'?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof PermissionGrantRep
-     */
-    'resource'?: string;
 }
 /**
  * 
@@ -5122,6 +5584,31 @@ export interface ProjectPost {
 /**
  * 
  * @export
+ * @interface ProjectSummary
+ */
+export interface ProjectSummary {
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof ProjectSummary
+     */
+    '_links'?: { [key: string]: Link; };
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectSummary
+     */
+    'key'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProjectSummary
+     */
+    'name'?: string;
+}
+/**
+ * 
+ * @export
  * @interface Projects
  */
 export interface Projects {
@@ -5309,16 +5796,16 @@ export interface RelayAutoConfigRep {
     '_id': string;
     /**
      * 
-     * @type {MemberSummaryRep}
+     * @type {MemberSummary}
      * @memberof RelayAutoConfigRep
      */
-    '_creator'?: MemberSummaryRep;
+    '_creator'?: MemberSummary;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof RelayAutoConfigRep
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
     /**
      * 
      * @type {string}
@@ -5497,10 +5984,10 @@ export interface RepositoryRep {
     '_links': { [key: string]: any; };
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof RepositoryRep
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
 }
 
 /**
@@ -5513,6 +6000,131 @@ export enum RepositoryRepTypeEnum {
     Custom = 'custom'
 }
 
+/**
+ * 
+ * @export
+ * @interface ResolvedContext
+ */
+export interface ResolvedContext {
+    /**
+     * 
+     * @type {Array<ResolvedUIBlockElement>}
+     * @memberof ResolvedContext
+     */
+    'elements'?: Array<ResolvedUIBlockElement>;
+}
+/**
+ * 
+ * @export
+ * @interface ResolvedImage
+ */
+export interface ResolvedImage {
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ResolvedImage
+     */
+    'isAvatar'?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ResolvedImage
+     */
+    'isIcon'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResolvedImage
+     */
+    'sourceUrl'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ResolvedTitle
+ */
+export interface ResolvedTitle {
+    /**
+     * 
+     * @type {Array<ResolvedUIBlockElement>}
+     * @memberof ResolvedTitle
+     */
+    'elements'?: Array<ResolvedUIBlockElement>;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ResolvedTitle
+     */
+    'linkToReference'?: boolean;
+}
+/**
+ * 
+ * @export
+ * @interface ResolvedUIBlockElement
+ */
+export interface ResolvedUIBlockElement {
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ResolvedUIBlockElement
+     */
+    'isBold'?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResolvedUIBlockElement
+     */
+    'text'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResolvedUIBlockElement
+     */
+    'url'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ResolvedUIBlockElement
+     */
+    'isTimestamp'?: boolean;
+}
+/**
+ * 
+ * @export
+ * @interface ResolvedUIBlocks
+ */
+export interface ResolvedUIBlocks {
+    /**
+     * 
+     * @type {ResolvedImage}
+     * @memberof ResolvedUIBlocks
+     */
+    'image'?: ResolvedImage;
+    /**
+     * 
+     * @type {ResolvedContext}
+     * @memberof ResolvedUIBlocks
+     */
+    'context'?: ResolvedContext;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResolvedUIBlocks
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResolvedUIBlocks
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {ResolvedTitle}
+     * @memberof ResolvedUIBlocks
+     */
+    'title'?: ResolvedTitle;
+}
 /**
  * 
  * @export
@@ -5742,10 +6354,28 @@ export interface Rule {
 export interface ScheduleConditionInputRep {
     /**
      * 
+     * @type {string}
+     * @memberof ScheduleConditionInputRep
+     */
+    'scheduleKind'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof ScheduleConditionInputRep
      */
     'executionDate'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ScheduleConditionInputRep
+     */
+    'waitDuration'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ScheduleConditionInputRep
+     */
+    'waitDurationUnit'?: string;
     /**
      * 
      * @type {boolean}
@@ -5761,10 +6391,28 @@ export interface ScheduleConditionInputRep {
 export interface ScheduleConditionOutputRep {
     /**
      * 
+     * @type {string}
+     * @memberof ScheduleConditionOutputRep
+     */
+    'scheduleKind'?: string;
+    /**
+     * 
      * @type {number}
      * @memberof ScheduleConditionOutputRep
      */
     'executionDate'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ScheduleConditionOutputRep
+     */
+    'waitDuration'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ScheduleConditionOutputRep
+     */
+    'waitDurationUnit'?: string;
 }
 /**
  * 
@@ -5969,6 +6617,25 @@ export interface SeriesListRep {
 /**
  * 
  * @export
+ * @interface SourceEnv
+ */
+export interface SourceEnv {
+    /**
+     * The key of the source environment to clone from
+     * @type {string}
+     * @memberof SourceEnv
+     */
+    'key'?: string;
+    /**
+     * (Optional) The version number of the source environment to clone from. Used for optimistic locking
+     * @type {number}
+     * @memberof SourceEnv
+     */
+    'version'?: number;
+}
+/**
+ * 
+ * @export
  * @interface SourceFlag
  */
 export interface SourceFlag {
@@ -6060,7 +6727,7 @@ export interface Statement {
      */
     'resources'?: Array<string>;
     /**
-     * Targeted resources are the resources NOT in this list. The \"resources\" field must be empty to use this field.
+     * Targeted resources are the resources NOT in this list. The \"resources\" and \"notActions\" fields must be empty to use this field.
      * @type {Array<string>}
      * @memberof Statement
      */
@@ -6072,7 +6739,7 @@ export interface Statement {
      */
     'actions'?: Array<string>;
     /**
-     * Targeted actions are the actions NOT in this list. The \"actions\" field must be empty to use this field.
+     * Targeted actions are the actions NOT in this list. The \"actions\" and \"notResources\" fields must be empty to use this field.
      * @type {Array<string>}
      * @memberof Statement
      */
@@ -6378,6 +7045,31 @@ export interface SubscriptionPost {
 /**
  * 
  * @export
+ * @interface TagCollection
+ */
+export interface TagCollection {
+    /**
+     * List of tags
+     * @type {Array<string>}
+     * @memberof TagCollection
+     */
+    'items': Array<string>;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof TagCollection
+     */
+    '_links': { [key: string]: Link; };
+    /**
+     * The total number of tags
+     * @type {number}
+     * @memberof TagCollection
+     */
+    'totalCount'?: number;
+}
+/**
+ * 
+ * @export
  * @interface Target
  */
 export interface Target {
@@ -6422,27 +7114,113 @@ export interface TargetResourceRep {
 /**
  * 
  * @export
- * @interface TeamCollectionRep
+ * @interface Team
  */
-export interface TeamCollectionRep {
+export interface Team {
     /**
      * 
-     * @type {Array<TeamRep>}
-     * @memberof TeamCollectionRep
+     * @type {string}
+     * @memberof Team
      */
-    'items'?: Array<TeamRep>;
+    'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Team
+     */
+    'key'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Team
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {Access}
+     * @memberof Team
+     */
+    '_access'?: Access;
+    /**
+     * 
+     * @type {number}
+     * @memberof Team
+     */
+    '_creationDate'?: number;
     /**
      * 
      * @type {{ [key: string]: Link; }}
-     * @memberof TeamCollectionRep
+     * @memberof Team
      */
     '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {number}
-     * @memberof TeamCollectionRep
+     * @memberof Team
+     */
+    '_lastModified'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Team
+     */
+    '_version'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface TeamCustomRole
+ */
+export interface TeamCustomRole {
+    /**
+     * 
+     * @type {string}
+     * @memberof TeamCustomRole
+     */
+    'key'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TeamCustomRole
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {TeamProjects}
+     * @memberof TeamCustomRole
+     */
+    'projects'?: TeamProjects;
+    /**
+     * 
+     * @type {number}
+     * @memberof TeamCustomRole
+     */
+    'appliedOn'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface TeamCustomRoles
+ */
+export interface TeamCustomRoles {
+    /**
+     * 
+     * @type {number}
+     * @memberof TeamCustomRoles
      */
     'totalCount'?: number;
+    /**
+     * 
+     * @type {Array<TeamCustomRole>}
+     * @memberof TeamCustomRoles
+     */
+    'items'?: Array<TeamCustomRole>;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof TeamCustomRoles
+     */
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -6452,10 +7230,35 @@ export interface TeamCollectionRep {
 export interface TeamImportsRep {
     /**
      * 
-     * @type {Array<MemberImportItemRep>}
+     * @type {Array<MemberImportItem>}
      * @memberof TeamImportsRep
      */
-    'items'?: Array<MemberImportItemRep>;
+    'items'?: Array<MemberImportItem>;
+}
+/**
+ * 
+ * @export
+ * @interface TeamMaintainers
+ */
+export interface TeamMaintainers {
+    /**
+     * 
+     * @type {number}
+     * @memberof TeamMaintainers
+     */
+    'totalCount'?: number;
+    /**
+     * 
+     * @type {Array<MemberSummary>}
+     * @memberof TeamMaintainers
+     */
+    'items'?: Array<MemberSummary>;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof TeamMaintainers
+     */
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -6522,81 +7325,77 @@ export interface TeamPostInput {
 /**
  * 
  * @export
- * @interface TeamRep
+ * @interface TeamProjects
  */
-export interface TeamRep {
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof TeamRep
-     */
-    'customRoleKeys'?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof TeamRep
-     */
-    'description'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof TeamRep
-     */
-    'key'?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof TeamRep
-     */
-    'memberIDs'?: Array<string>;
-    /**
-     * 
-     * @type {string}
-     * @memberof TeamRep
-     */
-    'name'?: string;
-    /**
-     * 
-     * @type {Array<PermissionGrantRep>}
-     * @memberof TeamRep
-     */
-    'permissionGrants'?: Array<PermissionGrantRep>;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof TeamRep
-     */
-    'projectKeys'?: Array<string>;
-    /**
-     * 
-     * @type {AccessRep}
-     * @memberof TeamRep
-     */
-    '_access'?: AccessRep;
+export interface TeamProjects {
     /**
      * 
      * @type {number}
-     * @memberof TeamRep
+     * @memberof TeamProjects
      */
-    '_createdAt'?: number;
+    'totalCount'?: number;
+    /**
+     * 
+     * @type {Array<ProjectSummary>}
+     * @memberof TeamProjects
+     */
+    'items'?: Array<ProjectSummary>;
+}
+/**
+ * 
+ * @export
+ * @interface Teams
+ */
+export interface Teams {
+    /**
+     * 
+     * @type {Array<Team>}
+     * @memberof Teams
+     */
+    'items'?: Array<Team>;
     /**
      * 
      * @type {{ [key: string]: Link; }}
-     * @memberof TeamRep
+     * @memberof Teams
      */
     '_links'?: { [key: string]: Link; };
     /**
      * 
      * @type {number}
-     * @memberof TeamRep
+     * @memberof Teams
      */
-    '_updatedAt'?: number;
+    'totalCount'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface TimestampRep
+ */
+export interface TimestampRep {
     /**
      * 
      * @type {number}
-     * @memberof TeamRep
+     * @memberof TimestampRep
      */
-    '_version'?: number;
+    'milliseconds'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof TimestampRep
+     */
+    'seconds'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof TimestampRep
+     */
+    'rfc3339'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TimestampRep
+     */
+    'simple'?: string;
 }
 /**
  * 
@@ -6679,10 +7478,10 @@ export interface Token {
     'memberId': string;
     /**
      * 
-     * @type {MemberSummaryRep}
+     * @type {MemberSummary}
      * @memberof Token
      */
-    '_member'?: MemberSummaryRep;
+    '_member'?: MemberSummary;
     /**
      * 
      * @type {string}
@@ -6888,10 +7687,10 @@ export interface TriggerWorkflowRep {
     '_maintainerId'?: string;
     /**
      * 
-     * @type {MemberSummaryRep}
+     * @type {MemberSummary}
      * @memberof TriggerWorkflowRep
      */
-    '_maintainer'?: MemberSummaryRep;
+    '_maintainer'?: MemberSummary;
     /**
      * 
      * @type {boolean}
@@ -7077,12 +7876,6 @@ export interface User {
     'custom'?: { [key: string]: any; };
     /**
      * 
-     * @type {{ [key: string]: DerivedAttribute; }}
-     * @memberof User
-     */
-    'derived'?: { [key: string]: DerivedAttribute; };
-    /**
-     * 
      * @type {Array<string>}
      * @memberof User
      */
@@ -7201,10 +7994,10 @@ export interface UserRecord {
     '_links'?: { [key: string]: Link; };
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof UserRecord
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
 }
 /**
  * 
@@ -7317,10 +8110,10 @@ export interface UserSegment {
     'deleted': boolean;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof UserSegment
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
     /**
      * 
      * @type {Array<FlagListingRep>}
@@ -7644,10 +8437,10 @@ export interface Webhook {
     'tags': Array<string>;
     /**
      * 
-     * @type {AccessRep}
+     * @type {Access}
      * @memberof Webhook
      */
-    '_access'?: AccessRep;
+    '_access'?: Access;
 }
 /**
  * 
@@ -8733,26 +9526,26 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
         /**
          * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get evaluations usage
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag\&#39;s key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
          * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
          * @param {string} [tz] The timezone to use for breaks between days when returning daily data.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getEvaluationsUsage: async (projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getEvaluationsUsage', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getEvaluationsUsage', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('getEvaluationsUsage', 'flagKey', flagKey)
-            const localVarPath = `/api/v2/usage/evaluations/{projKey}/{envKey}/{flagKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+        getEvaluationsUsage: async (projectKey: string, environmentKey: string, featureFlagKey: string, from?: string, to?: string, tz?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getEvaluationsUsage', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getEvaluationsUsage', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getEvaluationsUsage', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/usage/evaluations/{projectKey}/{environmentKey}/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -9165,17 +9958,17 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
         /**
          * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get evaluations usage
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag\&#39;s key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
          * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
          * @param {string} [tz] The timezone to use for breaks between days when returning daily data.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getEvaluationsUsage(projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getEvaluationsUsage(projKey, envKey, flagKey, from, to, tz, options);
+        async getEvaluationsUsage(projectKey: string, environmentKey: string, featureFlagKey: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getEvaluationsUsage(projectKey, environmentKey, featureFlagKey, from, to, tz, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -9288,17 +10081,17 @@ export const AccountUsageBetaApiFactory = function (configuration?: Configuratio
         /**
          * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get evaluations usage
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag\&#39;s key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
          * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
          * @param {string} [tz] The timezone to use for breaks between days when returning daily data.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getEvaluationsUsage(projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options?: any): AxiosPromise<SeriesListRep> {
-            return localVarFp.getEvaluationsUsage(projKey, envKey, flagKey, from, to, tz, options).then((request) => request(axios, basePath));
+        getEvaluationsUsage(projectKey: string, environmentKey: string, featureFlagKey: string, from?: string, to?: string, tz?: string, options?: any): AxiosPromise<SeriesListRep> {
+            return localVarFp.getEvaluationsUsage(projectKey, environmentKey, featureFlagKey, from, to, tz, options).then((request) => request(axios, basePath));
         },
         /**
          * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
@@ -9403,9 +10196,9 @@ export class AccountUsageBetaApi extends BaseAPI {
     /**
      * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
      * @summary Get evaluations usage
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} flagKey The feature flag\&#39;s key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
      * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
      * @param {string} [tz] The timezone to use for breaks between days when returning daily data.
@@ -9413,8 +10206,8 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof AccountUsageBetaApi
      */
-    public getEvaluationsUsage(projKey: string, envKey: string, flagKey: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig) {
-        return AccountUsageBetaApiFp(this.configuration).getEvaluationsUsage(projKey, envKey, flagKey, from, to, tz, options).then((request) => request(this.axios, this.basePath));
+    public getEvaluationsUsage(projectKey: string, environmentKey: string, featureFlagKey: string, from?: string, to?: string, tz?: string, options?: AxiosRequestConfig) {
+        return AccountUsageBetaApiFp(this.configuration).getEvaluationsUsage(projectKey, environmentKey, featureFlagKey, from, to, tz, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -9533,7 +10326,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * Delete an approval request for a feature flag
          * @summary Delete approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {*} [options] Override http request option.
@@ -9582,7 +10375,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * Get a single approval request for a feature flag
          * @summary Get approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {*} [options] Override http request option.
@@ -9631,7 +10424,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * Get all approval requests for a feature flag
          * @summary List all approval requests
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -9676,7 +10469,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * Create an approval request for a feature flag
          * @summary Create approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CreateFlagConfigApprovalRequestRequest} createFlagConfigApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -9727,7 +10520,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * Apply approval request by either approving or declining changes.
          * @summary Apply approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {PostApprovalRequestApplyRequest} postApprovalRequestApplyRequest 
@@ -9782,7 +10575,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * Review approval request by either approving or declining changes.
          * @summary Review approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {PostApprovalRequestReviewRequest} postApprovalRequestReviewRequest 
@@ -9837,7 +10630,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
          * Create an approval request to copy a feature flag\'s configuration across environments.
          * @summary Create approval request to copy flag configurations across environments
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CreateCopyFlagConfigApprovalRequestRequest} createCopyFlagConfigApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -9898,7 +10691,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * Delete an approval request for a feature flag
          * @summary Delete approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {*} [options] Override http request option.
@@ -9912,7 +10705,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * Get a single approval request for a feature flag
          * @summary Get approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {*} [options] Override http request option.
@@ -9926,7 +10719,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * Get all approval requests for a feature flag
          * @summary List all approval requests
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -9939,7 +10732,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * Create an approval request for a feature flag
          * @summary Create approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CreateFlagConfigApprovalRequestRequest} createFlagConfigApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -9953,7 +10746,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * Apply approval request by either approving or declining changes.
          * @summary Apply approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {PostApprovalRequestApplyRequest} postApprovalRequestApplyRequest 
@@ -9968,7 +10761,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * Review approval request by either approving or declining changes.
          * @summary Review approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {PostApprovalRequestReviewRequest} postApprovalRequestReviewRequest 
@@ -9983,7 +10776,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
          * Create an approval request to copy a feature flag\'s configuration across environments.
          * @summary Create approval request to copy flag configurations across environments
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CreateCopyFlagConfigApprovalRequestRequest} createCopyFlagConfigApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -10007,7 +10800,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
          * Delete an approval request for a feature flag
          * @summary Delete approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {*} [options] Override http request option.
@@ -10020,7 +10813,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
          * Get a single approval request for a feature flag
          * @summary Get approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {*} [options] Override http request option.
@@ -10033,7 +10826,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
          * Get all approval requests for a feature flag
          * @summary List all approval requests
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -10045,7 +10838,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
          * Create an approval request for a feature flag
          * @summary Create approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CreateFlagConfigApprovalRequestRequest} createFlagConfigApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -10058,7 +10851,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
          * Apply approval request by either approving or declining changes.
          * @summary Apply approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {PostApprovalRequestApplyRequest} postApprovalRequestApplyRequest 
@@ -10072,7 +10865,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
          * Review approval request by either approving or declining changes.
          * @summary Review approval request
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The feature flag approval request ID
          * @param {PostApprovalRequestReviewRequest} postApprovalRequestReviewRequest 
@@ -10086,7 +10879,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
          * Create an approval request to copy a feature flag\'s configuration across environments.
          * @summary Create approval request to copy flag configurations across environments
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CreateCopyFlagConfigApprovalRequestRequest} createCopyFlagConfigApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -10109,7 +10902,7 @@ export class ApprovalsApi extends BaseAPI {
      * Delete an approval request for a feature flag
      * @summary Delete approval request
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} id The feature flag approval request ID
      * @param {*} [options] Override http request option.
@@ -10124,7 +10917,7 @@ export class ApprovalsApi extends BaseAPI {
      * Get a single approval request for a feature flag
      * @summary Get approval request
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} id The feature flag approval request ID
      * @param {*} [options] Override http request option.
@@ -10139,7 +10932,7 @@ export class ApprovalsApi extends BaseAPI {
      * Get all approval requests for a feature flag
      * @summary List all approval requests
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -10153,7 +10946,7 @@ export class ApprovalsApi extends BaseAPI {
      * Create an approval request for a feature flag
      * @summary Create approval request
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {CreateFlagConfigApprovalRequestRequest} createFlagConfigApprovalRequestRequest 
      * @param {*} [options] Override http request option.
@@ -10168,7 +10961,7 @@ export class ApprovalsApi extends BaseAPI {
      * Apply approval request by either approving or declining changes.
      * @summary Apply approval request
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} id The feature flag approval request ID
      * @param {PostApprovalRequestApplyRequest} postApprovalRequestApplyRequest 
@@ -10184,7 +10977,7 @@ export class ApprovalsApi extends BaseAPI {
      * Review approval request by either approving or declining changes.
      * @summary Review approval request
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} id The feature flag approval request ID
      * @param {PostApprovalRequestReviewRequest} postApprovalRequestReviewRequest 
@@ -10200,7 +10993,7 @@ export class ApprovalsApi extends BaseAPI {
      * Create an approval request to copy a feature flag\'s configuration across environments.
      * @summary Create approval request to copy flag configurations across environments
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {CreateCopyFlagConfigApprovalRequestRequest} createCopyFlagConfigApprovalRequestRequest 
      * @param {*} [options] Override http request option.
@@ -10787,16 +11580,16 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
         /**
          * Get the number of code references across repositories for all flags in your project that have code references in the default branch (for example: master). You can optionally include the `flagKey` query parameter to get the number of code references across repositories for a single flag. This endpoint returns the number of times your flag keys are referenced in your repositories. You can filter to a single flag with by passing in a flag key.
          * @summary Get number of code references for flags
-         * @param {string} projKey The project key
+         * @param {string} projectKey The project key
          * @param {string} [flagKey] Filter results to a specific flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getStatistics: async (projKey: string, flagKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getStatistics', 'projKey', projKey)
-            const localVarPath = `/api/v2/code-refs/statistics/{projKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)));
+        getStatistics: async (projectKey: string, flagKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getStatistics', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/code-refs/statistics/{projectKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -11114,13 +11907,13 @@ export const CodeReferencesApiFp = function(configuration?: Configuration) {
         /**
          * Get the number of code references across repositories for all flags in your project that have code references in the default branch (for example: master). You can optionally include the `flagKey` query parameter to get the number of code references across repositories for a single flag. This endpoint returns the number of times your flag keys are referenced in your repositories. You can filter to a single flag with by passing in a flag key.
          * @summary Get number of code references for flags
-         * @param {string} projKey The project key
+         * @param {string} projectKey The project key
          * @param {string} [flagKey] Filter results to a specific flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getStatistics(projKey: string, flagKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<StatisticCollectionRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getStatistics(projKey, flagKey, options);
+        async getStatistics(projectKey: string, flagKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<StatisticCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getStatistics(projectKey, flagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -11276,13 +12069,13 @@ export const CodeReferencesApiFactory = function (configuration?: Configuration,
         /**
          * Get the number of code references across repositories for all flags in your project that have code references in the default branch (for example: master). You can optionally include the `flagKey` query parameter to get the number of code references across repositories for a single flag. This endpoint returns the number of times your flag keys are referenced in your repositories. You can filter to a single flag with by passing in a flag key.
          * @summary Get number of code references for flags
-         * @param {string} projKey The project key
+         * @param {string} projectKey The project key
          * @param {string} [flagKey] Filter results to a specific flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getStatistics(projKey: string, flagKey?: string, options?: any): AxiosPromise<StatisticCollectionRep> {
-            return localVarFp.getStatistics(projKey, flagKey, options).then((request) => request(axios, basePath));
+        getStatistics(projectKey: string, flagKey?: string, options?: any): AxiosPromise<StatisticCollectionRep> {
+            return localVarFp.getStatistics(projectKey, flagKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a repository\'s settings. The request must be a valid JSON Patch document describing the changes to be made to the repository.
@@ -11449,14 +12242,14 @@ export class CodeReferencesApi extends BaseAPI {
     /**
      * Get the number of code references across repositories for all flags in your project that have code references in the default branch (for example: master). You can optionally include the `flagKey` query parameter to get the number of code references across repositories for a single flag. This endpoint returns the number of times your flag keys are referenced in your repositories. You can filter to a single flag with by passing in a flag key.
      * @summary Get number of code references for flags
-     * @param {string} projKey The project key
+     * @param {string} projectKey The project key
      * @param {string} [flagKey] Filter results to a specific flag key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CodeReferencesApi
      */
-    public getStatistics(projKey: string, flagKey?: string, options?: AxiosRequestConfig) {
-        return CodeReferencesApiFp(this.configuration).getStatistics(projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    public getStatistics(projectKey: string, flagKey?: string, options?: AxiosRequestConfig) {
+        return CodeReferencesApiFp(this.configuration).getStatistics(projectKey, flagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -11523,15 +12316,15 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
         /**
          * Delete a custom role by key
          * @summary Delete custom role
-         * @param {string} key The key of the custom role to delete
+         * @param {string} customRoleKey The custom role key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteCustomRole: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('deleteCustomRole', 'key', key)
-            const localVarPath = `/api/v2/roles/{key}`
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        deleteCustomRole: async (customRoleKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'customRoleKey' is not null or undefined
+            assertParamExists('deleteCustomRole', 'customRoleKey', customRoleKey)
+            const localVarPath = `/api/v2/roles/{customRoleKey}`
+                .replace(`{${"customRoleKey"}}`, encodeURIComponent(String(customRoleKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -11560,15 +12353,15 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
         /**
          * Get a single custom role by key or ID
          * @summary Get custom role
-         * @param {string} key The custom role\&#39;s key or ID
+         * @param {string} customRoleKey The custom role key or ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getCustomRole: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getCustomRole', 'key', key)
-            const localVarPath = `/api/v2/roles/{key}`
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getCustomRole: async (customRoleKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'customRoleKey' is not null or undefined
+            assertParamExists('getCustomRole', 'customRoleKey', customRoleKey)
+            const localVarPath = `/api/v2/roles/{customRoleKey}`
+                .replace(`{${"customRoleKey"}}`, encodeURIComponent(String(customRoleKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -11628,20 +12421,20 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             };
         },
         /**
-         * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role.
+         * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role. To add an element to the `policy` array, set the `path` to `/policy` and then append `/<array index>`. Using `/0` adds to the beginning of the array.
          * @summary Update custom role
-         * @param {string} key The key of the custom role to update
+         * @param {string} customRoleKey The custom role key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchCustomRole: async (key: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('patchCustomRole', 'key', key)
+        patchCustomRole: async (customRoleKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'customRoleKey' is not null or undefined
+            assertParamExists('patchCustomRole', 'customRoleKey', customRoleKey)
             // verify required parameter 'patchWithComment' is not null or undefined
             assertParamExists('patchCustomRole', 'patchWithComment', patchWithComment)
-            const localVarPath = `/api/v2/roles/{key}`
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            const localVarPath = `/api/v2/roles/{customRoleKey}`
+                .replace(`{${"customRoleKey"}}`, encodeURIComponent(String(customRoleKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -11722,23 +12515,23 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
         /**
          * Delete a custom role by key
          * @summary Delete custom role
-         * @param {string} key The key of the custom role to delete
+         * @param {string} customRoleKey The custom role key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteCustomRole(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteCustomRole(key, options);
+        async deleteCustomRole(customRoleKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteCustomRole(customRoleKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a single custom role by key or ID
          * @summary Get custom role
-         * @param {string} key The custom role\&#39;s key or ID
+         * @param {string} customRoleKey The custom role key or ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getCustomRole(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getCustomRole(key, options);
+        async getCustomRole(customRoleKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getCustomRole(customRoleKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -11752,15 +12545,15 @@ export const CustomRolesApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role.
+         * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role. To add an element to the `policy` array, set the `path` to `/policy` and then append `/<array index>`. Using `/0` adds to the beginning of the array.
          * @summary Update custom role
-         * @param {string} key The key of the custom role to update
+         * @param {string} customRoleKey The custom role key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchCustomRole(key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchCustomRole(key, patchWithComment, options);
+        async patchCustomRole(customRoleKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRole>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchCustomRole(customRoleKey, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -11787,22 +12580,22 @@ export const CustomRolesApiFactory = function (configuration?: Configuration, ba
         /**
          * Delete a custom role by key
          * @summary Delete custom role
-         * @param {string} key The key of the custom role to delete
+         * @param {string} customRoleKey The custom role key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteCustomRole(key: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteCustomRole(key, options).then((request) => request(axios, basePath));
+        deleteCustomRole(customRoleKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteCustomRole(customRoleKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a single custom role by key or ID
          * @summary Get custom role
-         * @param {string} key The custom role\&#39;s key or ID
+         * @param {string} customRoleKey The custom role key or ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getCustomRole(key: string, options?: any): AxiosPromise<CustomRole> {
-            return localVarFp.getCustomRole(key, options).then((request) => request(axios, basePath));
+        getCustomRole(customRoleKey: string, options?: any): AxiosPromise<CustomRole> {
+            return localVarFp.getCustomRole(customRoleKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a complete list of custom roles. Custom roles let you create flexible policies providing fine-grained access control to everything in LaunchDarkly, from feature flags to goals, environments, and teams. With custom roles, it\'s possible to enforce access policies that meet your exact workflow needs. Custom roles are available to customers on our enterprise plans. If you\'re interested in learning more about our enterprise plans, contact sales@launchdarkly.com.
@@ -11814,15 +12607,15 @@ export const CustomRolesApiFactory = function (configuration?: Configuration, ba
             return localVarFp.getCustomRoles(options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role.
+         * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role. To add an element to the `policy` array, set the `path` to `/policy` and then append `/<array index>`. Using `/0` adds to the beginning of the array.
          * @summary Update custom role
-         * @param {string} key The key of the custom role to update
+         * @param {string} customRoleKey The custom role key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchCustomRole(key: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<CustomRole> {
-            return localVarFp.patchCustomRole(key, patchWithComment, options).then((request) => request(axios, basePath));
+        patchCustomRole(customRoleKey: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<CustomRole> {
+            return localVarFp.patchCustomRole(customRoleKey, patchWithComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new custom role
@@ -11847,25 +12640,25 @@ export class CustomRolesApi extends BaseAPI {
     /**
      * Delete a custom role by key
      * @summary Delete custom role
-     * @param {string} key The key of the custom role to delete
+     * @param {string} customRoleKey The custom role key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public deleteCustomRole(key: string, options?: AxiosRequestConfig) {
-        return CustomRolesApiFp(this.configuration).deleteCustomRole(key, options).then((request) => request(this.axios, this.basePath));
+    public deleteCustomRole(customRoleKey: string, options?: AxiosRequestConfig) {
+        return CustomRolesApiFp(this.configuration).deleteCustomRole(customRoleKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a single custom role by key or ID
      * @summary Get custom role
-     * @param {string} key The custom role\&#39;s key or ID
+     * @param {string} customRoleKey The custom role key or ID
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public getCustomRole(key: string, options?: AxiosRequestConfig) {
-        return CustomRolesApiFp(this.configuration).getCustomRole(key, options).then((request) => request(this.axios, this.basePath));
+    public getCustomRole(customRoleKey: string, options?: AxiosRequestConfig) {
+        return CustomRolesApiFp(this.configuration).getCustomRole(customRoleKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -11880,16 +12673,16 @@ export class CustomRolesApi extends BaseAPI {
     }
 
     /**
-     * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role.
+     * Update a single custom role. The request must be a valid JSON Patch document describing the changes to be made to the custom role. To add an element to the `policy` array, set the `path` to `/policy` and then append `/<array index>`. Using `/0` adds to the beginning of the array.
      * @summary Update custom role
-     * @param {string} key The key of the custom role to update
+     * @param {string} customRoleKey The custom role key
      * @param {PatchWithComment} patchWithComment 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof CustomRolesApi
      */
-    public patchCustomRole(key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
-        return CustomRolesApiFp(this.configuration).patchCustomRole(key, patchWithComment, options).then((request) => request(this.axios, this.basePath));
+    public patchCustomRole(customRoleKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
+        return CustomRolesApiFp(this.configuration).patchCustomRole(customRoleKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -11915,22 +12708,22 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
         /**
          * Delete Data Export destination by ID
          * @summary Delete Data Export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteDestination: async (projKey: string, envKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('deleteDestination', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('deleteDestination', 'envKey', envKey)
+        deleteDestination: async (projectKey: string, environmentKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteDestination', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('deleteDestination', 'environmentKey', environmentKey)
             // verify required parameter 'id' is not null or undefined
             assertParamExists('deleteDestination', 'id', id)
-            const localVarPath = `/api/v2/destinations/{projKey}/{envKey}/{id}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/destinations/{projectKey}/{environmentKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -11960,22 +12753,22 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
         /**
          * Get a single Data Export destination by ID
          * @summary Get destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDestination: async (projKey: string, envKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getDestination', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getDestination', 'envKey', envKey)
+        getDestination: async (projectKey: string, environmentKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getDestination', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getDestination', 'environmentKey', environmentKey)
             // verify required parameter 'id' is not null or undefined
             assertParamExists('getDestination', 'id', id)
-            const localVarPath = `/api/v2/destinations/{projKey}/{envKey}/{id}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/destinations/{projectKey}/{environmentKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -12038,25 +12831,25 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
         /**
          * Update a Data Export destination. This requires a JSON Patch representation of the modified destination.
          * @summary Update Data Export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchDestination: async (projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('patchDestination', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('patchDestination', 'envKey', envKey)
+        patchDestination: async (projectKey: string, environmentKey: string, id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchDestination', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchDestination', 'environmentKey', environmentKey)
             // verify required parameter 'id' is not null or undefined
             assertParamExists('patchDestination', 'id', id)
             // verify required parameter 'patchOperation' is not null or undefined
             assertParamExists('patchDestination', 'patchOperation', patchOperation)
-            const localVarPath = `/api/v2/destinations/{projKey}/{envKey}/{id}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/destinations/{projectKey}/{environmentKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -12089,22 +12882,22 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
         /**
          * Create a new destination. The `config` body parameter represents the configuration parameters required for a destination type.
          * @summary Create data export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {DestinationPost} destinationPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postDestination: async (projKey: string, envKey: string, destinationPost: DestinationPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('postDestination', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('postDestination', 'envKey', envKey)
+        postDestination: async (projectKey: string, environmentKey: string, destinationPost: DestinationPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('postDestination', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('postDestination', 'environmentKey', environmentKey)
             // verify required parameter 'destinationPost' is not null or undefined
             assertParamExists('postDestination', 'destinationPost', destinationPost)
-            const localVarPath = `/api/v2/destinations/{projKey}/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+            const localVarPath = `/api/v2/destinations/{projectKey}/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -12146,27 +12939,27 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
         /**
          * Delete Data Export destination by ID
          * @summary Delete Data Export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteDestination(projKey, envKey, id, options);
+        async deleteDestination(projectKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteDestination(projectKey, environmentKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a single Data Export destination by ID
          * @summary Get destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getDestination(projKey, envKey, id, options);
+        async getDestination(projectKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDestination(projectKey, environmentKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -12182,28 +12975,28 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
         /**
          * Update a Data Export destination. This requires a JSON Patch representation of the modified destination.
          * @summary Update Data Export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchDestination(projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchDestination(projKey, envKey, id, patchOperation, options);
+        async patchDestination(projectKey: string, environmentKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchDestination(projectKey, environmentKey, id, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Create a new destination. The `config` body parameter represents the configuration parameters required for a destination type.
          * @summary Create data export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {DestinationPost} destinationPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postDestination(projKey: string, envKey: string, destinationPost: DestinationPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postDestination(projKey, envKey, destinationPost, options);
+        async postDestination(projectKey: string, environmentKey: string, destinationPost: DestinationPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Destination>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postDestination(projectKey, environmentKey, destinationPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -12219,26 +13012,26 @@ export const DataExportDestinationsApiFactory = function (configuration?: Config
         /**
          * Delete Data Export destination by ID
          * @summary Delete Data Export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteDestination(projKey: string, envKey: string, id: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteDestination(projKey, envKey, id, options).then((request) => request(axios, basePath));
+        deleteDestination(projectKey: string, environmentKey: string, id: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteDestination(projectKey, environmentKey, id, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a single Data Export destination by ID
          * @summary Get destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDestination(projKey: string, envKey: string, id: string, options?: any): AxiosPromise<Destination> {
-            return localVarFp.getDestination(projKey, envKey, id, options).then((request) => request(axios, basePath));
+        getDestination(projectKey: string, environmentKey: string, id: string, options?: any): AxiosPromise<Destination> {
+            return localVarFp.getDestination(projectKey, environmentKey, id, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of Data Export destinations configured across all projects and environments.
@@ -12252,27 +13045,27 @@ export const DataExportDestinationsApiFactory = function (configuration?: Config
         /**
          * Update a Data Export destination. This requires a JSON Patch representation of the modified destination.
          * @summary Update Data Export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} id The Data Export destination ID
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchDestination(projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<Destination> {
-            return localVarFp.patchDestination(projKey, envKey, id, patchOperation, options).then((request) => request(axios, basePath));
+        patchDestination(projectKey: string, environmentKey: string, id: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<Destination> {
+            return localVarFp.patchDestination(projectKey, environmentKey, id, patchOperation, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new destination. The `config` body parameter represents the configuration parameters required for a destination type.
          * @summary Create data export destination
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {DestinationPost} destinationPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postDestination(projKey: string, envKey: string, destinationPost: DestinationPost, options?: any): AxiosPromise<Destination> {
-            return localVarFp.postDestination(projKey, envKey, destinationPost, options).then((request) => request(axios, basePath));
+        postDestination(projectKey: string, environmentKey: string, destinationPost: DestinationPost, options?: any): AxiosPromise<Destination> {
+            return localVarFp.postDestination(projectKey, environmentKey, destinationPost, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -12287,29 +13080,29 @@ export class DataExportDestinationsApi extends BaseAPI {
     /**
      * Delete Data Export destination by ID
      * @summary Delete Data Export destination
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {string} id The Data Export destination ID
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public deleteDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig) {
-        return DataExportDestinationsApiFp(this.configuration).deleteDestination(projKey, envKey, id, options).then((request) => request(this.axios, this.basePath));
+    public deleteDestination(projectKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
+        return DataExportDestinationsApiFp(this.configuration).deleteDestination(projectKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a single Data Export destination by ID
      * @summary Get destination
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {string} id The Data Export destination ID
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public getDestination(projKey: string, envKey: string, id: string, options?: AxiosRequestConfig) {
-        return DataExportDestinationsApiFp(this.configuration).getDestination(projKey, envKey, id, options).then((request) => request(this.axios, this.basePath));
+    public getDestination(projectKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
+        return DataExportDestinationsApiFp(this.configuration).getDestination(projectKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12326,30 +13119,30 @@ export class DataExportDestinationsApi extends BaseAPI {
     /**
      * Update a Data Export destination. This requires a JSON Patch representation of the modified destination.
      * @summary Update Data Export destination
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {string} id The Data Export destination ID
      * @param {Array<PatchOperation>} patchOperation 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public patchDestination(projKey: string, envKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
-        return DataExportDestinationsApiFp(this.configuration).patchDestination(projKey, envKey, id, patchOperation, options).then((request) => request(this.axios, this.basePath));
+    public patchDestination(projectKey: string, environmentKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return DataExportDestinationsApiFp(this.configuration).patchDestination(projectKey, environmentKey, id, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Create a new destination. The `config` body parameter represents the configuration parameters required for a destination type.
      * @summary Create data export destination
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {DestinationPost} destinationPost 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DataExportDestinationsApi
      */
-    public postDestination(projKey: string, envKey: string, destinationPost: DestinationPost, options?: AxiosRequestConfig) {
-        return DataExportDestinationsApiFp(this.configuration).postDestination(projKey, envKey, destinationPost, options).then((request) => request(this.axios, this.basePath));
+    public postDestination(projectKey: string, environmentKey: string, destinationPost: DestinationPost, options?: AxiosRequestConfig) {
+        return DataExportDestinationsApiFp(this.configuration).postDestination(projectKey, environmentKey, destinationPost, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -12536,18 +13329,18 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * Reset an environment\'s mobile key. The optional expiry for the old key is deprecated for this endpoint, so the old key will always expire immediately.
          * @summary Reset environment mobile SDK key
          * @param {string} projectKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetEnvironmentMobileKey: async (projectKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        resetEnvironmentMobileKey: async (projectKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('resetEnvironmentMobileKey', 'projectKey', projectKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('resetEnvironmentMobileKey', 'envKey', envKey)
-            const localVarPath = `/api/v2/projects/{projectKey}/environments/{envKey}/mobileKey`
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('resetEnvironmentMobileKey', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/environments/{environmentKey}/mobileKey`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -12577,19 +13370,19 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
          * Reset an environment\'s SDK key with an optional expiry time for the old key.
          * @summary Reset environment SDK key
          * @param {string} projectKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} environmentKey The environment key
          * @param {number} [expiry] The time at which you want the old SDK key to expire, in UNIX milliseconds. By default, the key expires immediately.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetEnvironmentSDKKey: async (projectKey: string, envKey: string, expiry?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        resetEnvironmentSDKKey: async (projectKey: string, environmentKey: string, expiry?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('resetEnvironmentSDKKey', 'projectKey', projectKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('resetEnvironmentSDKKey', 'envKey', envKey)
-            const localVarPath = `/api/v2/projects/{projectKey}/environments/{envKey}/apiKey`
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('resetEnvironmentSDKKey', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/environments/{environmentKey}/apiKey`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -12682,25 +13475,25 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
          * Reset an environment\'s mobile key. The optional expiry for the old key is deprecated for this endpoint, so the old key will always expire immediately.
          * @summary Reset environment mobile SDK key
          * @param {string} projectKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetEnvironmentMobileKey(projectKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.resetEnvironmentMobileKey(projectKey, envKey, options);
+        async resetEnvironmentMobileKey(projectKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.resetEnvironmentMobileKey(projectKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Reset an environment\'s SDK key with an optional expiry time for the old key.
          * @summary Reset environment SDK key
          * @param {string} projectKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} environmentKey The environment key
          * @param {number} [expiry] The time at which you want the old SDK key to expire, in UNIX milliseconds. By default, the key expires immediately.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetEnvironmentSDKKey(projectKey: string, envKey: string, expiry?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.resetEnvironmentSDKKey(projectKey, envKey, expiry, options);
+        async resetEnvironmentSDKKey(projectKey: string, environmentKey: string, expiry?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Environment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.resetEnvironmentSDKKey(projectKey, environmentKey, expiry, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -12762,24 +13555,24 @@ export const EnvironmentsApiFactory = function (configuration?: Configuration, b
          * Reset an environment\'s mobile key. The optional expiry for the old key is deprecated for this endpoint, so the old key will always expire immediately.
          * @summary Reset environment mobile SDK key
          * @param {string} projectKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetEnvironmentMobileKey(projectKey: string, envKey: string, options?: any): AxiosPromise<Environment> {
-            return localVarFp.resetEnvironmentMobileKey(projectKey, envKey, options).then((request) => request(axios, basePath));
+        resetEnvironmentMobileKey(projectKey: string, environmentKey: string, options?: any): AxiosPromise<Environment> {
+            return localVarFp.resetEnvironmentMobileKey(projectKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Reset an environment\'s SDK key with an optional expiry time for the old key.
          * @summary Reset environment SDK key
          * @param {string} projectKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} environmentKey The environment key
          * @param {number} [expiry] The time at which you want the old SDK key to expire, in UNIX milliseconds. By default, the key expires immediately.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetEnvironmentSDKKey(projectKey: string, envKey: string, expiry?: number, options?: any): AxiosPromise<Environment> {
-            return localVarFp.resetEnvironmentSDKKey(projectKey, envKey, expiry, options).then((request) => request(axios, basePath));
+        resetEnvironmentSDKKey(projectKey: string, environmentKey: string, expiry?: number, options?: any): AxiosPromise<Environment> {
+            return localVarFp.resetEnvironmentSDKKey(projectKey, environmentKey, expiry, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -12848,27 +13641,27 @@ export class EnvironmentsApi extends BaseAPI {
      * Reset an environment\'s mobile key. The optional expiry for the old key is deprecated for this endpoint, so the old key will always expire immediately.
      * @summary Reset environment mobile SDK key
      * @param {string} projectKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} environmentKey The environment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public resetEnvironmentMobileKey(projectKey: string, envKey: string, options?: AxiosRequestConfig) {
-        return EnvironmentsApiFp(this.configuration).resetEnvironmentMobileKey(projectKey, envKey, options).then((request) => request(this.axios, this.basePath));
+    public resetEnvironmentMobileKey(projectKey: string, environmentKey: string, options?: AxiosRequestConfig) {
+        return EnvironmentsApiFp(this.configuration).resetEnvironmentMobileKey(projectKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Reset an environment\'s SDK key with an optional expiry time for the old key.
      * @summary Reset environment SDK key
      * @param {string} projectKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} environmentKey The environment key
      * @param {number} [expiry] The time at which you want the old SDK key to expire, in UNIX milliseconds. By default, the key expires immediately.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof EnvironmentsApi
      */
-    public resetEnvironmentSDKKey(projectKey: string, envKey: string, expiry?: number, options?: AxiosRequestConfig) {
-        return EnvironmentsApiFp(this.configuration).resetEnvironmentSDKKey(projectKey, envKey, expiry, options).then((request) => request(this.axios, this.basePath));
+    public resetEnvironmentSDKKey(projectKey: string, environmentKey: string, expiry?: number, options?: AxiosRequestConfig) {
+        return EnvironmentsApiFp(this.configuration).resetEnvironmentSDKKey(projectKey, environmentKey, expiry, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -12882,28 +13675,28 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
         /**
          * Get detailed experiment result data
          * @summary Get experiment results
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} metricKey The metric key
          * @param {number} [from] A timestamp denoting the start of the data collection period, expressed as a Unix epoch time in milliseconds.
          * @param {number} [to] A timestamp denoting the end of the data collection period, expressed as a Unix epoch time in milliseconds.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExperiment: async (projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getExperiment', 'projKey', projKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('getExperiment', 'flagKey', flagKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getExperiment', 'envKey', envKey)
+        getExperiment: async (projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, from?: number, to?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getExperiment', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getExperiment', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getExperiment', 'environmentKey', environmentKey)
             // verify required parameter 'metricKey' is not null or undefined
             assertParamExists('getExperiment', 'metricKey', metricKey)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/experiments/{envKey}/{metricKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/experiments/{environmentKey}/{metricKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"metricKey"}}`, encodeURIComponent(String(metricKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -12941,26 +13734,26 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
         /**
          * Reset all experiment results by deleting all existing data for an experiment
          * @summary Reset experiment results
-         * @param {string} projKey The project key
-         * @param {string} flagKey The feature flag\&#39;s key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} metricKey The metric\&#39;s key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetExperiment: async (projKey: string, flagKey: string, envKey: string, metricKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('resetExperiment', 'projKey', projKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('resetExperiment', 'flagKey', flagKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('resetExperiment', 'envKey', envKey)
+        resetExperiment: async (projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('resetExperiment', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('resetExperiment', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('resetExperiment', 'environmentKey', environmentKey)
             // verify required parameter 'metricKey' is not null or undefined
             assertParamExists('resetExperiment', 'metricKey', metricKey)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/experiments/{envKey}/{metricKey}/results`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/experiments/{environmentKey}/{metricKey}/results`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"metricKey"}}`, encodeURIComponent(String(metricKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -13000,31 +13793,31 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
         /**
          * Get detailed experiment result data
          * @summary Get experiment results
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} metricKey The metric key
          * @param {number} [from] A timestamp denoting the start of the data collection period, expressed as a Unix epoch time in milliseconds.
          * @param {number} [to] A timestamp denoting the end of the data collection period, expressed as a Unix epoch time in milliseconds.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentResultsRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getExperiment(projKey, flagKey, envKey, metricKey, from, to, options);
+        async getExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, from?: number, to?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentResultsRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExperiment(projectKey, featureFlagKey, environmentKey, metricKey, from, to, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Reset all experiment results by deleting all existing data for an experiment
          * @summary Reset experiment results
-         * @param {string} projKey The project key
-         * @param {string} flagKey The feature flag\&#39;s key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} metricKey The metric\&#39;s key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async resetExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.resetExperiment(projKey, flagKey, envKey, metricKey, options);
+        async resetExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.resetExperiment(projectKey, featureFlagKey, environmentKey, metricKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -13040,30 +13833,30 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
         /**
          * Get detailed experiment result data
          * @summary Get experiment results
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} metricKey The metric key
          * @param {number} [from] A timestamp denoting the start of the data collection period, expressed as a Unix epoch time in milliseconds.
          * @param {number} [to] A timestamp denoting the end of the data collection period, expressed as a Unix epoch time in milliseconds.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options?: any): AxiosPromise<ExperimentResultsRep> {
-            return localVarFp.getExperiment(projKey, flagKey, envKey, metricKey, from, to, options).then((request) => request(axios, basePath));
+        getExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, from?: number, to?: number, options?: any): AxiosPromise<ExperimentResultsRep> {
+            return localVarFp.getExperiment(projectKey, featureFlagKey, environmentKey, metricKey, from, to, options).then((request) => request(axios, basePath));
         },
         /**
          * Reset all experiment results by deleting all existing data for an experiment
          * @summary Reset experiment results
-         * @param {string} projKey The project key
-         * @param {string} flagKey The feature flag\&#39;s key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} metricKey The metric\&#39;s key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        resetExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, options?: any): AxiosPromise<void> {
-            return localVarFp.resetExperiment(projKey, flagKey, envKey, metricKey, options).then((request) => request(axios, basePath));
+        resetExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.resetExperiment(projectKey, featureFlagKey, environmentKey, metricKey, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -13078,9 +13871,9 @@ export class ExperimentsBetaApi extends BaseAPI {
     /**
      * Get detailed experiment result data
      * @summary Get experiment results
-     * @param {string} projKey The project key
-     * @param {string} flagKey The flag key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
+     * @param {string} environmentKey The environment key
      * @param {string} metricKey The metric key
      * @param {number} [from] A timestamp denoting the start of the data collection period, expressed as a Unix epoch time in milliseconds.
      * @param {number} [to] A timestamp denoting the end of the data collection period, expressed as a Unix epoch time in milliseconds.
@@ -13088,23 +13881,23 @@ export class ExperimentsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof ExperimentsBetaApi
      */
-    public getExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, from?: number, to?: number, options?: AxiosRequestConfig) {
-        return ExperimentsBetaApiFp(this.configuration).getExperiment(projKey, flagKey, envKey, metricKey, from, to, options).then((request) => request(this.axios, this.basePath));
+    public getExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, from?: number, to?: number, options?: AxiosRequestConfig) {
+        return ExperimentsBetaApiFp(this.configuration).getExperiment(projectKey, featureFlagKey, environmentKey, metricKey, from, to, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Reset all experiment results by deleting all existing data for an experiment
      * @summary Reset experiment results
-     * @param {string} projKey The project key
-     * @param {string} flagKey The feature flag\&#39;s key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
+     * @param {string} environmentKey The environment key
      * @param {string} metricKey The metric\&#39;s key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ExperimentsBetaApi
      */
-    public resetExperiment(projKey: string, flagKey: string, envKey: string, metricKey: string, options?: AxiosRequestConfig) {
-        return ExperimentsBetaApiFp(this.configuration).resetExperiment(projKey, flagKey, envKey, metricKey, options).then((request) => request(this.axios, this.basePath));
+    public resetExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options?: AxiosRequestConfig) {
+        return ExperimentsBetaApiFp(this.configuration).resetExperiment(projectKey, featureFlagKey, environmentKey, metricKey, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -13118,21 +13911,21 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * The includedActions and excludedActions define the parts of the flag configuration that are copied or not copied. By default, the entire flag configuration is copied.  You can have either `includedActions` or `excludedActions` but not both.  Valid `includedActions` and `excludedActions` include:  - `updateOn` - `updatePrerequisites` - `updateTargets` - `updateRules` - `updateFallthrough` - `updateOffVariation`    The `source` and `target` must be JSON objects if using curl, specifying the environment key and (optional) current flag configuration version in that environment. For example:  ```json {   \"key\": \"production\",   \"currentVersion\": 3 } ```  If target is specified as above, the API will test to ensure that the current flag version in the `production` environment is `3`, and reject attempts to copy settings to `production` otherwise. You can use this to enforce optimistic locking on copy attempts. 
          * @summary Copy feature flag
-         * @param {string} projKey The project key.
-         * @param {string} featureFlagKey The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {FlagCopyConfigPost} flagCopyConfigPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        copyFeatureFlag: async (projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('copyFeatureFlag', 'projKey', projKey)
+        copyFeatureFlag: async (projectKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('copyFeatureFlag', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
             assertParamExists('copyFeatureFlag', 'featureFlagKey', featureFlagKey)
             // verify required parameter 'flagCopyConfigPost' is not null or undefined
             assertParamExists('copyFeatureFlag', 'flagCopyConfigPost', flagCopyConfigPost)
-            const localVarPath = `/api/v2/flags/{projKey}/{featureFlagKey}/copy`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/copy`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
                 .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -13165,19 +13958,19 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Delete a feature flag in all environments. Use with caution: only delete feature flags your application no longer uses.
          * @summary Delete feature flag
-         * @param {string} projKey The project key.
-         * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteFeatureFlag: async (projKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('deleteFeatureFlag', 'projKey', projKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('deleteFeatureFlag', 'key', key)
-            const localVarPath = `/api/v2/flags/{projKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        deleteFeatureFlag: async (projectKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteFeatureFlag', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('deleteFeatureFlag', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13206,23 +13999,23 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a list of user targets on a feature flag that are scheduled for removal.
          * @summary Get expiring user targets for feature flag
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringUserTargets: async (projKey: string, envKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getExpiringUserTargets', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getExpiringUserTargets', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('getExpiringUserTargets', 'flagKey', flagKey)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/expiring-user-targets/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+        getExpiringUserTargets: async (projectKey: string, environmentKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getExpiringUserTargets', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getExpiringUserTargets', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getExpiringUserTargets', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/expiring-user-targets/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13251,20 +14044,20 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a single feature flag by key. By default, this returns the configurations for all environments. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just the `production` environment.
          * @summary Get feature flag
-         * @param {string} projKey The project key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [env] Filter configurations by environment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlag: async (projKey: string, key: string, env?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getFeatureFlag', 'projKey', projKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getFeatureFlag', 'key', key)
-            const localVarPath = `/api/v2/flags/{projKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getFeatureFlag: async (projectKey: string, featureFlagKey: string, env?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFeatureFlag', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getFeatureFlag', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13297,23 +14090,23 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get the status for a particular feature flag.
          * @summary Get feature flag status
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatus: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getFeatureFlagStatus', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getFeatureFlagStatus', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getFeatureFlagStatus', 'key', key)
-            const localVarPath = `/api/v2/flag-statuses/{projKey}/{envKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getFeatureFlagStatus: async (projectKey: string, environmentKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFeatureFlagStatus', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getFeatureFlagStatus', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getFeatureFlagStatus', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flag-statuses/{projectKey}/{environmentKey}/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13342,20 +14135,20 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get the status for a particular feature flag across environments.
          * @summary Get flag status across environments
-         * @param {string} projKey The project key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [env] Optional environment filter
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatusAcrossEnvironments: async (projKey: string, key: string, env?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getFeatureFlagStatusAcrossEnvironments', 'projKey', projKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getFeatureFlagStatusAcrossEnvironments', 'key', key)
-            const localVarPath = `/api/v2/flag-status/{projKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getFeatureFlagStatusAcrossEnvironments: async (projectKey: string, featureFlagKey: string, env?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFeatureFlagStatusAcrossEnvironments', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getFeatureFlagStatusAcrossEnvironments', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flag-status/{projectKey}/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13388,19 +14181,19 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a list of statuses for all feature flags. The status includes the last time the feature flag was requested, as well as a state, which is one of the following:  - `new`: the feature flag was created within the last seven days, and has not been requested yet - `active`: the feature flag was requested by your servers or clients within the last seven days - `inactive`: the feature flag was created more than seven days ago, and hasn\'t been requested by your servers or clients within the past seven days - `launched`: one variation of the feature flag has been rolled out to all your users for at least 7 days 
          * @summary List feature flag statuses
-         * @param {string} projKey The project key
-         * @param {string} envKey Filter configurations by environment
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatuses: async (projKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getFeatureFlagStatuses', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getFeatureFlagStatuses', 'envKey', envKey)
-            const localVarPath = `/api/v2/flag-statuses/{projKey}/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+        getFeatureFlagStatuses: async (projectKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFeatureFlagStatuses', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getFeatureFlagStatuses', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/flag-statuses/{projectKey}/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13429,7 +14222,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a list of all features in the given project. By default, each feature includes configurations for each environment. You can filter environments with the env query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the tag query parameter.  We support the following fields for filters:  - `query` is a string that matches against the flags\' keys and names. It is not case sensitive. - `archived` is a boolean to filter the list to archived flags. When this is absent, only unarchived flags are returned. - `type` is a string allowing filtering to `temporary` or `permanent` flags. - `status` is a string allowing filtering to `new`, `inactive`, `active`, or `launched` flags in the specified environment. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=status:active,filterEnv:production`. - `tags` is a + separated list of tags. It filters the list to members who have all of the tags in the list. - `hasExperiment` is a boolean with values of true or false and returns any flags that have an attached metric. - `hasDataExport` is a boolean with values of true or false and returns any flags that are currently exporting data in the specified environment. This includes flags that are exporting data via Experimentation. This filter also requires a `filterEnv` field to be set to a valid environment key. e.g. `filter=hasExperiment:true,filterEnv:production` - `evaluated` is an object that contains a key of `after` and a value in Unix time in milliseconds. This returns all flags that have been evaluated since the time you specify in the environment provided. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production`. - `filterEnv` is a string with the key of a valid environment. The filterEnv field is used for filters that are environment specific. If there are multiple environment specific filters you should only declare this parameter once. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active`.  An example filter is `query:abc,tags:foo+bar`. This matches flags with the string `abc` in their key or name, ignoring case, which also have the tags `foo` and `bar`.  By default, this returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page. 
          * @summary List feature flags
-         * @param {string} projKey The project key
+         * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
          * @param {string} [tag] Filter feature flags by tag
          * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
@@ -13438,14 +14231,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
          * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
          * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order
+         * @param {boolean} [compare] A boolean to filter results by only flags that have differences between environments
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlags: async (projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getFeatureFlags', 'projKey', projKey)
-            const localVarPath = `/api/v2/flags/{projKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)));
+        getFeatureFlags: async (projectKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, compare?: boolean, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFeatureFlags', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/flags/{projectKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13492,6 +14286,10 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['sort'] = sort;
             }
 
+            if (compare !== undefined) {
+                localVarQueryParameter['compare'] = compare;
+            }
+
 
     
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13506,26 +14304,26 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Update the list of user targets on a feature flag that are scheduled for removal.
          * @summary Update expiring user targets on feature flag
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringUserTargets: async (projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('patchExpiringUserTargets', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('patchExpiringUserTargets', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('patchExpiringUserTargets', 'flagKey', flagKey)
+        patchExpiringUserTargets: async (projectKey: string, environmentKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchExpiringUserTargets', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchExpiringUserTargets', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('patchExpiringUserTargets', 'featureFlagKey', featureFlagKey)
             // verify required parameter 'patchWithComment' is not null or undefined
             assertParamExists('patchExpiringUserTargets', 'patchWithComment', patchWithComment)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/expiring-user-targets/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/expiring-user-targets/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13555,24 +14353,24 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
+         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed. They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  For example, to flip a flag on, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  For example, to flip a flag off, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
          * @summary Update feature flag
-         * @param {string} projKey The project key.
-         * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchFeatureFlag: async (projKey: string, key: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('patchFeatureFlag', 'projKey', projKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('patchFeatureFlag', 'key', key)
+        patchFeatureFlag: async (projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchFeatureFlag', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('patchFeatureFlag', 'featureFlagKey', featureFlagKey)
             // verify required parameter 'patchWithComment' is not null or undefined
             assertParamExists('patchFeatureFlag', 'patchWithComment', patchWithComment)
-            const localVarPath = `/api/v2/flags/{projKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13604,19 +14402,19 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Create a feature flag with the given name, key, and variations
          * @summary Create a feature flag
-         * @param {string} projKey The project key.
+         * @param {string} projectKey The project key
          * @param {FeatureFlagBody} featureFlagBody 
          * @param {string} [clone] The key of the feature flag to be cloned. The key identifies the flag in your code. For example, setting &#x60;clone&#x3D;flagKey&#x60; copies the full targeting configuration for all environments, including &#x60;on/off&#x60; state, from the original flag to the new flag.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postFeatureFlag: async (projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('postFeatureFlag', 'projKey', projKey)
+        postFeatureFlag: async (projectKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('postFeatureFlag', 'projectKey', projectKey)
             // verify required parameter 'featureFlagBody' is not null or undefined
             assertParamExists('postFeatureFlag', 'featureFlagBody', featureFlagBody)
-            const localVarPath = `/api/v2/flags/{projKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)));
+            const localVarPath = `/api/v2/flags/{projectKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -13662,96 +14460,96 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
         /**
          * The includedActions and excludedActions define the parts of the flag configuration that are copied or not copied. By default, the entire flag configuration is copied.  You can have either `includedActions` or `excludedActions` but not both.  Valid `includedActions` and `excludedActions` include:  - `updateOn` - `updatePrerequisites` - `updateTargets` - `updateRules` - `updateFallthrough` - `updateOffVariation`    The `source` and `target` must be JSON objects if using curl, specifying the environment key and (optional) current flag configuration version in that environment. For example:  ```json {   \"key\": \"production\",   \"currentVersion\": 3 } ```  If target is specified as above, the API will test to ensure that the current flag version in the `production` environment is `3`, and reject attempts to copy settings to `production` otherwise. You can use this to enforce optimistic locking on copy attempts. 
          * @summary Copy feature flag
-         * @param {string} projKey The project key.
-         * @param {string} featureFlagKey The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {FlagCopyConfigPost} flagCopyConfigPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async copyFeatureFlag(projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.copyFeatureFlag(projKey, featureFlagKey, flagCopyConfigPost, options);
+        async copyFeatureFlag(projectKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.copyFeatureFlag(projectKey, featureFlagKey, flagCopyConfigPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Delete a feature flag in all environments. Use with caution: only delete feature flags your application no longer uses.
          * @summary Delete feature flag
-         * @param {string} projKey The project key.
-         * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteFeatureFlag(projKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteFeatureFlag(projKey, key, options);
+        async deleteFeatureFlag(projectKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteFeatureFlag(projectKey, featureFlagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a list of user targets on a feature flag that are scheduled for removal.
          * @summary Get expiring user targets for feature flag
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExpiringUserTargets(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringUserTargets(projKey, envKey, flagKey, options);
+        async getExpiringUserTargets(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringUserTargets(projectKey, environmentKey, featureFlagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a single feature flag by key. By default, this returns the configurations for all environments. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just the `production` environment.
          * @summary Get feature flag
-         * @param {string} projKey The project key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [env] Filter configurations by environment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlag(projKey: string, key: string, env?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlag(projKey, key, env, options);
+        async getFeatureFlag(projectKey: string, featureFlagKey: string, env?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlag(projectKey, featureFlagKey, env, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get the status for a particular feature flag.
          * @summary Get feature flag status
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlagStatus(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagStatusRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatus(projKey, envKey, key, options);
+        async getFeatureFlagStatus(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagStatusRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatus(projectKey, environmentKey, featureFlagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get the status for a particular feature flag across environments.
          * @summary Get flag status across environments
-         * @param {string} projKey The project key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [env] Optional environment filter
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlagStatusAcrossEnvironments(projKey: string, key: string, env?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatusAcrossEnvironments>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatusAcrossEnvironments(projKey, key, env, options);
+        async getFeatureFlagStatusAcrossEnvironments(projectKey: string, featureFlagKey: string, env?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatusAcrossEnvironments>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatusAcrossEnvironments(projectKey, featureFlagKey, env, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a list of statuses for all feature flags. The status includes the last time the feature flag was requested, as well as a state, which is one of the following:  - `new`: the feature flag was created within the last seven days, and has not been requested yet - `active`: the feature flag was requested by your servers or clients within the last seven days - `inactive`: the feature flag was created more than seven days ago, and hasn\'t been requested by your servers or clients within the past seven days - `launched`: one variation of the feature flag has been rolled out to all your users for at least 7 days 
          * @summary List feature flag statuses
-         * @param {string} projKey The project key
-         * @param {string} envKey Filter configurations by environment
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlagStatuses(projKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatuses>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatuses(projKey, envKey, options);
+        async getFeatureFlagStatuses(projectKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlagStatuses>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlagStatuses(projectKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a list of all features in the given project. By default, each feature includes configurations for each environment. You can filter environments with the env query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the tag query parameter.  We support the following fields for filters:  - `query` is a string that matches against the flags\' keys and names. It is not case sensitive. - `archived` is a boolean to filter the list to archived flags. When this is absent, only unarchived flags are returned. - `type` is a string allowing filtering to `temporary` or `permanent` flags. - `status` is a string allowing filtering to `new`, `inactive`, `active`, or `launched` flags in the specified environment. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=status:active,filterEnv:production`. - `tags` is a + separated list of tags. It filters the list to members who have all of the tags in the list. - `hasExperiment` is a boolean with values of true or false and returns any flags that have an attached metric. - `hasDataExport` is a boolean with values of true or false and returns any flags that are currently exporting data in the specified environment. This includes flags that are exporting data via Experimentation. This filter also requires a `filterEnv` field to be set to a valid environment key. e.g. `filter=hasExperiment:true,filterEnv:production` - `evaluated` is an object that contains a key of `after` and a value in Unix time in milliseconds. This returns all flags that have been evaluated since the time you specify in the environment provided. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production`. - `filterEnv` is a string with the key of a valid environment. The filterEnv field is used for filters that are environment specific. If there are multiple environment specific filters you should only declare this parameter once. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active`.  An example filter is `query:abc,tags:foo+bar`. This matches flags with the string `abc` in their key or name, ignoring case, which also have the tags `foo` and `bar`.  By default, this returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page. 
          * @summary List feature flags
-         * @param {string} projKey The project key
+         * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
          * @param {string} [tag] Filter feature flags by tag
          * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
@@ -13760,51 +14558,52 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
          * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
          * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order
+         * @param {boolean} [compare] A boolean to filter results by only flags that have differences between environments
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlags>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlags(projKey, env, tag, limit, offset, archived, summary, filter, sort, options);
+        async getFeatureFlags(projectKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, compare?: boolean, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlags>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFeatureFlags(projectKey, env, tag, limit, offset, archived, summary, filter, sort, compare, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Update the list of user targets on a feature flag that are scheduled for removal.
          * @summary Update expiring user targets on feature flag
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchExpiringUserTargets(projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringUserTargets(projKey, envKey, flagKey, patchWithComment, options);
+        async patchExpiringUserTargets(projectKey: string, environmentKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringUserTargets(projectKey, environmentKey, featureFlagKey, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
+         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed. They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  For example, to flip a flag on, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  For example, to flip a flag off, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
          * @summary Update feature flag
-         * @param {string} projKey The project key.
-         * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchFeatureFlag(projKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchFeatureFlag(projKey, key, patchWithComment, options);
+        async patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Create a feature flag with the given name, key, and variations
          * @summary Create a feature flag
-         * @param {string} projKey The project key.
+         * @param {string} projectKey The project key
          * @param {FeatureFlagBody} featureFlagBody 
          * @param {string} [clone] The key of the feature flag to be cloned. The key identifies the flag in your code. For example, setting &#x60;clone&#x3D;flagKey&#x60; copies the full targeting configuration for all environments, including &#x60;on/off&#x60; state, from the original flag to the new flag.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postFeatureFlag(projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postFeatureFlag(projKey, featureFlagBody, clone, options);
+        async postFeatureFlag(projectKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postFeatureFlag(projectKey, featureFlagBody, clone, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -13820,89 +14619,89 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
         /**
          * The includedActions and excludedActions define the parts of the flag configuration that are copied or not copied. By default, the entire flag configuration is copied.  You can have either `includedActions` or `excludedActions` but not both.  Valid `includedActions` and `excludedActions` include:  - `updateOn` - `updatePrerequisites` - `updateTargets` - `updateRules` - `updateFallthrough` - `updateOffVariation`    The `source` and `target` must be JSON objects if using curl, specifying the environment key and (optional) current flag configuration version in that environment. For example:  ```json {   \"key\": \"production\",   \"currentVersion\": 3 } ```  If target is specified as above, the API will test to ensure that the current flag version in the `production` environment is `3`, and reject attempts to copy settings to `production` otherwise. You can use this to enforce optimistic locking on copy attempts. 
          * @summary Copy feature flag
-         * @param {string} projKey The project key.
-         * @param {string} featureFlagKey The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {FlagCopyConfigPost} flagCopyConfigPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        copyFeatureFlag(projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: any): AxiosPromise<FeatureFlag> {
-            return localVarFp.copyFeatureFlag(projKey, featureFlagKey, flagCopyConfigPost, options).then((request) => request(axios, basePath));
+        copyFeatureFlag(projectKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: any): AxiosPromise<FeatureFlag> {
+            return localVarFp.copyFeatureFlag(projectKey, featureFlagKey, flagCopyConfigPost, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete a feature flag in all environments. Use with caution: only delete feature flags your application no longer uses.
          * @summary Delete feature flag
-         * @param {string} projKey The project key.
-         * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteFeatureFlag(projKey: string, key: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteFeatureFlag(projKey, key, options).then((request) => request(axios, basePath));
+        deleteFeatureFlag(projectKey: string, featureFlagKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteFeatureFlag(projectKey, featureFlagKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of user targets on a feature flag that are scheduled for removal.
          * @summary Get expiring user targets for feature flag
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringUserTargets(projKey: string, envKey: string, flagKey: string, options?: any): AxiosPromise<ExpiringUserTargetGetResponse> {
-            return localVarFp.getExpiringUserTargets(projKey, envKey, flagKey, options).then((request) => request(axios, basePath));
+        getExpiringUserTargets(projectKey: string, environmentKey: string, featureFlagKey: string, options?: any): AxiosPromise<ExpiringUserTargetGetResponse> {
+            return localVarFp.getExpiringUserTargets(projectKey, environmentKey, featureFlagKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a single feature flag by key. By default, this returns the configurations for all environments. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just the `production` environment.
          * @summary Get feature flag
-         * @param {string} projKey The project key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [env] Filter configurations by environment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlag(projKey: string, key: string, env?: string, options?: any): AxiosPromise<FeatureFlag> {
-            return localVarFp.getFeatureFlag(projKey, key, env, options).then((request) => request(axios, basePath));
+        getFeatureFlag(projectKey: string, featureFlagKey: string, env?: string, options?: any): AxiosPromise<FeatureFlag> {
+            return localVarFp.getFeatureFlag(projectKey, featureFlagKey, env, options).then((request) => request(axios, basePath));
         },
         /**
          * Get the status for a particular feature flag.
          * @summary Get feature flag status
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatus(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<FlagStatusRep> {
-            return localVarFp.getFeatureFlagStatus(projKey, envKey, key, options).then((request) => request(axios, basePath));
+        getFeatureFlagStatus(projectKey: string, environmentKey: string, featureFlagKey: string, options?: any): AxiosPromise<FlagStatusRep> {
+            return localVarFp.getFeatureFlagStatus(projectKey, environmentKey, featureFlagKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get the status for a particular feature flag across environments.
          * @summary Get flag status across environments
-         * @param {string} projKey The project key
-         * @param {string} key The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} [env] Optional environment filter
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatusAcrossEnvironments(projKey: string, key: string, env?: string, options?: any): AxiosPromise<FeatureFlagStatusAcrossEnvironments> {
-            return localVarFp.getFeatureFlagStatusAcrossEnvironments(projKey, key, env, options).then((request) => request(axios, basePath));
+        getFeatureFlagStatusAcrossEnvironments(projectKey: string, featureFlagKey: string, env?: string, options?: any): AxiosPromise<FeatureFlagStatusAcrossEnvironments> {
+            return localVarFp.getFeatureFlagStatusAcrossEnvironments(projectKey, featureFlagKey, env, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of statuses for all feature flags. The status includes the last time the feature flag was requested, as well as a state, which is one of the following:  - `new`: the feature flag was created within the last seven days, and has not been requested yet - `active`: the feature flag was requested by your servers or clients within the last seven days - `inactive`: the feature flag was created more than seven days ago, and hasn\'t been requested by your servers or clients within the past seven days - `launched`: one variation of the feature flag has been rolled out to all your users for at least 7 days 
          * @summary List feature flag statuses
-         * @param {string} projKey The project key
-         * @param {string} envKey Filter configurations by environment
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlagStatuses(projKey: string, envKey: string, options?: any): AxiosPromise<FeatureFlagStatuses> {
-            return localVarFp.getFeatureFlagStatuses(projKey, envKey, options).then((request) => request(axios, basePath));
+        getFeatureFlagStatuses(projectKey: string, environmentKey: string, options?: any): AxiosPromise<FeatureFlagStatuses> {
+            return localVarFp.getFeatureFlagStatuses(projectKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all features in the given project. By default, each feature includes configurations for each environment. You can filter environments with the env query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the tag query parameter.  We support the following fields for filters:  - `query` is a string that matches against the flags\' keys and names. It is not case sensitive. - `archived` is a boolean to filter the list to archived flags. When this is absent, only unarchived flags are returned. - `type` is a string allowing filtering to `temporary` or `permanent` flags. - `status` is a string allowing filtering to `new`, `inactive`, `active`, or `launched` flags in the specified environment. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=status:active,filterEnv:production`. - `tags` is a + separated list of tags. It filters the list to members who have all of the tags in the list. - `hasExperiment` is a boolean with values of true or false and returns any flags that have an attached metric. - `hasDataExport` is a boolean with values of true or false and returns any flags that are currently exporting data in the specified environment. This includes flags that are exporting data via Experimentation. This filter also requires a `filterEnv` field to be set to a valid environment key. e.g. `filter=hasExperiment:true,filterEnv:production` - `evaluated` is an object that contains a key of `after` and a value in Unix time in milliseconds. This returns all flags that have been evaluated since the time you specify in the environment provided. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production`. - `filterEnv` is a string with the key of a valid environment. The filterEnv field is used for filters that are environment specific. If there are multiple environment specific filters you should only declare this parameter once. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active`.  An example filter is `query:abc,tags:foo+bar`. This matches flags with the string `abc` in their key or name, ignoring case, which also have the tags `foo` and `bar`.  By default, this returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page. 
          * @summary List feature flags
-         * @param {string} projKey The project key
+         * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
          * @param {string} [tag] Filter feature flags by tag
          * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
@@ -13911,48 +14710,49 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
          * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
          * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
          * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order
+         * @param {boolean} [compare] A boolean to filter results by only flags that have differences between environments
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: any): AxiosPromise<FeatureFlags> {
-            return localVarFp.getFeatureFlags(projKey, env, tag, limit, offset, archived, summary, filter, sort, options).then((request) => request(axios, basePath));
+        getFeatureFlags(projectKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, compare?: boolean, options?: any): AxiosPromise<FeatureFlags> {
+            return localVarFp.getFeatureFlags(projectKey, env, tag, limit, offset, archived, summary, filter, sort, compare, options).then((request) => request(axios, basePath));
         },
         /**
          * Update the list of user targets on a feature flag that are scheduled for removal.
          * @summary Update expiring user targets on feature flag
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} flagKey The feature flag key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringUserTargets(projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<ExpiringUserTargetPatchResponse> {
-            return localVarFp.patchExpiringUserTargets(projKey, envKey, flagKey, patchWithComment, options).then((request) => request(axios, basePath));
+        patchExpiringUserTargets(projectKey: string, environmentKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<ExpiringUserTargetPatchResponse> {
+            return localVarFp.patchExpiringUserTargets(projectKey, environmentKey, featureFlagKey, patchWithComment, options).then((request) => request(axios, basePath));
         },
         /**
-         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
+         * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed. They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  For example, to flip a flag on, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  For example, to flip a flag off, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
          * @summary Update feature flag
-         * @param {string} projKey The project key.
-         * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchFeatureFlag(projKey: string, key: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<FeatureFlag> {
-            return localVarFp.patchFeatureFlag(projKey, key, patchWithComment, options).then((request) => request(axios, basePath));
+        patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<FeatureFlag> {
+            return localVarFp.patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a feature flag with the given name, key, and variations
          * @summary Create a feature flag
-         * @param {string} projKey The project key.
+         * @param {string} projectKey The project key
          * @param {FeatureFlagBody} featureFlagBody 
          * @param {string} [clone] The key of the feature flag to be cloned. The key identifies the flag in your code. For example, setting &#x60;clone&#x3D;flagKey&#x60; copies the full targeting configuration for all environments, including &#x60;on/off&#x60; state, from the original flag to the new flag.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postFeatureFlag(projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: any): AxiosPromise<FeatureFlag> {
-            return localVarFp.postFeatureFlag(projKey, featureFlagBody, clone, options).then((request) => request(axios, basePath));
+        postFeatureFlag(projectKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: any): AxiosPromise<FeatureFlag> {
+            return localVarFp.postFeatureFlag(projectKey, featureFlagBody, clone, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -13967,103 +14767,103 @@ export class FeatureFlagsApi extends BaseAPI {
     /**
      * The includedActions and excludedActions define the parts of the flag configuration that are copied or not copied. By default, the entire flag configuration is copied.  You can have either `includedActions` or `excludedActions` but not both.  Valid `includedActions` and `excludedActions` include:  - `updateOn` - `updatePrerequisites` - `updateTargets` - `updateRules` - `updateFallthrough` - `updateOffVariation`    The `source` and `target` must be JSON objects if using curl, specifying the environment key and (optional) current flag configuration version in that environment. For example:  ```json {   \"key\": \"production\",   \"currentVersion\": 3 } ```  If target is specified as above, the API will test to ensure that the current flag version in the `production` environment is `3`, and reject attempts to copy settings to `production` otherwise. You can use this to enforce optimistic locking on copy attempts. 
      * @summary Copy feature flag
-     * @param {string} projKey The project key.
-     * @param {string} featureFlagKey The feature flag\&#39;s key. The key identifies the flag in your code.
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
      * @param {FlagCopyConfigPost} flagCopyConfigPost 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public copyFeatureFlag(projKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).copyFeatureFlag(projKey, featureFlagKey, flagCopyConfigPost, options).then((request) => request(this.axios, this.basePath));
+    public copyFeatureFlag(projectKey: string, featureFlagKey: string, flagCopyConfigPost: FlagCopyConfigPost, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).copyFeatureFlag(projectKey, featureFlagKey, flagCopyConfigPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Delete a feature flag in all environments. Use with caution: only delete feature flags your application no longer uses.
      * @summary Delete feature flag
-     * @param {string} projKey The project key.
-     * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public deleteFeatureFlag(projKey: string, key: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).deleteFeatureFlag(projKey, key, options).then((request) => request(this.axios, this.basePath));
+    public deleteFeatureFlag(projectKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).deleteFeatureFlag(projectKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of user targets on a feature flag that are scheduled for removal.
      * @summary Get expiring user targets for feature flag
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} flagKey The feature flag key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getExpiringUserTargets(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).getExpiringUserTargets(projKey, envKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    public getExpiringUserTargets(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).getExpiringUserTargets(projectKey, environmentKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a single feature flag by key. By default, this returns the configurations for all environments. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just the `production` environment.
      * @summary Get feature flag
-     * @param {string} projKey The project key
-     * @param {string} key The feature flag key
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} [env] Filter configurations by environment
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlag(projKey: string, key: string, env?: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).getFeatureFlag(projKey, key, env, options).then((request) => request(this.axios, this.basePath));
+    public getFeatureFlag(projectKey: string, featureFlagKey: string, env?: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).getFeatureFlag(projectKey, featureFlagKey, env, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get the status for a particular feature flag.
      * @summary Get feature flag status
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} key The feature flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlagStatus(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatus(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
+    public getFeatureFlagStatus(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatus(projectKey, environmentKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get the status for a particular feature flag across environments.
      * @summary Get flag status across environments
-     * @param {string} projKey The project key
-     * @param {string} key The feature flag key
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} [env] Optional environment filter
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlagStatusAcrossEnvironments(projKey: string, key: string, env?: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatusAcrossEnvironments(projKey, key, env, options).then((request) => request(this.axios, this.basePath));
+    public getFeatureFlagStatusAcrossEnvironments(projectKey: string, featureFlagKey: string, env?: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatusAcrossEnvironments(projectKey, featureFlagKey, env, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of statuses for all feature flags. The status includes the last time the feature flag was requested, as well as a state, which is one of the following:  - `new`: the feature flag was created within the last seven days, and has not been requested yet - `active`: the feature flag was requested by your servers or clients within the last seven days - `inactive`: the feature flag was created more than seven days ago, and hasn\'t been requested by your servers or clients within the past seven days - `launched`: one variation of the feature flag has been rolled out to all your users for at least 7 days 
      * @summary List feature flag statuses
-     * @param {string} projKey The project key
-     * @param {string} envKey Filter configurations by environment
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlagStatuses(projKey: string, envKey: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatuses(projKey, envKey, options).then((request) => request(this.axios, this.basePath));
+    public getFeatureFlagStatuses(projectKey: string, environmentKey: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).getFeatureFlagStatuses(projectKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of all features in the given project. By default, each feature includes configurations for each environment. You can filter environments with the env query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the tag query parameter.  We support the following fields for filters:  - `query` is a string that matches against the flags\' keys and names. It is not case sensitive. - `archived` is a boolean to filter the list to archived flags. When this is absent, only unarchived flags are returned. - `type` is a string allowing filtering to `temporary` or `permanent` flags. - `status` is a string allowing filtering to `new`, `inactive`, `active`, or `launched` flags in the specified environment. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=status:active,filterEnv:production`. - `tags` is a + separated list of tags. It filters the list to members who have all of the tags in the list. - `hasExperiment` is a boolean with values of true or false and returns any flags that have an attached metric. - `hasDataExport` is a boolean with values of true or false and returns any flags that are currently exporting data in the specified environment. This includes flags that are exporting data via Experimentation. This filter also requires a `filterEnv` field to be set to a valid environment key. e.g. `filter=hasExperiment:true,filterEnv:production` - `evaluated` is an object that contains a key of `after` and a value in Unix time in milliseconds. This returns all flags that have been evaluated since the time you specify in the environment provided. This filter also requires a `filterEnv` field to be set to a valid environment. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production`. - `filterEnv` is a string with the key of a valid environment. The filterEnv field is used for filters that are environment specific. If there are multiple environment specific filters you should only declare this parameter once. For example: `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active`.  An example filter is `query:abc,tags:foo+bar`. This matches flags with the string `abc` in their key or name, ignoring case, which also have the tags `foo` and `bar`.  By default, this returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page. 
      * @summary List feature flags
-     * @param {string} projKey The project key
+     * @param {string} projectKey The project key
      * @param {string} [env] Filter configurations by environment
      * @param {string} [tag] Filter feature flags by tag
      * @param {number} [limit] The number of feature flags to return. Defaults to -1, which returns all flags
@@ -14072,55 +14872,56 @@ export class FeatureFlagsApi extends BaseAPI {
      * @param {boolean} [summary] By default in API version &gt;&#x3D; 1, flags will _not_ include their list of prerequisites, targets or rules.  Set summary&#x3D;0 to include these fields for each flag returned
      * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value
      * @param {string} [sort] A comma-separated list of fields to sort by. Fields prefixed by a dash ( - ) sort in descending order
+     * @param {boolean} [compare] A boolean to filter results by only flags that have differences between environments
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public getFeatureFlags(projKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).getFeatureFlags(projKey, env, tag, limit, offset, archived, summary, filter, sort, options).then((request) => request(this.axios, this.basePath));
+    public getFeatureFlags(projectKey: string, env?: string, tag?: string, limit?: number, offset?: number, archived?: boolean, summary?: boolean, filter?: string, sort?: string, compare?: boolean, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).getFeatureFlags(projectKey, env, tag, limit, offset, archived, summary, filter, sort, compare, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Update the list of user targets on a feature flag that are scheduled for removal.
      * @summary Update expiring user targets on feature flag
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} flagKey The feature flag key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {PatchWithComment} patchWithComment 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public patchExpiringUserTargets(projKey: string, envKey: string, flagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).patchExpiringUserTargets(projKey, envKey, flagKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
+    public patchExpiringUserTargets(projectKey: string, environmentKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).patchExpiringUserTargets(projectKey, environmentKey, featureFlagKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. environmentKey `string`: (Required) The key of the LaunchDarkly environment. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed). They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
+     * Perform a partial update to a feature flag.  ## Using JSON Patches on a feature flag  When using the update feature flag endpoint to add individual users to a specific variation, there are two different patch documents, depending on whether users are already being individually targeted for the variation.  If a flag variation already has users individually targeted, the path for the JSON Patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have users individually targeted, the path for the JSON Patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```  ## Using semantic patches on a feature flag  To use a [semantic patch](/reference#updates-via-semantic-patches) on a feature flag resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. For example, `removeUserTargets` does nothing when the targets have already been removed. They will generally error if a parameter refers to something that does not exist, like a variation ID that doesn\'t correspond to a variation on the flag or a rule ID that doesn\'t belong to a rule on the flag. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `turnFlagOn`  Sets the flag\'s targeting state to on.  For example, to flip a flag on, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  #### `turnFlagOff`  Sets the flag\'s targeting state to off.  For example, to flip a flag off, use this request body:  ```json {   \"environmentKey\": \"example-environment-key\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### `addUserTargets`  Adds the user keys in `values` to the individual user targets for the variation specified by `variationId`. Returns an error if this causes the same user key to be targeted in multiple variations.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `removeUserTargets`  Removes the user keys in `values` to the individual user targets for the variation specified by `variationId`. Does nothing if the user keys are not targeted.  ##### Parameters  - `values`: list of user keys - `variationId`: ID of a variation on the flag  #### `replaceUserTargets`  Completely replaces the existing set of user targeting. All variations must be provided. Example:  ```json {   \"kind\": \"replaceUserTargets\",   \"targets\": [     {       \"variationId\": \"variation-1\",       \"values\": [\"blah\", \"foo\", \"bar\"]     },     {       \"variationId\": \"variation-2\",       \"values\": [\"abc\", \"def\"]     }   ] } ```  ##### Parameters  - `targets`: a list of user targeting  #### `clearUserTargets`  Removes all individual user targets from the variation specified by `variationId`  ##### Parameters  - `variationId`: ID of a variation on the flag  #### `addPrerequisite`  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag.  ##### Parameters  - `key`: flag key of another flag - `variationId`: ID of a variation of the flag with key `key`  #### `removePrerequisite`  Removes the prerequisite indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite  #### `updatePrerequisite`  Changes the prerequisite with flag key `key` to the variation indicated by `variationId`. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: flag key of an existing prerequisite - `variationId`: ID of a variation of the flag with key `key`  #### `replacePrerequisites`  Completely replaces the existing set of prerequisites for a given flag. Example:  ```json {   \"kind\": \"replacePrerequisites\",   \"prerequisites\": [     {       \"key\": \"flag-key\",       \"variationId\": \"variation-1\"     },     {       \"key\": \"another-flag\",       \"variationId\": \"variation-2\"     }   ] } ```  ##### Parameters  - `prerequisites`: a list of prerequisites  #### `addRule`  Adds a new rule to the flag with the given `clauses` which serves the variation indicated by `variationId` or the percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`. If `beforeRuleId` is set, the rule will be added in the list of rules before the indicated rule. Otherwise, the rule will be added to the end of the list.  ##### Parameters  - `clauses`: Array of clauses (see `addClauses`) - `beforeRuleId`: Optional ID of a rule in the flag - `variationId`: ID of a variation of the flag - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `removeRule`  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag  #### `replaceRules`  Completely replaces the existing rules for a given flag. Example:  ```json {   \"kind\": \"replaceRules\",   \"rules\": [     {       \"variationId\": \"variation-1\",       \"description\": \"myRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"op\": \"segmentMatch\",           \"values\": [\"test\"]         }       ],       \"trackEvents\": true     }   ] } ```  ##### Parameters  - `rules`: a list of rules  #### `addClauses`  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauses`: Array of clause objects, with `attribute` (string), `op` (string), and `values` (array of strings, numbers, or dates) properties.  #### `removeClauses`  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  #### Parameters  - `ruleId`: ID of a rule in the flag - `clauseIds`: Array of IDs of clauses in the rule  #### `updateClause`  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `clause`: Clause object  #### `addValuesToClause`  Adds `values` to the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `clauseId`: ID of a clause in that rule - `values`: Array of strings  #### `removeValuesFromClause`  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`.  ##### Parameters  `ruleId`: ID of a rule in the flag `clauseId`: ID of a clause in that rule `values`: Array of strings  #### `reorderRules`  Rearranges the rules to match the order given in `ruleIds`. Will return an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag  #### `updateRuleVariationOrRollout`  Updates what the rule indicated by `ruleId` serves if its clauses evaluate to true. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  - `ruleId`: ID of a rule in the flag - `variationId`: ID of a variation of the flag   or - `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) - `rolloutBucketBy`: Optional user attribute  #### `updateFallthroughVariationOrRollout`  Updates the flag\'s fallthrough, which is served if none of the targeting rules match. Can either be a fixed variation indicated by `variationId` or a percent rollout indicated by `rolloutWeights` and `rolloutBucketBy`.  ##### Parameters  `variationId`: ID of a variation of the flag or `rolloutWeights`: Map of variationId to weight in thousandths of a percent (0-100000) `rolloutBucketBy`: Optional user attribute  #### `updateOffVariation`  Updates the variation served when the flag\'s targeting is off to the variation indicated by `variationId`.  ##### Parameters  `variationId`: ID of a variation of the flag  ### Example  ```json {   \"environmentKey\": \"production\",   \"instructions\": [     {       \"kind\": \"turnFlagOn\"     },     {       \"kind\": \"turnFlagOff\"     },     {       \"kind\": \"addUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId\", \"userId2\"]     },     {       \"kind\": \"removeUserTargets\",       \"variationId\": \"8bfb304e-d516-47e5-8727-e7f798e8992d\",       \"values\": [\"userId3\", \"userId4\"]     },     {       \"kind\": \"updateFallthroughVariationOrRollout\",       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": null     },     {       \"kind\": \"addRule\",       \"clauses\": [         {           \"attribute\": \"segmentMatch\",           \"negate\": false,           \"values\": [\"test-segment\"]         }       ],       \"variationId\": null,       \"rolloutWeights\": {         \"variationId\": 50000,         \"variationId2\": 50000       },       \"rolloutBucketBy\": \"key\"     },     {       \"kind\": \"removeRule\",       \"ruleId\": \"99f12464-a429-40fc-86cc-b27612188955\"     },     {       \"kind\": \"reorderRules\",       \"ruleIds\": [\"2f72974e-de68-4243-8dd3-739582147a1f\", \"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"addClauses\",       \"ruleId\": \"1134\",       \"clauses\": [         {           \"attribute\": \"email\",           \"op\": \"in\",           \"negate\": false,           \"values\": [\"test@test.com\"]         }       ]     },     {       \"kind\": \"removeClauses\",       \"ruleId\": \"1242529\",       \"clauseIds\": [\"8bfb304e-d516-47e5-8727-e7f798e8992d\"]     },     {       \"kind\": \"updateClause\",       \"ruleId\": \"2f72974e-de68-4243-8dd3-739582147a1f\",       \"clauseId\": \"309845\",       \"clause\": {         \"attribute\": \"segmentMatch\",         \"negate\": false,         \"values\": [\"test-segment\"]       }     },     {       \"kind\": \"updateRuleVariationOrRollout\",       \"ruleId\": \"2342\",       \"rolloutWeights\": null,       \"rolloutBucketBy\": null     },     {       \"kind\": \"updateOffVariation\",       \"variationId\": \"3242453\"     },     {       \"kind\": \"addPrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"updatePrerequisite\",       \"variationId\": \"234235\",       \"key\": \"flagKey2\"     },     {       \"kind\": \"removePrerequisite\",       \"key\": \"flagKey\"     }   ] } ```  ## Using JSON patches on a feature flag  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch). 
      * @summary Update feature flag
-     * @param {string} projKey The project key.
-     * @param {string} key The feature flag\&#39;s key. The key identifies the flag in your code.
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
      * @param {PatchWithComment} patchWithComment 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public patchFeatureFlag(projKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).patchFeatureFlag(projKey, key, patchWithComment, options).then((request) => request(this.axios, this.basePath));
+    public patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Create a feature flag with the given name, key, and variations
      * @summary Create a feature flag
-     * @param {string} projKey The project key.
+     * @param {string} projectKey The project key
      * @param {FeatureFlagBody} featureFlagBody 
      * @param {string} [clone] The key of the feature flag to be cloned. The key identifies the flag in your code. For example, setting &#x60;clone&#x3D;flagKey&#x60; copies the full targeting configuration for all environments, including &#x60;on/off&#x60; state, from the original flag to the new flag.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsApi
      */
-    public postFeatureFlag(projKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).postFeatureFlag(projKey, featureFlagBody, clone, options).then((request) => request(this.axios, this.basePath));
+    public postFeatureFlag(projectKey: string, featureFlagBody: FeatureFlagBody, clone?: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).postFeatureFlag(projectKey, featureFlagBody, clone, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -14134,19 +14935,19 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
         /**
          * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
          * @summary List dependent feature flags
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDependentFlags: async (projKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getDependentFlags', 'projKey', projKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('getDependentFlags', 'flagKey', flagKey)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/dependent-flags`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+        getDependentFlags: async (projectKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getDependentFlags', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getDependentFlags', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/dependent-flags`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -14175,23 +14976,23 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
         /**
          * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
          * @summary List dependent feature flags by environment
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDependentFlagsByEnv: async (projKey: string, envKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getDependentFlagsByEnv', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getDependentFlagsByEnv', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('getDependentFlagsByEnv', 'flagKey', flagKey)
-            const localVarPath = `/api/v2/flags/{projKey}/{envKey}/{flagKey}/dependent-flags`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+        getDependentFlagsByEnv: async (projectKey: string, environmentKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getDependentFlagsByEnv', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getDependentFlagsByEnv', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getDependentFlagsByEnv', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flags/{projectKey}/{environmentKey}/{featureFlagKey}/dependent-flags`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -14230,26 +15031,26 @@ export const FeatureFlagsBetaApiFp = function(configuration?: Configuration) {
         /**
          * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
          * @summary List dependent feature flags
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getDependentFlags(projKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MultiEnvironmentDependentFlags>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getDependentFlags(projKey, flagKey, options);
+        async getDependentFlags(projectKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MultiEnvironmentDependentFlags>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDependentFlags(projectKey, featureFlagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
          * @summary List dependent feature flags by environment
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DependentFlagsByEnvironment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getDependentFlagsByEnv(projKey, envKey, flagKey, options);
+        async getDependentFlagsByEnv(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DependentFlagsByEnvironment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDependentFlagsByEnv(projectKey, environmentKey, featureFlagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -14265,25 +15066,25 @@ export const FeatureFlagsBetaApiFactory = function (configuration?: Configuratio
         /**
          * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
          * @summary List dependent feature flags
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDependentFlags(projKey: string, flagKey: string, options?: any): AxiosPromise<MultiEnvironmentDependentFlags> {
-            return localVarFp.getDependentFlags(projKey, flagKey, options).then((request) => request(axios, basePath));
+        getDependentFlags(projectKey: string, featureFlagKey: string, options?: any): AxiosPromise<MultiEnvironmentDependentFlags> {
+            return localVarFp.getDependentFlags(projectKey, featureFlagKey, options).then((request) => request(axios, basePath));
         },
         /**
          * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
          * @summary List dependent feature flags by environment
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: any): AxiosPromise<DependentFlagsByEnvironment> {
-            return localVarFp.getDependentFlagsByEnv(projKey, envKey, flagKey, options).then((request) => request(axios, basePath));
+        getDependentFlagsByEnv(projectKey: string, environmentKey: string, featureFlagKey: string, options?: any): AxiosPromise<DependentFlagsByEnvironment> {
+            return localVarFp.getDependentFlagsByEnv(projectKey, environmentKey, featureFlagKey, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -14298,28 +15099,406 @@ export class FeatureFlagsBetaApi extends BaseAPI {
     /**
      * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
      * @summary List dependent feature flags
-     * @param {string} projKey The project key
-     * @param {string} flagKey The flag key
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsBetaApi
      */
-    public getDependentFlags(projKey: string, flagKey: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsBetaApiFp(this.configuration).getDependentFlags(projKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    public getDependentFlags(projectKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsBetaApiFp(this.configuration).getDependentFlags(projectKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * List dependent flags across all environments for the flag specified in the path parameters. A dependent flag is a flag that uses another flag as a prerequisite.
      * @summary List dependent feature flags by environment
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} flagKey The flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FeatureFlagsBetaApi
      */
-    public getDependentFlagsByEnv(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig) {
-        return FeatureFlagsBetaApiFp(this.configuration).getDependentFlagsByEnv(projKey, envKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    public getDependentFlagsByEnv(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return FeatureFlagsBetaApiFp(this.configuration).getDependentFlagsByEnv(projectKey, environmentKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * FlagLinksBetaApi - axios parameter creator
+ * @export
+ */
+export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create a new flag link. Flag links let you reference external resources and associate them with your flags.
+         * @summary Create flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {FlagLinkPost} flagLinkPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createFlagLink: async (projectKey: string, featureFlagKey: string, flagLinkPost: FlagLinkPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('createFlagLink', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('createFlagLink', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'flagLinkPost' is not null or undefined
+            assertParamExists('createFlagLink', 'flagLinkPost', flagLinkPost)
+            const localVarPath = `/api/v2/flag-links/projects/{projectKey}/flags/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(flagLinkPost, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a flag link by ID or Key.
+         * @summary Delete flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} id The flag link ID or Key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteFlagLink: async (projectKey: string, featureFlagKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteFlagLink', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('deleteFlagLink', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('deleteFlagLink', 'id', id)
+            const localVarPath = `/api/v2/flag-links/projects/{projectKey}/flags/{featureFlagKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a list of all flag links.
+         * @summary List flag links
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFlagLinks: async (projectKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFlagLinks', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getFlagLinks', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flag-links/projects/{projectKey}/flags/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update a flag link. The request body must be a valid JSON patch document. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} id The flag link ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateFlagLink: async (projectKey: string, featureFlagKey: string, id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('updateFlagLink', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('updateFlagLink', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('updateFlagLink', 'id', id)
+            // verify required parameter 'patchOperation' is not null or undefined
+            assertParamExists('updateFlagLink', 'patchOperation', patchOperation)
+            const localVarPath = `/api/v2/flag-links/projects/{projectKey}/flags/{featureFlagKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * FlagLinksBetaApi - functional programming interface
+ * @export
+ */
+export const FlagLinksBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = FlagLinksBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create a new flag link. Flag links let you reference external resources and associate them with your flags.
+         * @summary Create flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {FlagLinkPost} flagLinkPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createFlagLink(projectKey: string, featureFlagKey: string, flagLinkPost: FlagLinkPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagLinkRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createFlagLink(projectKey, featureFlagKey, flagLinkPost, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Delete a flag link by ID or Key.
+         * @summary Delete flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} id The flag link ID or Key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteFlagLink(projectKey: string, featureFlagKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteFlagLink(projectKey, featureFlagKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a list of all flag links.
+         * @summary List flag links
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getFlagLinks(projectKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagLinkCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFlagLinks(projectKey, featureFlagKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Update a flag link. The request body must be a valid JSON patch document. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} id The flag link ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateFlagLink(projectKey: string, featureFlagKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagLinkRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateFlagLink(projectKey, featureFlagKey, id, patchOperation, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * FlagLinksBetaApi - factory interface
+ * @export
+ */
+export const FlagLinksBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = FlagLinksBetaApiFp(configuration)
+    return {
+        /**
+         * Create a new flag link. Flag links let you reference external resources and associate them with your flags.
+         * @summary Create flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {FlagLinkPost} flagLinkPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createFlagLink(projectKey: string, featureFlagKey: string, flagLinkPost: FlagLinkPost, options?: any): AxiosPromise<FlagLinkRep> {
+            return localVarFp.createFlagLink(projectKey, featureFlagKey, flagLinkPost, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a flag link by ID or Key.
+         * @summary Delete flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} id The flag link ID or Key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteFlagLink(projectKey: string, featureFlagKey: string, id: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteFlagLink(projectKey, featureFlagKey, id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a list of all flag links.
+         * @summary List flag links
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFlagLinks(projectKey: string, featureFlagKey: string, options?: any): AxiosPromise<FlagLinkCollectionRep> {
+            return localVarFp.getFlagLinks(projectKey, featureFlagKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update a flag link. The request body must be a valid JSON patch document. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update flag link
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} id The flag link ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateFlagLink(projectKey: string, featureFlagKey: string, id: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<FlagLinkRep> {
+            return localVarFp.updateFlagLink(projectKey, featureFlagKey, id, patchOperation, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * FlagLinksBetaApi - object-oriented interface
+ * @export
+ * @class FlagLinksBetaApi
+ * @extends {BaseAPI}
+ */
+export class FlagLinksBetaApi extends BaseAPI {
+    /**
+     * Create a new flag link. Flag links let you reference external resources and associate them with your flags.
+     * @summary Create flag link
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
+     * @param {FlagLinkPost} flagLinkPost 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagLinksBetaApi
+     */
+    public createFlagLink(projectKey: string, featureFlagKey: string, flagLinkPost: FlagLinkPost, options?: AxiosRequestConfig) {
+        return FlagLinksBetaApiFp(this.configuration).createFlagLink(projectKey, featureFlagKey, flagLinkPost, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a flag link by ID or Key.
+     * @summary Delete flag link
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
+     * @param {string} id The flag link ID or Key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagLinksBetaApi
+     */
+    public deleteFlagLink(projectKey: string, featureFlagKey: string, id: string, options?: AxiosRequestConfig) {
+        return FlagLinksBetaApiFp(this.configuration).deleteFlagLink(projectKey, featureFlagKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a list of all flag links.
+     * @summary List flag links
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagLinksBetaApi
+     */
+    public getFlagLinks(projectKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return FlagLinksBetaApiFp(this.configuration).getFlagLinks(projectKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update a flag link. The request body must be a valid JSON patch document. To learn more, read [Updates](/#section/Overview/Updates).
+     * @summary Update flag link
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
+     * @param {string} id The flag link ID
+     * @param {Array<PatchOperation>} patchOperation 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof FlagLinksBetaApi
+     */
+    public updateFlagLink(projectKey: string, featureFlagKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return FlagLinksBetaApiFp(this.configuration).updateFlagLink(projectKey, featureFlagKey, id, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -14333,26 +15512,26 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
         /**
          * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
          * @summary Create flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {TriggerPost} triggerPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createTriggerWorkflow: async (projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('createTriggerWorkflow', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('createTriggerWorkflow', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('createTriggerWorkflow', 'flagKey', flagKey)
+        createTriggerWorkflow: async (projectKey: string, environmentKey: string, featureFlagKey: string, triggerPost: TriggerPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('createTriggerWorkflow', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('createTriggerWorkflow', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('createTriggerWorkflow', 'featureFlagKey', featureFlagKey)
             // verify required parameter 'triggerPost' is not null or undefined
             assertParamExists('createTriggerWorkflow', 'triggerPost', triggerPost)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/triggers/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -14384,26 +15563,26 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
         /**
          * Delete a flag trigger by ID.
          * @summary Delete flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} id The flag trigger ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTriggerWorkflow: async (projKey: string, envKey: string, flagKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('deleteTriggerWorkflow', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('deleteTriggerWorkflow', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('deleteTriggerWorkflow', 'flagKey', flagKey)
+        deleteTriggerWorkflow: async (projectKey: string, environmentKey: string, featureFlagKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteTriggerWorkflow', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('deleteTriggerWorkflow', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('deleteTriggerWorkflow', 'featureFlagKey', featureFlagKey)
             // verify required parameter 'id' is not null or undefined
             assertParamExists('deleteTriggerWorkflow', 'id', id)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}/{id}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/triggers/{environmentKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14433,26 +15612,26 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a flag trigger by ID.
          * @summary Get flag trigger by ID
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} id The flag trigger ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTriggerWorkflowById: async (projKey: string, flagKey: string, envKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getTriggerWorkflowById', 'projKey', projKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('getTriggerWorkflowById', 'flagKey', flagKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getTriggerWorkflowById', 'envKey', envKey)
+        getTriggerWorkflowById: async (projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getTriggerWorkflowById', 'projectKey', projectKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getTriggerWorkflowById', 'featureFlagKey', featureFlagKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getTriggerWorkflowById', 'environmentKey', environmentKey)
             // verify required parameter 'id' is not null or undefined
             assertParamExists('getTriggerWorkflowById', 'id', id)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}/{id}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/triggers/{environmentKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14482,23 +15661,23 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a list of all flag triggers.
          * @summary List flag triggers
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTriggerWorkflows: async (projKey: string, envKey: string, flagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getTriggerWorkflows', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getTriggerWorkflows', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('getTriggerWorkflows', 'flagKey', flagKey)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)));
+        getTriggerWorkflows: async (projectKey: string, environmentKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getTriggerWorkflows', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getTriggerWorkflows', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getTriggerWorkflows', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/triggers/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -14527,29 +15706,29 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
         /**
          * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
          * @summary Update flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} id The flag trigger ID
          * @param {FlagTriggerInput} flagTriggerInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchTriggerWorkflow: async (projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('patchTriggerWorkflow', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('patchTriggerWorkflow', 'envKey', envKey)
-            // verify required parameter 'flagKey' is not null or undefined
-            assertParamExists('patchTriggerWorkflow', 'flagKey', flagKey)
+        patchTriggerWorkflow: async (projectKey: string, environmentKey: string, featureFlagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'environmentKey', environmentKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('patchTriggerWorkflow', 'featureFlagKey', featureFlagKey)
             // verify required parameter 'id' is not null or undefined
             assertParamExists('patchTriggerWorkflow', 'id', id)
             // verify required parameter 'flagTriggerInput' is not null or undefined
             assertParamExists('patchTriggerWorkflow', 'flagTriggerInput', flagTriggerInput)
-            const localVarPath = `/api/v2/flags/{projKey}/{flagKey}/triggers/{envKey}/{id}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"flagKey"}}`, encodeURIComponent(String(flagKey)))
+            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/triggers/{environmentKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14592,71 +15771,71 @@ export const FlagTriggersApiFp = function(configuration?: Configuration) {
         /**
          * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
          * @summary Create flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {TriggerPost} triggerPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createTriggerWorkflow(projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createTriggerWorkflow(projKey, envKey, flagKey, triggerPost, options);
+        async createTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, triggerPost: TriggerPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createTriggerWorkflow(projectKey, environmentKey, featureFlagKey, triggerPost, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Delete a flag trigger by ID.
          * @summary Delete flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} id The flag trigger ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTriggerWorkflow(projKey, envKey, flagKey, id, options);
+        async deleteTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTriggerWorkflow(projectKey, environmentKey, featureFlagKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a flag trigger by ID.
          * @summary Get flag trigger by ID
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} id The flag trigger ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTriggerWorkflowById(projKey: string, flagKey: string, envKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getTriggerWorkflowById(projKey, flagKey, envKey, id, options);
+        async getTriggerWorkflowById(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTriggerWorkflowById(projectKey, featureFlagKey, environmentKey, id, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a list of all flag triggers.
          * @summary List flag triggers
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTriggerWorkflows(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowCollectionRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getTriggerWorkflows(projKey, envKey, flagKey, options);
+        async getTriggerWorkflows(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTriggerWorkflows(projectKey, environmentKey, featureFlagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
          * @summary Update flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} id The flag trigger ID
          * @param {FlagTriggerInput} flagTriggerInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchTriggerWorkflow(projKey, envKey, flagKey, id, flagTriggerInput, options);
+        async patchTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TriggerWorkflowRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchTriggerWorkflow(projectKey, environmentKey, featureFlagKey, id, flagTriggerInput, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -14672,67 +15851,67 @@ export const FlagTriggersApiFactory = function (configuration?: Configuration, b
         /**
          * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
          * @summary Create flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {TriggerPost} triggerPost 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createTriggerWorkflow(projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options?: any): AxiosPromise<TriggerWorkflowRep> {
-            return localVarFp.createTriggerWorkflow(projKey, envKey, flagKey, triggerPost, options).then((request) => request(axios, basePath));
+        createTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, triggerPost: TriggerPost, options?: any): AxiosPromise<TriggerWorkflowRep> {
+            return localVarFp.createTriggerWorkflow(projectKey, environmentKey, featureFlagKey, triggerPost, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete a flag trigger by ID.
          * @summary Delete flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} id The flag trigger ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteTriggerWorkflow(projKey, envKey, flagKey, id, options).then((request) => request(axios, basePath));
+        deleteTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, id: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteTriggerWorkflow(projectKey, environmentKey, featureFlagKey, id, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a flag trigger by ID.
          * @summary Get flag trigger by ID
-         * @param {string} projKey The project key
-         * @param {string} flagKey The flag key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} featureFlagKey The feature flag key
+         * @param {string} environmentKey The environment key
          * @param {string} id The flag trigger ID
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTriggerWorkflowById(projKey: string, flagKey: string, envKey: string, id: string, options?: any): AxiosPromise<TriggerWorkflowRep> {
-            return localVarFp.getTriggerWorkflowById(projKey, flagKey, envKey, id, options).then((request) => request(axios, basePath));
+        getTriggerWorkflowById(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: any): AxiosPromise<TriggerWorkflowRep> {
+            return localVarFp.getTriggerWorkflowById(projectKey, featureFlagKey, environmentKey, id, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all flag triggers.
          * @summary List flag triggers
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTriggerWorkflows(projKey: string, envKey: string, flagKey: string, options?: any): AxiosPromise<TriggerWorkflowCollectionRep> {
-            return localVarFp.getTriggerWorkflows(projKey, envKey, flagKey, options).then((request) => request(axios, basePath));
+        getTriggerWorkflows(projectKey: string, environmentKey: string, featureFlagKey: string, options?: any): AxiosPromise<TriggerWorkflowCollectionRep> {
+            return localVarFp.getTriggerWorkflows(projectKey, environmentKey, featureFlagKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
          * @summary Update flag trigger
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} flagKey The flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} id The flag trigger ID
          * @param {FlagTriggerInput} flagTriggerInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: any): AxiosPromise<TriggerWorkflowRep> {
-            return localVarFp.patchTriggerWorkflow(projKey, envKey, flagKey, id, flagTriggerInput, options).then((request) => request(axios, basePath));
+        patchTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: any): AxiosPromise<TriggerWorkflowRep> {
+            return localVarFp.patchTriggerWorkflow(projectKey, environmentKey, featureFlagKey, id, flagTriggerInput, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -14747,76 +15926,76 @@ export class FlagTriggersApi extends BaseAPI {
     /**
      * Create a new flag trigger. Triggers let you initiate changes to flag targeting remotely using a unique webhook URL.
      * @summary Create flag trigger
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} flagKey The flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {TriggerPost} triggerPost 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FlagTriggersApi
      */
-    public createTriggerWorkflow(projKey: string, envKey: string, flagKey: string, triggerPost: TriggerPost, options?: AxiosRequestConfig) {
-        return FlagTriggersApiFp(this.configuration).createTriggerWorkflow(projKey, envKey, flagKey, triggerPost, options).then((request) => request(this.axios, this.basePath));
+    public createTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, triggerPost: TriggerPost, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).createTriggerWorkflow(projectKey, environmentKey, featureFlagKey, triggerPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Delete a flag trigger by ID.
      * @summary Delete flag trigger
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} flagKey The flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} id The flag trigger ID
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FlagTriggersApi
      */
-    public deleteTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, options?: AxiosRequestConfig) {
-        return FlagTriggersApiFp(this.configuration).deleteTriggerWorkflow(projKey, envKey, flagKey, id, options).then((request) => request(this.axios, this.basePath));
+    public deleteTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, id: string, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).deleteTriggerWorkflow(projectKey, environmentKey, featureFlagKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a flag trigger by ID.
      * @summary Get flag trigger by ID
-     * @param {string} projKey The project key
-     * @param {string} flagKey The flag key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} featureFlagKey The feature flag key
+     * @param {string} environmentKey The environment key
      * @param {string} id The flag trigger ID
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FlagTriggersApi
      */
-    public getTriggerWorkflowById(projKey: string, flagKey: string, envKey: string, id: string, options?: AxiosRequestConfig) {
-        return FlagTriggersApiFp(this.configuration).getTriggerWorkflowById(projKey, flagKey, envKey, id, options).then((request) => request(this.axios, this.basePath));
+    public getTriggerWorkflowById(projectKey: string, featureFlagKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).getTriggerWorkflowById(projectKey, featureFlagKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of all flag triggers.
      * @summary List flag triggers
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} flagKey The flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FlagTriggersApi
      */
-    public getTriggerWorkflows(projKey: string, envKey: string, flagKey: string, options?: AxiosRequestConfig) {
-        return FlagTriggersApiFp(this.configuration).getTriggerWorkflows(projKey, envKey, flagKey, options).then((request) => request(this.axios, this.basePath));
+    public getTriggerWorkflows(projectKey: string, environmentKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).getTriggerWorkflows(projectKey, environmentKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Update a flag trigger. The request body must be a valid JSON patch or JSON merge patch document. To learn more, read [Updates](/#section/Overview/Updates).
      * @summary Update flag trigger
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} flagKey The flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} id The flag trigger ID
      * @param {FlagTriggerInput} flagTriggerInput 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof FlagTriggersApi
      */
-    public patchTriggerWorkflow(projKey: string, envKey: string, flagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: AxiosRequestConfig) {
-        return FlagTriggersApiFp(this.configuration).patchTriggerWorkflow(projKey, envKey, flagKey, id, flagTriggerInput, options).then((request) => request(this.axios, this.basePath));
+    public patchTriggerWorkflow(projectKey: string, environmentKey: string, featureFlagKey: string, id: string, flagTriggerInput: FlagTriggerInput, options?: AxiosRequestConfig) {
+        return FlagTriggersApiFp(this.configuration).patchTriggerWorkflow(projectKey, environmentKey, featureFlagKey, id, flagTriggerInput, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -15249,6 +16428,650 @@ export class IntegrationAuditLogSubscriptionsApi extends BaseAPI {
 
 
 /**
+ * IntegrationDeliveryConfigurationsBetaApi - axios parameter creator
+ * @export
+ */
+export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create a delivery configuration.
+         * @summary Create delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createIntegrationDeliveryConfiguration: async (projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('createIntegrationDeliveryConfiguration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('createIntegrationDeliveryConfiguration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('createIntegrationDeliveryConfiguration', 'integrationKey', integrationKey)
+            // verify required parameter 'integrationDeliveryConfigurationPost' is not null or undefined
+            assertParamExists('createIntegrationDeliveryConfiguration', 'integrationDeliveryConfigurationPost', integrationDeliveryConfigurationPost)
+            const localVarPath = `/api/v2/integration-capabilities/featureStore/{projectKey}/{environmentKey}/{integrationKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(integrationDeliveryConfigurationPost, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a delivery configuration
+         * @summary Delete delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteIntegrationDeliveryConfiguration: async (projectKey: string, environmentKey: string, integrationKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteIntegrationDeliveryConfiguration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('deleteIntegrationDeliveryConfiguration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('deleteIntegrationDeliveryConfiguration', 'integrationKey', integrationKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('deleteIntegrationDeliveryConfiguration', 'id', id)
+            const localVarPath = `/api/v2/integration-capabilities/featureStore/{projectKey}/{environmentKey}/{integrationKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get delivery configurations by environment.
+         * @summary Get delivery configurations by environment
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getIntegrationDeliveryConfigurationByEnvironment: async (projectKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getIntegrationDeliveryConfigurationByEnvironment', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getIntegrationDeliveryConfigurationByEnvironment', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/integration-capabilities/featureStore/{projectKey}/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get delivery configuration by ID.
+         * @summary Get delivery configuration by ID
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getIntegrationDeliveryConfigurationById: async (projectKey: string, environmentKey: string, integrationKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getIntegrationDeliveryConfigurationById', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getIntegrationDeliveryConfigurationById', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('getIntegrationDeliveryConfigurationById', 'integrationKey', integrationKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('getIntegrationDeliveryConfigurationById', 'id', id)
+            const localVarPath = `/api/v2/integration-capabilities/featureStore/{projectKey}/{environmentKey}/{integrationKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List all delivery configurations.
+         * @summary List all delivery configurations
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getIntegrationDeliveryConfigurations: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/integration-capabilities/featureStore`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update an integration delivery configuration.
+         * @summary Update delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchIntegrationDeliveryConfiguration: async (projectKey: string, environmentKey: string, integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchIntegrationDeliveryConfiguration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchIntegrationDeliveryConfiguration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('patchIntegrationDeliveryConfiguration', 'integrationKey', integrationKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('patchIntegrationDeliveryConfiguration', 'id', id)
+            // verify required parameter 'patchOperation' is not null or undefined
+            assertParamExists('patchIntegrationDeliveryConfiguration', 'patchOperation', patchOperation)
+            const localVarPath = `/api/v2/integration-capabilities/featureStore/{projectKey}/{environmentKey}/{integrationKey}/{id}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Validate the saved delivery configuration.
+         * @summary Validate delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        validateIntegrationDeliveryConfiguration: async (projectKey: string, environmentKey: string, integrationKey: string, id: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('validateIntegrationDeliveryConfiguration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('validateIntegrationDeliveryConfiguration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('validateIntegrationDeliveryConfiguration', 'integrationKey', integrationKey)
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('validateIntegrationDeliveryConfiguration', 'id', id)
+            const localVarPath = `/api/v2/integration-capabilities/featureStore/{projectKey}/{environmentKey}/{integrationKey}/{id}/validate`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * IntegrationDeliveryConfigurationsBetaApi - functional programming interface
+ * @export
+ */
+export const IntegrationDeliveryConfigurationsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create a delivery configuration.
+         * @summary Create delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IntegrationDeliveryConfiguration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, integrationDeliveryConfigurationPost, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Delete a delivery configuration
+         * @summary Delete delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get delivery configurations by environment.
+         * @summary Get delivery configurations by environment
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getIntegrationDeliveryConfigurationByEnvironment(projectKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IntegrationDeliveryConfigurationCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getIntegrationDeliveryConfigurationByEnvironment(projectKey, environmentKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get delivery configuration by ID.
+         * @summary Get delivery configuration by ID
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getIntegrationDeliveryConfigurationById(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IntegrationDeliveryConfiguration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getIntegrationDeliveryConfigurationById(projectKey, environmentKey, integrationKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * List all delivery configurations.
+         * @summary List all delivery configurations
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getIntegrationDeliveryConfigurations(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IntegrationDeliveryConfigurationCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getIntegrationDeliveryConfigurations(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Update an integration delivery configuration.
+         * @summary Update delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IntegrationDeliveryConfiguration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, patchOperation, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Validate the saved delivery configuration.
+         * @summary Validate delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async validateIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IntegrationDeliveryConfigurationResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.validateIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * IntegrationDeliveryConfigurationsBetaApi - factory interface
+ * @export
+ */
+export const IntegrationDeliveryConfigurationsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = IntegrationDeliveryConfigurationsBetaApiFp(configuration)
+    return {
+        /**
+         * Create a delivery configuration.
+         * @summary Create delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options?: any): AxiosPromise<IntegrationDeliveryConfiguration> {
+            return localVarFp.createIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, integrationDeliveryConfigurationPost, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a delivery configuration
+         * @summary Delete delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get delivery configurations by environment.
+         * @summary Get delivery configurations by environment
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getIntegrationDeliveryConfigurationByEnvironment(projectKey: string, environmentKey: string, options?: any): AxiosPromise<IntegrationDeliveryConfigurationCollection> {
+            return localVarFp.getIntegrationDeliveryConfigurationByEnvironment(projectKey, environmentKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get delivery configuration by ID.
+         * @summary Get delivery configuration by ID
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getIntegrationDeliveryConfigurationById(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: any): AxiosPromise<IntegrationDeliveryConfiguration> {
+            return localVarFp.getIntegrationDeliveryConfigurationById(projectKey, environmentKey, integrationKey, id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List all delivery configurations.
+         * @summary List all delivery configurations
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getIntegrationDeliveryConfigurations(options?: any): AxiosPromise<IntegrationDeliveryConfigurationCollection> {
+            return localVarFp.getIntegrationDeliveryConfigurations(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update an integration delivery configuration.
+         * @summary Update delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<IntegrationDeliveryConfiguration> {
+            return localVarFp.patchIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, patchOperation, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Validate the saved delivery configuration.
+         * @summary Validate delivery configuration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key
+         * @param {string} id The configuration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        validateIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: any): AxiosPromise<IntegrationDeliveryConfigurationResponse> {
+            return localVarFp.validateIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * IntegrationDeliveryConfigurationsBetaApi - object-oriented interface
+ * @export
+ * @class IntegrationDeliveryConfigurationsBetaApi
+ * @extends {BaseAPI}
+ */
+export class IntegrationDeliveryConfigurationsBetaApi extends BaseAPI {
+    /**
+     * Create a delivery configuration.
+     * @summary Create delivery configuration
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key
+     * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationDeliveryConfigurationsBetaApi
+     */
+    public createIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options?: AxiosRequestConfig) {
+        return IntegrationDeliveryConfigurationsBetaApiFp(this.configuration).createIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, integrationDeliveryConfigurationPost, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a delivery configuration
+     * @summary Delete delivery configuration
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key
+     * @param {string} id The configuration ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationDeliveryConfigurationsBetaApi
+     */
+    public deleteIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: AxiosRequestConfig) {
+        return IntegrationDeliveryConfigurationsBetaApiFp(this.configuration).deleteIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get delivery configurations by environment.
+     * @summary Get delivery configurations by environment
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationDeliveryConfigurationsBetaApi
+     */
+    public getIntegrationDeliveryConfigurationByEnvironment(projectKey: string, environmentKey: string, options?: AxiosRequestConfig) {
+        return IntegrationDeliveryConfigurationsBetaApiFp(this.configuration).getIntegrationDeliveryConfigurationByEnvironment(projectKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get delivery configuration by ID.
+     * @summary Get delivery configuration by ID
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key
+     * @param {string} id The configuration ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationDeliveryConfigurationsBetaApi
+     */
+    public getIntegrationDeliveryConfigurationById(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: AxiosRequestConfig) {
+        return IntegrationDeliveryConfigurationsBetaApiFp(this.configuration).getIntegrationDeliveryConfigurationById(projectKey, environmentKey, integrationKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List all delivery configurations.
+     * @summary List all delivery configurations
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationDeliveryConfigurationsBetaApi
+     */
+    public getIntegrationDeliveryConfigurations(options?: AxiosRequestConfig) {
+        return IntegrationDeliveryConfigurationsBetaApiFp(this.configuration).getIntegrationDeliveryConfigurations(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update an integration delivery configuration.
+     * @summary Update delivery configuration
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key
+     * @param {string} id The configuration ID
+     * @param {Array<PatchOperation>} patchOperation 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationDeliveryConfigurationsBetaApi
+     */
+    public patchIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return IntegrationDeliveryConfigurationsBetaApiFp(this.configuration).patchIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, patchOperation, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Validate the saved delivery configuration.
+     * @summary Validate delivery configuration
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key
+     * @param {string} id The configuration ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationDeliveryConfigurationsBetaApi
+     */
+    public validateIntegrationDeliveryConfiguration(projectKey: string, environmentKey: string, integrationKey: string, id: string, options?: AxiosRequestConfig) {
+        return IntegrationDeliveryConfigurationsBetaApiFp(this.configuration).validateIntegrationDeliveryConfiguration(projectKey, environmentKey, integrationKey, id, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
  * MetricsApi - axios parameter creator
  * @export
  */
@@ -15258,18 +17081,18 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * Delete a metric by key.
          * @summary Delete metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteMetric: async (projectKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        deleteMetric: async (projectKey: string, metricKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteMetric', 'projectKey', projectKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('deleteMetric', 'key', key)
-            const localVarPath = `/api/v2/metrics/{projectKey}/{key}`
+            // verify required parameter 'metricKey' is not null or undefined
+            assertParamExists('deleteMetric', 'metricKey', metricKey)
+            const localVarPath = `/api/v2/metrics/{projectKey}/{metricKey}`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+                .replace(`{${"metricKey"}}`, encodeURIComponent(String(metricKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -15299,18 +17122,18 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * Get information for a single metric from the specific project.
          * @summary Get metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMetric: async (projectKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getMetric: async (projectKey: string, metricKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getMetric', 'projectKey', projectKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getMetric', 'key', key)
-            const localVarPath = `/api/v2/metrics/{projectKey}/{key}`
+            // verify required parameter 'metricKey' is not null or undefined
+            assertParamExists('getMetric', 'metricKey', metricKey)
+            const localVarPath = `/api/v2/metrics/{projectKey}/{metricKey}`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+                .replace(`{${"metricKey"}}`, encodeURIComponent(String(metricKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -15377,21 +17200,21 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * Patch a metric by key.
          * @summary Update metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchMetric: async (projectKey: string, key: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        patchMetric: async (projectKey: string, metricKey: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchMetric', 'projectKey', projectKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('patchMetric', 'key', key)
+            // verify required parameter 'metricKey' is not null or undefined
+            assertParamExists('patchMetric', 'metricKey', metricKey)
             // verify required parameter 'patchOperation' is not null or undefined
             assertParamExists('patchMetric', 'patchOperation', patchOperation)
-            const localVarPath = `/api/v2/metrics/{projectKey}/{key}`
+            const localVarPath = `/api/v2/metrics/{projectKey}/{metricKey}`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+                .replace(`{${"metricKey"}}`, encodeURIComponent(String(metricKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -15477,24 +17300,24 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * Delete a metric by key.
          * @summary Delete metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteMetric(projectKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteMetric(projectKey, key, options);
+        async deleteMetric(projectKey: string, metricKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteMetric(projectKey, metricKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get information for a single metric from the specific project.
          * @summary Get metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMetric(projectKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getMetric(projectKey, key, options);
+        async getMetric(projectKey: string, metricKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMetric(projectKey, metricKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -15512,13 +17335,13 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * Patch a metric by key.
          * @summary Update metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchMetric(projectKey: string, key: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchMetric(projectKey, key, patchOperation, options);
+        async patchMetric(projectKey: string, metricKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchMetric(projectKey, metricKey, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -15547,23 +17370,23 @@ export const MetricsApiFactory = function (configuration?: Configuration, basePa
          * Delete a metric by key.
          * @summary Delete metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteMetric(projectKey: string, key: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteMetric(projectKey, key, options).then((request) => request(axios, basePath));
+        deleteMetric(projectKey: string, metricKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteMetric(projectKey, metricKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get information for a single metric from the specific project.
          * @summary Get metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMetric(projectKey: string, key: string, options?: any): AxiosPromise<MetricRep> {
-            return localVarFp.getMetric(projectKey, key, options).then((request) => request(axios, basePath));
+        getMetric(projectKey: string, metricKey: string, options?: any): AxiosPromise<MetricRep> {
+            return localVarFp.getMetric(projectKey, metricKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all metrics for the specified project.
@@ -15579,13 +17402,13 @@ export const MetricsApiFactory = function (configuration?: Configuration, basePa
          * Patch a metric by key.
          * @summary Update metric
          * @param {string} projectKey The project key
-         * @param {string} key The metric key
+         * @param {string} metricKey The metric key
          * @param {Array<PatchOperation>} patchOperation 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchMetric(projectKey: string, key: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<MetricRep> {
-            return localVarFp.patchMetric(projectKey, key, patchOperation, options).then((request) => request(axios, basePath));
+        patchMetric(projectKey: string, metricKey: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<MetricRep> {
+            return localVarFp.patchMetric(projectKey, metricKey, patchOperation, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new metric in the specified project. Note that the expected POST body differs depending on the specified kind property.
@@ -15612,26 +17435,26 @@ export class MetricsApi extends BaseAPI {
      * Delete a metric by key.
      * @summary Delete metric
      * @param {string} projectKey The project key
-     * @param {string} key The metric key
+     * @param {string} metricKey The metric key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public deleteMetric(projectKey: string, key: string, options?: AxiosRequestConfig) {
-        return MetricsApiFp(this.configuration).deleteMetric(projectKey, key, options).then((request) => request(this.axios, this.basePath));
+    public deleteMetric(projectKey: string, metricKey: string, options?: AxiosRequestConfig) {
+        return MetricsApiFp(this.configuration).deleteMetric(projectKey, metricKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get information for a single metric from the specific project.
      * @summary Get metric
      * @param {string} projectKey The project key
-     * @param {string} key The metric key
+     * @param {string} metricKey The metric key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public getMetric(projectKey: string, key: string, options?: AxiosRequestConfig) {
-        return MetricsApiFp(this.configuration).getMetric(projectKey, key, options).then((request) => request(this.axios, this.basePath));
+    public getMetric(projectKey: string, metricKey: string, options?: AxiosRequestConfig) {
+        return MetricsApiFp(this.configuration).getMetric(projectKey, metricKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -15650,14 +17473,14 @@ export class MetricsApi extends BaseAPI {
      * Patch a metric by key.
      * @summary Update metric
      * @param {string} projectKey The project key
-     * @param {string} key The metric key
+     * @param {string} metricKey The metric key
      * @param {Array<PatchOperation>} patchOperation 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public patchMetric(projectKey: string, key: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
-        return MetricsApiFp(this.configuration).patchMetric(projectKey, key, patchOperation, options).then((request) => request(this.axios, this.basePath));
+    public patchMetric(projectKey: string, metricKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return MetricsApiFp(this.configuration).patchMetric(projectKey, metricKey, patchOperation, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -16837,7 +18660,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * Delete a scheduled changes workflow
          * @summary Delete scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change id
          * @param {*} [options] Override http request option.
@@ -16886,7 +18709,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * Get a scheduled change that will be applied to the feature flag by ID
          * @summary Get a scheduled change
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change id
          * @param {*} [options] Override http request option.
@@ -16935,7 +18758,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * Get a list of scheduled changes that will be applied to the feature flag.
          * @summary List scheduled changes
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -16980,7 +18803,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
          * @summary Update scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change ID
          * @param {FlagScheduledChangesInput} flagScheduledChangesInput 
@@ -17040,7 +18863,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
          * Create scheduled changes for a feature flag. If the ignoreConficts query parameter is false and the new instructions would conflict with the current state of the feature flag or any existing scheduled changes, the request will fail. If the parameter is true and there are conflicts, the request will succeed as normal.
          * @summary Create scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {PostFlagScheduledChangesInput} postFlagScheduledChangesInput 
          * @param {boolean} [ignoreConflicts] Whether or not to succeed or fail when the new instructions conflict with existing scheduled changes
@@ -17106,7 +18929,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * Delete a scheduled changes workflow
          * @summary Delete scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change id
          * @param {*} [options] Override http request option.
@@ -17120,7 +18943,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * Get a scheduled change that will be applied to the feature flag by ID
          * @summary Get a scheduled change
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change id
          * @param {*} [options] Override http request option.
@@ -17134,7 +18957,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * Get a list of scheduled changes that will be applied to the feature flag.
          * @summary List scheduled changes
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -17147,7 +18970,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
          * @summary Update scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change ID
          * @param {FlagScheduledChangesInput} flagScheduledChangesInput 
@@ -17163,7 +18986,7 @@ export const ScheduledChangesApiFp = function(configuration?: Configuration) {
          * Create scheduled changes for a feature flag. If the ignoreConficts query parameter is false and the new instructions would conflict with the current state of the feature flag or any existing scheduled changes, the request will fail. If the parameter is true and there are conflicts, the request will succeed as normal.
          * @summary Create scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {PostFlagScheduledChangesInput} postFlagScheduledChangesInput 
          * @param {boolean} [ignoreConflicts] Whether or not to succeed or fail when the new instructions conflict with existing scheduled changes
@@ -17188,7 +19011,7 @@ export const ScheduledChangesApiFactory = function (configuration?: Configuratio
          * Delete a scheduled changes workflow
          * @summary Delete scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change id
          * @param {*} [options] Override http request option.
@@ -17201,7 +19024,7 @@ export const ScheduledChangesApiFactory = function (configuration?: Configuratio
          * Get a scheduled change that will be applied to the feature flag by ID
          * @summary Get a scheduled change
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change id
          * @param {*} [options] Override http request option.
@@ -17214,7 +19037,7 @@ export const ScheduledChangesApiFactory = function (configuration?: Configuratio
          * Get a list of scheduled changes that will be applied to the feature flag.
          * @summary List scheduled changes
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -17226,7 +19049,7 @@ export const ScheduledChangesApiFactory = function (configuration?: Configuratio
          * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
          * @summary Update scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} id The scheduled change ID
          * @param {FlagScheduledChangesInput} flagScheduledChangesInput 
@@ -17241,7 +19064,7 @@ export const ScheduledChangesApiFactory = function (configuration?: Configuratio
          * Create scheduled changes for a feature flag. If the ignoreConficts query parameter is false and the new instructions would conflict with the current state of the feature flag or any existing scheduled changes, the request will fail. If the parameter is true and there are conflicts, the request will succeed as normal.
          * @summary Create scheduled changes workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {PostFlagScheduledChangesInput} postFlagScheduledChangesInput 
          * @param {boolean} [ignoreConflicts] Whether or not to succeed or fail when the new instructions conflict with existing scheduled changes
@@ -17265,7 +19088,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * Delete a scheduled changes workflow
      * @summary Delete scheduled changes workflow
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} id The scheduled change id
      * @param {*} [options] Override http request option.
@@ -17280,7 +19103,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * Get a scheduled change that will be applied to the feature flag by ID
      * @summary Get a scheduled change
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} id The scheduled change id
      * @param {*} [options] Override http request option.
@@ -17295,7 +19118,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * Get a list of scheduled changes that will be applied to the feature flag.
      * @summary List scheduled changes
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -17309,7 +19132,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * Update a scheduled change, overriding existing instructions with the new ones.<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).
      * @summary Update scheduled changes workflow
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} id The scheduled change ID
      * @param {FlagScheduledChangesInput} flagScheduledChangesInput 
@@ -17326,7 +19149,7 @@ export class ScheduledChangesApi extends BaseAPI {
      * Create scheduled changes for a feature flag. If the ignoreConficts query parameter is false and the new instructions would conflict with the current state of the feature flag or any existing scheduled changes, the request will fail. If the parameter is true and there are conflicts, the request will succeed as normal.
      * @summary Create scheduled changes workflow
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {PostFlagScheduledChangesInput} postFlagScheduledChangesInput 
      * @param {boolean} [ignoreConflicts] Whether or not to succeed or fail when the new instructions conflict with existing scheduled changes
@@ -17349,23 +19172,23 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Delete a user segment.
          * @summary Delete segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteSegment: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('deleteSegment', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('deleteSegment', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('deleteSegment', 'key', key)
-            const localVarPath = `/api/v2/segments/{projKey}/{envKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        deleteSegment: async (projectKey: string, environmentKey: string, segmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteSegment', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('deleteSegment', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('deleteSegment', 'segmentKey', segmentKey)
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -17394,22 +19217,22 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Get a list of a segment\'s user targets that are scheduled for removal
          * @summary Get expiring user targets for segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} segmentKey The segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringUserTargetsForSegment: async (projKey: string, envKey: string, segmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getExpiringUserTargetsForSegment', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getExpiringUserTargetsForSegment', 'envKey', envKey)
+        getExpiringUserTargetsForSegment: async (projectKey: string, environmentKey: string, segmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getExpiringUserTargetsForSegment', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getExpiringUserTargetsForSegment', 'environmentKey', environmentKey)
             // verify required parameter 'segmentKey' is not null or undefined
             assertParamExists('getExpiringUserTargetsForSegment', 'segmentKey', segmentKey)
-            const localVarPath = `/api/v2/segments/{projKey}/{segmentKey}/expiring-user-targets/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/segments/{projectKey}/{segmentKey}/expiring-user-targets/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -17439,23 +19262,23 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Get a single user segment by key
          * @summary Get segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegment: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getSegment', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getSegment', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getSegment', 'key', key)
-            const localVarPath = `/api/v2/segments/{projKey}/{envKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getSegment: async (projectKey: string, environmentKey: string, segmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getSegment', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getSegment', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('getSegment', 'segmentKey', segmentKey)
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -17484,26 +19307,26 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Returns the membership status (included/excluded) for a given user in this segment. This operation does not support basic Segments.
          * @summary Get Big Segment membership for user
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key.
-         * @param {string} userKey The user key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegmentMembershipForUser: async (projKey: string, envKey: string, key: string, userKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getSegmentMembershipForUser', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getSegmentMembershipForUser', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getSegmentMembershipForUser', 'key', key)
+        getSegmentMembershipForUser: async (projectKey: string, environmentKey: string, segmentKey: string, userKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getSegmentMembershipForUser', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getSegmentMembershipForUser', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('getSegmentMembershipForUser', 'segmentKey', segmentKey)
             // verify required parameter 'userKey' is not null or undefined
             assertParamExists('getSegmentMembershipForUser', 'userKey', userKey)
-            const localVarPath = `/api/v2/segments/{projKey}/{envKey}/{key}/users/{userKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)))
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/users/{userKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)))
                 .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -17533,19 +19356,19 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Get a list of all user segments in the given project
          * @summary List segments
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegments: async (projKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getSegments', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getSegments', 'envKey', envKey)
-            const localVarPath = `/api/v2/segments/{projKey}/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+        getSegments: async (projectKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getSegments', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getSegments', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -17574,25 +19397,25 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
          * @summary Update expiring user targets for segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} segmentKey The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {PatchSegmentRequest} patchSegmentRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringUserTargetsForSegment: async (projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('patchExpiringUserTargetsForSegment', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('patchExpiringUserTargetsForSegment', 'envKey', envKey)
+        patchExpiringUserTargetsForSegment: async (projectKey: string, environmentKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchExpiringUserTargetsForSegment', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchExpiringUserTargetsForSegment', 'environmentKey', environmentKey)
             // verify required parameter 'segmentKey' is not null or undefined
             assertParamExists('patchExpiringUserTargetsForSegment', 'segmentKey', segmentKey)
             // verify required parameter 'patchSegmentRequest' is not null or undefined
             assertParamExists('patchExpiringUserTargetsForSegment', 'patchSegmentRequest', patchSegmentRequest)
-            const localVarPath = `/api/v2/segments/{projKey}/{segmentKey}/expiring-user-targets/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
+            const localVarPath = `/api/v2/segments/{projectKey}/{segmentKey}/expiring-user-targets/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
                 .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -17623,28 +19446,28 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
+         * Update a user segment. The request body must be a valid JSON patch, JSON merge patch, or semantic patch.  ## Using semantic patches on a segment  To use a [semantic patch](/reference#updates-via-semantic-patches) on a segment resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the segment will not be changed. In general, instructions will silently do nothing if the segment is already in the state requested by the patch instruction. For example, `addIncludedUsers` does nothing when the targets have already been included. Specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addIncludedUsers`  Adds the user keys in `values` to the individual user targets included in the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `addExcludedUsers`  Adds the user keys in `values` to the individual user targets excluded from the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `removeIncludedUsers`  Removes the user keys in `values` from the individual user targets included in the segment.  ##### Parameters  - `values`: list of user keys  #### `removeExcludedUsers`  Removes the user keys in `values` from the individual user targets excluded from the segment.  ##### Parameters  - `values`: list of user keys  #### `updateName`  Updates the name of the segment to the string provided in `value`.  ##### Parameters  - `value`: string  ## Using JSON patches on a segment  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch).  For example, to update the description for a segment, use the following request body:  ```json {   \"patch\": [     {       \"op\": \"replace\",       \"path\": \"/description\",       \"value\": \"new description\"     }   ] } ```  To update fields in the segment that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` adds the new entry to the beginning of the array.  For example, to add a rule to a segment, use the following request body:  ```json {   \"patch\":[     {       \"op\": \"add\",       \"path\": \"/rules/0\",       \"value\": {         \"clauses\": [{ \"attribute\": \"email\", \"op\": \"endsWith\", \"values\": [\".edu\"], \"negate\": false }]       }     }   ] } ```  To add or remove users from segments, we recommend using semantic patch. Semantic patch for segments includes specific `instructions` for adding and removing both included and excluded users. 
          * @summary Patch segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchSegment: async (projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('patchSegment', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('patchSegment', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('patchSegment', 'key', key)
+        patchSegment: async (projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchSegment', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchSegment', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('patchSegment', 'segmentKey', segmentKey)
             // verify required parameter 'patchWithComment' is not null or undefined
             assertParamExists('patchSegment', 'patchWithComment', patchWithComment)
-            const localVarPath = `/api/v2/segments/{projKey}/{envKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -17676,22 +19499,22 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Create a new user segment
          * @summary Create segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {SegmentBody} segmentBody 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postSegment: async (projKey: string, envKey: string, segmentBody: SegmentBody, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('postSegment', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('postSegment', 'envKey', envKey)
+        postSegment: async (projectKey: string, environmentKey: string, segmentBody: SegmentBody, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('postSegment', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('postSegment', 'environmentKey', environmentKey)
             // verify required parameter 'segmentBody' is not null or undefined
             assertParamExists('postSegment', 'segmentBody', segmentBody)
-            const localVarPath = `/api/v2/segments/{projKey}/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -17723,26 +19546,26 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Update targets included or excluded in a Big Segment
          * @summary Update targets on a Big Segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {SegmentUserState} segmentUserState 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateBigSegmentTargets: async (projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('updateBigSegmentTargets', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('updateBigSegmentTargets', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('updateBigSegmentTargets', 'key', key)
+        updateBigSegmentTargets: async (projectKey: string, environmentKey: string, segmentKey: string, segmentUserState: SegmentUserState, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('updateBigSegmentTargets', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('updateBigSegmentTargets', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('updateBigSegmentTargets', 'segmentKey', segmentKey)
             // verify required parameter 'segmentUserState' is not null or undefined
             assertParamExists('updateBigSegmentTargets', 'segmentUserState', segmentUserState)
-            const localVarPath = `/api/v2/segments/{projKey}/{envKey}/{key}/users`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/users`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -17784,121 +19607,121 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
         /**
          * Delete a user segment.
          * @summary Delete segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteSegment(projKey, envKey, key, options);
+        async deleteSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteSegment(projectKey, environmentKey, segmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a list of a segment\'s user targets that are scheduled for removal
          * @summary Get expiring user targets for segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} segmentKey The segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringUserTargetsForSegment(projKey, envKey, segmentKey, options);
+        async getExpiringUserTargetsForSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringUserTargetsForSegment(projectKey, environmentKey, segmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a single user segment by key
          * @summary Get segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getSegment(projKey, envKey, key, options);
+        async getSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSegment(projectKey, environmentKey, segmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Returns the membership status (included/excluded) for a given user in this segment. This operation does not support basic Segments.
          * @summary Get Big Segment membership for user
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key.
-         * @param {string} userKey The user key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSegmentMembershipForUser(projKey: string, envKey: string, key: string, userKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentTarget>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getSegmentMembershipForUser(projKey, envKey, key, userKey, options);
+        async getSegmentMembershipForUser(projectKey: string, environmentKey: string, segmentKey: string, userKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentTarget>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSegmentMembershipForUser(projectKey, environmentKey, segmentKey, userKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a list of all user segments in the given project
          * @summary List segments
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSegments(projKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegments>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getSegments(projKey, envKey, options);
+        async getSegments(projectKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegments>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSegments(projectKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
          * @summary Update expiring user targets for segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} segmentKey The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {PatchSegmentRequest} patchSegmentRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringUserTargetsForSegment(projKey, envKey, segmentKey, patchSegmentRequest, options);
+        async patchExpiringUserTargetsForSegment(projectKey: string, environmentKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringUserTargetsForSegment(projectKey, environmentKey, segmentKey, patchSegmentRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
+         * Update a user segment. The request body must be a valid JSON patch, JSON merge patch, or semantic patch.  ## Using semantic patches on a segment  To use a [semantic patch](/reference#updates-via-semantic-patches) on a segment resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the segment will not be changed. In general, instructions will silently do nothing if the segment is already in the state requested by the patch instruction. For example, `addIncludedUsers` does nothing when the targets have already been included. Specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addIncludedUsers`  Adds the user keys in `values` to the individual user targets included in the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `addExcludedUsers`  Adds the user keys in `values` to the individual user targets excluded from the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `removeIncludedUsers`  Removes the user keys in `values` from the individual user targets included in the segment.  ##### Parameters  - `values`: list of user keys  #### `removeExcludedUsers`  Removes the user keys in `values` from the individual user targets excluded from the segment.  ##### Parameters  - `values`: list of user keys  #### `updateName`  Updates the name of the segment to the string provided in `value`.  ##### Parameters  - `value`: string  ## Using JSON patches on a segment  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch).  For example, to update the description for a segment, use the following request body:  ```json {   \"patch\": [     {       \"op\": \"replace\",       \"path\": \"/description\",       \"value\": \"new description\"     }   ] } ```  To update fields in the segment that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` adds the new entry to the beginning of the array.  For example, to add a rule to a segment, use the following request body:  ```json {   \"patch\":[     {       \"op\": \"add\",       \"path\": \"/rules/0\",       \"value\": {         \"clauses\": [{ \"attribute\": \"email\", \"op\": \"endsWith\", \"values\": [\".edu\"], \"negate\": false }]       }     }   ] } ```  To add or remove users from segments, we recommend using semantic patch. Semantic patch for segments includes specific `instructions` for adding and removing both included and excluded users. 
          * @summary Patch segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchSegment(projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchSegment(projKey, envKey, key, patchWithComment, options);
+        async patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Create a new user segment
          * @summary Create segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {SegmentBody} segmentBody 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postSegment(projKey: string, envKey: string, segmentBody: SegmentBody, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postSegment(projKey, envKey, segmentBody, options);
+        async postSegment(projectKey: string, environmentKey: string, segmentBody: SegmentBody, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postSegment(projectKey, environmentKey, segmentBody, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Update targets included or excluded in a Big Segment
          * @summary Update targets on a Big Segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {SegmentUserState} segmentUserState 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateBigSegmentTargets(projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateBigSegmentTargets(projKey, envKey, key, segmentUserState, options);
+        async updateBigSegmentTargets(projectKey: string, environmentKey: string, segmentKey: string, segmentUserState: SegmentUserState, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateBigSegmentTargets(projectKey, environmentKey, segmentKey, segmentUserState, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -17914,113 +19737,113 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
         /**
          * Delete a user segment.
          * @summary Delete segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteSegment(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteSegment(projKey, envKey, key, options).then((request) => request(axios, basePath));
+        deleteSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of a segment\'s user targets that are scheduled for removal
          * @summary Get expiring user targets for segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} segmentKey The segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, options?: any): AxiosPromise<ExpiringUserTargetGetResponse> {
-            return localVarFp.getExpiringUserTargetsForSegment(projKey, envKey, segmentKey, options).then((request) => request(axios, basePath));
+        getExpiringUserTargetsForSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: any): AxiosPromise<ExpiringUserTargetGetResponse> {
+            return localVarFp.getExpiringUserTargetsForSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a single user segment by key
          * @summary Get segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegment(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<UserSegment> {
-            return localVarFp.getSegment(projKey, envKey, key, options).then((request) => request(axios, basePath));
+        getSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: any): AxiosPromise<UserSegment> {
+            return localVarFp.getSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns the membership status (included/excluded) for a given user in this segment. This operation does not support basic Segments.
          * @summary Get Big Segment membership for user
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key.
-         * @param {string} userKey The user key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegmentMembershipForUser(projKey: string, envKey: string, key: string, userKey: string, options?: any): AxiosPromise<BigSegmentTarget> {
-            return localVarFp.getSegmentMembershipForUser(projKey, envKey, key, userKey, options).then((request) => request(axios, basePath));
+        getSegmentMembershipForUser(projectKey: string, environmentKey: string, segmentKey: string, userKey: string, options?: any): AxiosPromise<BigSegmentTarget> {
+            return localVarFp.getSegmentMembershipForUser(projectKey, environmentKey, segmentKey, userKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all user segments in the given project
          * @summary List segments
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSegments(projKey: string, envKey: string, options?: any): AxiosPromise<UserSegments> {
-            return localVarFp.getSegments(projKey, envKey, options).then((request) => request(axios, basePath));
+        getSegments(projectKey: string, environmentKey: string, options?: any): AxiosPromise<UserSegments> {
+            return localVarFp.getSegments(projectKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
          * @summary Update expiring user targets for segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} segmentKey The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {PatchSegmentRequest} patchSegmentRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: any): AxiosPromise<ExpiringUserTargetPatchResponse> {
-            return localVarFp.patchExpiringUserTargetsForSegment(projKey, envKey, segmentKey, patchSegmentRequest, options).then((request) => request(axios, basePath));
+        patchExpiringUserTargetsForSegment(projectKey: string, environmentKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: any): AxiosPromise<ExpiringUserTargetPatchResponse> {
+            return localVarFp.patchExpiringUserTargetsForSegment(projectKey, environmentKey, segmentKey, patchSegmentRequest, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
+         * Update a user segment. The request body must be a valid JSON patch, JSON merge patch, or semantic patch.  ## Using semantic patches on a segment  To use a [semantic patch](/reference#updates-via-semantic-patches) on a segment resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the segment will not be changed. In general, instructions will silently do nothing if the segment is already in the state requested by the patch instruction. For example, `addIncludedUsers` does nothing when the targets have already been included. Specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addIncludedUsers`  Adds the user keys in `values` to the individual user targets included in the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `addExcludedUsers`  Adds the user keys in `values` to the individual user targets excluded from the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `removeIncludedUsers`  Removes the user keys in `values` from the individual user targets included in the segment.  ##### Parameters  - `values`: list of user keys  #### `removeExcludedUsers`  Removes the user keys in `values` from the individual user targets excluded from the segment.  ##### Parameters  - `values`: list of user keys  #### `updateName`  Updates the name of the segment to the string provided in `value`.  ##### Parameters  - `value`: string  ## Using JSON patches on a segment  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch).  For example, to update the description for a segment, use the following request body:  ```json {   \"patch\": [     {       \"op\": \"replace\",       \"path\": \"/description\",       \"value\": \"new description\"     }   ] } ```  To update fields in the segment that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` adds the new entry to the beginning of the array.  For example, to add a rule to a segment, use the following request body:  ```json {   \"patch\":[     {       \"op\": \"add\",       \"path\": \"/rules/0\",       \"value\": {         \"clauses\": [{ \"attribute\": \"email\", \"op\": \"endsWith\", \"values\": [\".edu\"], \"negate\": false }]       }     }   ] } ```  To add or remove users from segments, we recommend using semantic patch. Semantic patch for segments includes specific `instructions` for adding and removing both included and excluded users. 
          * @summary Patch segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The user segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchSegment(projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<UserSegment> {
-            return localVarFp.patchSegment(projKey, envKey, key, patchWithComment, options).then((request) => request(axios, basePath));
+        patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<UserSegment> {
+            return localVarFp.patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new user segment
          * @summary Create segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {SegmentBody} segmentBody 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postSegment(projKey: string, envKey: string, segmentBody: SegmentBody, options?: any): AxiosPromise<UserSegment> {
-            return localVarFp.postSegment(projKey, envKey, segmentBody, options).then((request) => request(axios, basePath));
+        postSegment(projectKey: string, environmentKey: string, segmentBody: SegmentBody, options?: any): AxiosPromise<UserSegment> {
+            return localVarFp.postSegment(projectKey, environmentKey, segmentBody, options).then((request) => request(axios, basePath));
         },
         /**
          * Update targets included or excluded in a Big Segment
          * @summary Update targets on a Big Segment
-         * @param {string} projKey The project key.
-         * @param {string} envKey The environment key.
-         * @param {string} key The segment key.
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
          * @param {SegmentUserState} segmentUserState 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateBigSegmentTargets(projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options?: any): AxiosPromise<void> {
-            return localVarFp.updateBigSegmentTargets(projKey, envKey, key, segmentUserState, options).then((request) => request(axios, basePath));
+        updateBigSegmentTargets(projectKey: string, environmentKey: string, segmentKey: string, segmentUserState: SegmentUserState, options?: any): AxiosPromise<void> {
+            return localVarFp.updateBigSegmentTargets(projectKey, environmentKey, segmentKey, segmentUserState, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -18035,130 +19858,635 @@ export class SegmentsApi extends BaseAPI {
     /**
      * Delete a user segment.
      * @summary Delete segment
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} key The user segment key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public deleteSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).deleteSegment(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
+    public deleteSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).deleteSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of a segment\'s user targets that are scheduled for removal
      * @summary Get expiring user targets for segment
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} segmentKey The segment key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).getExpiringUserTargetsForSegment(projKey, envKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
+    public getExpiringUserTargetsForSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).getExpiringUserTargetsForSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a single user segment by key
      * @summary Get segment
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} key The segment key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getSegment(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).getSegment(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
+    public getSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).getSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Returns the membership status (included/excluded) for a given user in this segment. This operation does not support basic Segments.
      * @summary Get Big Segment membership for user
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} key The segment key.
-     * @param {string} userKey The user key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
+     * @param {string} userKey The user key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getSegmentMembershipForUser(projKey: string, envKey: string, key: string, userKey: string, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).getSegmentMembershipForUser(projKey, envKey, key, userKey, options).then((request) => request(this.axios, this.basePath));
+    public getSegmentMembershipForUser(projectKey: string, environmentKey: string, segmentKey: string, userKey: string, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).getSegmentMembershipForUser(projectKey, environmentKey, segmentKey, userKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of all user segments in the given project
      * @summary List segments
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public getSegments(projKey: string, envKey: string, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).getSegments(projKey, envKey, options).then((request) => request(this.axios, this.basePath));
+    public getSegments(projectKey: string, environmentKey: string, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).getSegments(projectKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Update the list of a segment\'s user targets that are scheduled for removal<br /><br />Requires a semantic patch representation of the desired changes to the resource. To learn more about semantic patches, read [Updates](/reference#updates-via-semantic-patches).<br /><br />If the request is well-formed but any of its instructions failed to process, this operation returns status code `200`. In this case, the response `errors` array will be non-empty.
      * @summary Update expiring user targets for segment
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} segmentKey The user segment key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
      * @param {PatchSegmentRequest} patchSegmentRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public patchExpiringUserTargetsForSegment(projKey: string, envKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).patchExpiringUserTargetsForSegment(projKey, envKey, segmentKey, patchSegmentRequest, options).then((request) => request(this.axios, this.basePath));
+    public patchExpiringUserTargetsForSegment(projectKey: string, environmentKey: string, segmentKey: string, patchSegmentRequest: PatchSegmentRequest, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).patchExpiringUserTargetsForSegment(projectKey, environmentKey, segmentKey, patchSegmentRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Update a user segment. The request body must be a valid JSON patch or JSON merge patch document. To learn more about semantic patches, read [Updates](/#section/Overview/Updates).
+     * Update a user segment. The request body must be a valid JSON patch, JSON merge patch, or semantic patch.  ## Using semantic patches on a segment  To use a [semantic patch](/reference#updates-via-semantic-patches) on a segment resource, you must include a header in the request. If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  Use this header:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  The body of a semantic patch request takes the following three properties:  1. `comment` (string): (Optional) A description of the update. 1. `environmentKey` (string): (Required) The key of the LaunchDarkly environment. 1. `instructions` (array): (Required) The list of actions to be performed by the update. Each action in the list must be an object/hash table with a `kind` property that indicates the instruction. Depending on the `kind`, the API may require other parameters. When this is the case, add the parameters as additional fields to the instruction object. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the segment will not be changed. In general, instructions will silently do nothing if the segment is already in the state requested by the patch instruction. For example, `addIncludedUsers` does nothing when the targets have already been included. Specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addIncludedUsers`  Adds the user keys in `values` to the individual user targets included in the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `addExcludedUsers`  Adds the user keys in `values` to the individual user targets excluded from the segment. Returns an error if this causes the same user key to be both included and excluded.  ##### Parameters  - `values`: list of user keys  #### `removeIncludedUsers`  Removes the user keys in `values` from the individual user targets included in the segment.  ##### Parameters  - `values`: list of user keys  #### `removeExcludedUsers`  Removes the user keys in `values` from the individual user targets excluded from the segment.  ##### Parameters  - `values`: list of user keys  #### `updateName`  Updates the name of the segment to the string provided in `value`.  ##### Parameters  - `value`: string  ## Using JSON patches on a segment  If you do not include the header described above, you can use [JSON patch](/reference#updates-via-json-patch).  For example, to update the description for a segment, use the following request body:  ```json {   \"patch\": [     {       \"op\": \"replace\",       \"path\": \"/description\",       \"value\": \"new description\"     }   ] } ```  To update fields in the segment that are arrays, set the `path` to the name of the field and then append `/<array index>`. Using `/0` adds the new entry to the beginning of the array.  For example, to add a rule to a segment, use the following request body:  ```json {   \"patch\":[     {       \"op\": \"add\",       \"path\": \"/rules/0\",       \"value\": {         \"clauses\": [{ \"attribute\": \"email\", \"op\": \"endsWith\", \"values\": [\".edu\"], \"negate\": false }]       }     }   ] } ```  To add or remove users from segments, we recommend using semantic patch. Semantic patch for segments includes specific `instructions` for adding and removing both included and excluded users. 
      * @summary Patch segment
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} key The user segment key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
      * @param {PatchWithComment} patchWithComment 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public patchSegment(projKey: string, envKey: string, key: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).patchSegment(projKey, envKey, key, patchWithComment, options).then((request) => request(this.axios, this.basePath));
+    public patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Create a new user segment
      * @summary Create segment
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {SegmentBody} segmentBody 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public postSegment(projKey: string, envKey: string, segmentBody: SegmentBody, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).postSegment(projKey, envKey, segmentBody, options).then((request) => request(this.axios, this.basePath));
+    public postSegment(projectKey: string, environmentKey: string, segmentBody: SegmentBody, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).postSegment(projectKey, environmentKey, segmentBody, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Update targets included or excluded in a Big Segment
      * @summary Update targets on a Big Segment
-     * @param {string} projKey The project key.
-     * @param {string} envKey The environment key.
-     * @param {string} key The segment key.
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
      * @param {SegmentUserState} segmentUserState 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
      */
-    public updateBigSegmentTargets(projKey: string, envKey: string, key: string, segmentUserState: SegmentUserState, options?: AxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).updateBigSegmentTargets(projKey, envKey, key, segmentUserState, options).then((request) => request(this.axios, this.basePath));
+    public updateBigSegmentTargets(projectKey: string, environmentKey: string, segmentKey: string, segmentUserState: SegmentUserState, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).updateBigSegmentTargets(projectKey, environmentKey, segmentKey, segmentUserState, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * SegmentsBetaApi - axios parameter creator
+ * @export
+ */
+export const SegmentsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Starts a new export process for a Big Segment
+         * @summary Create Big Segment export
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBigSegmentExport: async (projectKey: string, environmentKey: string, segmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('createBigSegmentExport', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('createBigSegmentExport', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('createBigSegmentExport', 'segmentKey', segmentKey)
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/exports`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Starts a new import process for a Big Segment
+         * @summary Create Big Segment import
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBigSegmentImport: async (projectKey: string, environmentKey: string, segmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('createBigSegmentImport', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('createBigSegmentImport', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('createBigSegmentImport', 'segmentKey', segmentKey)
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/imports`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns info about a Big Segment export process.
+         * @summary Get Big Segment export
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} exportID The export ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentExport: async (projectKey: string, environmentKey: string, segmentKey: string, exportID: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getBigSegmentExport', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getBigSegmentExport', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('getBigSegmentExport', 'segmentKey', segmentKey)
+            // verify required parameter 'exportID' is not null or undefined
+            assertParamExists('getBigSegmentExport', 'exportID', exportID)
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/exports/{exportID}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)))
+                .replace(`{${"exportID"}}`, encodeURIComponent(String(exportID)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns info about a Big Segment import process.
+         * @summary Get Big Segment import
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} importID The import ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentImport: async (projectKey: string, environmentKey: string, segmentKey: string, importID: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getBigSegmentImport', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getBigSegmentImport', 'environmentKey', environmentKey)
+            // verify required parameter 'segmentKey' is not null or undefined
+            assertParamExists('getBigSegmentImport', 'segmentKey', segmentKey)
+            // verify required parameter 'importID' is not null or undefined
+            assertParamExists('getBigSegmentImport', 'importID', importID)
+            const localVarPath = `/api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/imports/{importID}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"segmentKey"}}`, encodeURIComponent(String(segmentKey)))
+                .replace(`{${"importID"}}`, encodeURIComponent(String(importID)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * SegmentsBetaApi - functional programming interface
+ * @export
+ */
+export const SegmentsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = SegmentsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Starts a new export process for a Big Segment
+         * @summary Create Big Segment export
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createBigSegmentExport(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createBigSegmentExport(projectKey, environmentKey, segmentKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Starts a new import process for a Big Segment
+         * @summary Create Big Segment import
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createBigSegmentImport(projectKey, environmentKey, segmentKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Returns info about a Big Segment export process.
+         * @summary Get Big Segment export
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} exportID The export ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getBigSegmentExport(projectKey: string, environmentKey: string, segmentKey: string, exportID: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Export>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getBigSegmentExport(projectKey, environmentKey, segmentKey, exportID, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Returns info about a Big Segment import process.
+         * @summary Get Big Segment import
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} importID The import ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, importID: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Import>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getBigSegmentImport(projectKey, environmentKey, segmentKey, importID, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * SegmentsBetaApi - factory interface
+ * @export
+ */
+export const SegmentsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = SegmentsBetaApiFp(configuration)
+    return {
+        /**
+         * Starts a new export process for a Big Segment
+         * @summary Create Big Segment export
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBigSegmentExport(projectKey: string, environmentKey: string, segmentKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.createBigSegmentExport(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Starts a new import process for a Big Segment
+         * @summary Create Big Segment import
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.createBigSegmentImport(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns info about a Big Segment export process.
+         * @summary Get Big Segment export
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} exportID The export ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentExport(projectKey: string, environmentKey: string, segmentKey: string, exportID: string, options?: any): AxiosPromise<Export> {
+            return localVarFp.getBigSegmentExport(projectKey, environmentKey, segmentKey, exportID, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns info about a Big Segment import process.
+         * @summary Get Big Segment import
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} segmentKey The segment key
+         * @param {string} importID The import ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, importID: string, options?: any): AxiosPromise<Import> {
+            return localVarFp.getBigSegmentImport(projectKey, environmentKey, segmentKey, importID, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * SegmentsBetaApi - object-oriented interface
+ * @export
+ * @class SegmentsBetaApi
+ * @extends {BaseAPI}
+ */
+export class SegmentsBetaApi extends BaseAPI {
+    /**
+     * Starts a new export process for a Big Segment
+     * @summary Create Big Segment export
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SegmentsBetaApi
+     */
+    public createBigSegmentExport(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig) {
+        return SegmentsBetaApiFp(this.configuration).createBigSegmentExport(projectKey, environmentKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Starts a new import process for a Big Segment
+     * @summary Create Big Segment import
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SegmentsBetaApi
+     */
+    public createBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig) {
+        return SegmentsBetaApiFp(this.configuration).createBigSegmentImport(projectKey, environmentKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns info about a Big Segment export process.
+     * @summary Get Big Segment export
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
+     * @param {string} exportID The export ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SegmentsBetaApi
+     */
+    public getBigSegmentExport(projectKey: string, environmentKey: string, segmentKey: string, exportID: string, options?: AxiosRequestConfig) {
+        return SegmentsBetaApiFp(this.configuration).getBigSegmentExport(projectKey, environmentKey, segmentKey, exportID, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns info about a Big Segment import process.
+     * @summary Get Big Segment import
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} segmentKey The segment key
+     * @param {string} importID The import ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SegmentsBetaApi
+     */
+    public getBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, importID: string, options?: AxiosRequestConfig) {
+        return SegmentsBetaApiFp(this.configuration).getBigSegmentImport(projectKey, environmentKey, segmentKey, importID, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * TagsApi - axios parameter creator
+ * @export
+ */
+export const TagsApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Get a list of tags.
+         * @summary List tags
+         * @param {string} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;. Returns all types by default.
+         * @param {string} [pre] Return tags with the specified prefix
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTags: async (kind?: string, pre?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/tags`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (kind !== undefined) {
+                localVarQueryParameter['kind'] = kind;
+            }
+
+            if (pre !== undefined) {
+                localVarQueryParameter['pre'] = pre;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * TagsApi - functional programming interface
+ * @export
+ */
+export const TagsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = TagsApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Get a list of tags.
+         * @summary List tags
+         * @param {string} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;. Returns all types by default.
+         * @param {string} [pre] Return tags with the specified prefix
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTags(kind?: string, pre?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TagCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTags(kind, pre, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * TagsApi - factory interface
+ * @export
+ */
+export const TagsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = TagsApiFp(configuration)
+    return {
+        /**
+         * Get a list of tags.
+         * @summary List tags
+         * @param {string} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;. Returns all types by default.
+         * @param {string} [pre] Return tags with the specified prefix
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTags(kind?: string, pre?: string, options?: any): AxiosPromise<TagCollection> {
+            return localVarFp.getTags(kind, pre, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * TagsApi - object-oriented interface
+ * @export
+ * @class TagsApi
+ * @extends {BaseAPI}
+ */
+export class TagsApi extends BaseAPI {
+    /**
+     * Get a list of tags.
+     * @summary List tags
+     * @param {string} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;. Returns all types by default.
+     * @param {string} [pre] Return tags with the specified prefix
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TagsApi
+     */
+    public getTags(kind?: string, pre?: string, options?: AxiosRequestConfig) {
+        return TagsApiFp(this.configuration).getTags(kind, pre, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -18172,15 +20500,15 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
         /**
          * Delete a team by key
          * @summary Delete team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTeam: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('deleteTeam', 'key', key)
-            const localVarPath = `/api/v2/teams/{key}`
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        deleteTeam: async (teamKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'teamKey' is not null or undefined
+            assertParamExists('deleteTeam', 'teamKey', teamKey)
+            const localVarPath = `/api/v2/teams/{teamKey}`
+                .replace(`{${"teamKey"}}`, encodeURIComponent(String(teamKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18209,15 +20537,15 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
         /**
          * Fetch a team by key
          * @summary Get team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeam: async (key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getTeam', 'key', key)
-            const localVarPath = `/api/v2/teams/{key}`
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getTeam: async (teamKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'teamKey' is not null or undefined
+            assertParamExists('getTeam', 'teamKey', teamKey)
+            const localVarPath = `/api/v2/teams/{teamKey}`
+                .replace(`{${"teamKey"}}`, encodeURIComponent(String(teamKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18231,6 +20559,100 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
 
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Fetch the maintainers that have been assigned to the team.
+         * @summary Get team maintainers
+         * @param {string} teamKey The team key
+         * @param {number} [limit] The number of maintainers to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTeamMaintainers: async (teamKey: string, limit?: number, offset?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'teamKey' is not null or undefined
+            assertParamExists('getTeamMaintainers', 'teamKey', teamKey)
+            const localVarPath = `/api/v2/teams/{teamKey}/maintainers`
+                .replace(`{${"teamKey"}}`, encodeURIComponent(String(teamKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Fetch the custom roles that have been assigned to the team.
+         * @summary Get team custom roles
+         * @param {string} teamKey The team key
+         * @param {number} [limit] The number of roles to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTeamRoles: async (teamKey: string, limit?: number, offset?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'teamKey' is not null or undefined
+            assertParamExists('getTeamRoles', 'teamKey', teamKey)
+            const localVarPath = `/api/v2/teams/{teamKey}/roles`
+                .replace(`{${"teamKey"}}`, encodeURIComponent(String(teamKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
 
 
     
@@ -18294,18 +20716,18 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
         /**
          * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
          * @summary Update team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {TeamPatchInput} teamPatchInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchTeam: async (key: string, teamPatchInput: TeamPatchInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('patchTeam', 'key', key)
+        patchTeam: async (teamKey: string, teamPatchInput: TeamPatchInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'teamKey' is not null or undefined
+            assertParamExists('patchTeam', 'teamKey', teamKey)
             // verify required parameter 'teamPatchInput' is not null or undefined
             assertParamExists('patchTeam', 'teamPatchInput', teamPatchInput)
-            const localVarPath = `/api/v2/teams/{key}`
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            const localVarPath = `/api/v2/teams/{teamKey}`
+                .replace(`{${"teamKey"}}`, encodeURIComponent(String(teamKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18376,16 +20798,16 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
         /**
          * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
          * @summary Add members to team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {any} [file] CSV file containing email addresses
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postTeamMembers: async (key: string, file?: any, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('postTeamMembers', 'key', key)
-            const localVarPath = `/api/v2/teams/{key}/members`
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        postTeamMembers: async (teamKey: string, file?: any, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'teamKey' is not null or undefined
+            assertParamExists('postTeamMembers', 'teamKey', teamKey)
+            const localVarPath = `/api/v2/teams/{teamKey}/members`
+                .replace(`{${"teamKey"}}`, encodeURIComponent(String(teamKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18432,23 +20854,49 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
         /**
          * Delete a team by key
          * @summary Delete team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteTeam(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTeam(key, options);
+        async deleteTeam(teamKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTeam(teamKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Fetch a team by key
          * @summary Get team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTeam(key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpandedTeamRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getTeam(key, options);
+        async getTeam(teamKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Team>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTeam(teamKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Fetch the maintainers that have been assigned to the team.
+         * @summary Get team maintainers
+         * @param {string} teamKey The team key
+         * @param {number} [limit] The number of maintainers to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTeamMaintainers(teamKey: string, limit?: number, offset?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamMaintainers>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTeamMaintainers(teamKey, limit, offset, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Fetch the custom roles that have been assigned to the team.
+         * @summary Get team custom roles
+         * @param {string} teamKey The team key
+         * @param {number} [limit] The number of roles to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTeamRoles(teamKey: string, limit?: number, offset?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCustomRoles>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTeamRoles(teamKey, limit, offset, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -18460,20 +20908,20 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTeams(limit?: number, offset?: number, filter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamCollectionRep>> {
+        async getTeams(limit?: number, offset?: number, filter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Teams>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getTeams(limit, offset, filter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
          * @summary Update team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {TeamPatchInput} teamPatchInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpandedTeamRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchTeam(key, teamPatchInput, options);
+        async patchTeam(teamKey: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Team>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchTeam(teamKey, teamPatchInput, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -18483,20 +20931,20 @@ export const TeamsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postTeam(teamPostInput: TeamPostInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamRep>> {
+        async postTeam(teamPostInput: TeamPostInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Team>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postTeam(teamPostInput, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
          * @summary Add members to team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {any} [file] CSV file containing email addresses
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postTeamMembers(key: string, file?: any, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamImportsRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postTeamMembers(key, file, options);
+        async postTeamMembers(teamKey: string, file?: any, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TeamImportsRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postTeamMembers(teamKey, file, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -18512,22 +20960,46 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
         /**
          * Delete a team by key
          * @summary Delete team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteTeam(key: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteTeam(key, options).then((request) => request(axios, basePath));
+        deleteTeam(teamKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteTeam(teamKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Fetch a team by key
          * @summary Get team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeam(key: string, options?: any): AxiosPromise<ExpandedTeamRep> {
-            return localVarFp.getTeam(key, options).then((request) => request(axios, basePath));
+        getTeam(teamKey: string, options?: any): AxiosPromise<Team> {
+            return localVarFp.getTeam(teamKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Fetch the maintainers that have been assigned to the team.
+         * @summary Get team maintainers
+         * @param {string} teamKey The team key
+         * @param {number} [limit] The number of maintainers to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTeamMaintainers(teamKey: string, limit?: number, offset?: number, options?: any): AxiosPromise<TeamMaintainers> {
+            return localVarFp.getTeamMaintainers(teamKey, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Fetch the custom roles that have been assigned to the team.
+         * @summary Get team custom roles
+         * @param {string} teamKey The team key
+         * @param {number} [limit] The number of roles to return in the response. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTeamRoles(teamKey: string, limit?: number, offset?: number, options?: any): AxiosPromise<TeamCustomRoles> {
+            return localVarFp.getTeamRoles(teamKey, limit, offset, options).then((request) => request(axios, basePath));
         },
         /**
          * Return a list of teams.  By default, this returns the first 20 teams. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering teams  LaunchDarkly supports the `query` field for filtering. `query` is a string that matches against the teams\' names and keys. It is not case sensitive. For example, the filter `query:abc` matches teams with the string `abc` in their name or key. 
@@ -18538,19 +21010,19 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTeams(limit?: number, offset?: number, filter?: string, options?: any): AxiosPromise<TeamCollectionRep> {
+        getTeams(limit?: number, offset?: number, filter?: string, options?: any): AxiosPromise<Teams> {
             return localVarFp.getTeams(limit, offset, filter, options).then((request) => request(axios, basePath));
         },
         /**
          * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
          * @summary Update team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {TeamPatchInput} teamPatchInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: any): AxiosPromise<ExpandedTeamRep> {
-            return localVarFp.patchTeam(key, teamPatchInput, options).then((request) => request(axios, basePath));
+        patchTeam(teamKey: string, teamPatchInput: TeamPatchInput, options?: any): AxiosPromise<Team> {
+            return localVarFp.patchTeam(teamKey, teamPatchInput, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a team
@@ -18559,19 +21031,19 @@ export const TeamsBetaApiFactory = function (configuration?: Configuration, base
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postTeam(teamPostInput: TeamPostInput, options?: any): AxiosPromise<TeamRep> {
+        postTeam(teamPostInput: TeamPostInput, options?: any): AxiosPromise<Team> {
             return localVarFp.postTeam(teamPostInput, options).then((request) => request(axios, basePath));
         },
         /**
          * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
          * @summary Add members to team
-         * @param {string} key The team key
+         * @param {string} teamKey The team key
          * @param {any} [file] CSV file containing email addresses
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postTeamMembers(key: string, file?: any, options?: any): AxiosPromise<TeamImportsRep> {
-            return localVarFp.postTeamMembers(key, file, options).then((request) => request(axios, basePath));
+        postTeamMembers(teamKey: string, file?: any, options?: any): AxiosPromise<TeamImportsRep> {
+            return localVarFp.postTeamMembers(teamKey, file, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -18586,25 +21058,53 @@ export class TeamsBetaApi extends BaseAPI {
     /**
      * Delete a team by key
      * @summary Delete team
-     * @param {string} key The team key
+     * @param {string} teamKey The team key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public deleteTeam(key: string, options?: AxiosRequestConfig) {
-        return TeamsBetaApiFp(this.configuration).deleteTeam(key, options).then((request) => request(this.axios, this.basePath));
+    public deleteTeam(teamKey: string, options?: AxiosRequestConfig) {
+        return TeamsBetaApiFp(this.configuration).deleteTeam(teamKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Fetch a team by key
      * @summary Get team
-     * @param {string} key The team key
+     * @param {string} teamKey The team key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public getTeam(key: string, options?: AxiosRequestConfig) {
-        return TeamsBetaApiFp(this.configuration).getTeam(key, options).then((request) => request(this.axios, this.basePath));
+    public getTeam(teamKey: string, options?: AxiosRequestConfig) {
+        return TeamsBetaApiFp(this.configuration).getTeam(teamKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Fetch the maintainers that have been assigned to the team.
+     * @summary Get team maintainers
+     * @param {string} teamKey The team key
+     * @param {number} [limit] The number of maintainers to return in the response. Defaults to 20.
+     * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TeamsBetaApi
+     */
+    public getTeamMaintainers(teamKey: string, limit?: number, offset?: number, options?: AxiosRequestConfig) {
+        return TeamsBetaApiFp(this.configuration).getTeamMaintainers(teamKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Fetch the custom roles that have been assigned to the team.
+     * @summary Get team custom roles
+     * @param {string} teamKey The team key
+     * @param {number} [limit] The number of roles to return in the response. Defaults to 20.
+     * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 would skip the first ten items and then return the next &#x60;limit&#x60; items.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof TeamsBetaApi
+     */
+    public getTeamRoles(teamKey: string, limit?: number, offset?: number, options?: AxiosRequestConfig) {
+        return TeamsBetaApiFp(this.configuration).getTeamRoles(teamKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18624,14 +21124,14 @@ export class TeamsBetaApi extends BaseAPI {
     /**
      * Perform a partial update to a team.  The body of a semantic patch request takes the following three properties:  1. comment `string`: (Optional) A description of the update. 1. instructions `array`: (Required) The action or list of actions to be performed by the update. Each update action in the list must be an object/hash table with a `kind` property, although depending on the action, other properties may be necessary. Read below for more information on the specific supported semantic patch instructions.  If any instruction in the patch encounters an error, the error will be returned and the flag will not be changed. In general, instructions will silently do nothing if the flag is already in the state requested by the patch instruction. They will generally error if a parameter refers to something that does not exist. Other specific error conditions are noted in the instruction descriptions.  ### Instructions  #### `addCustomRoles`  Adds custom roles to the team. Team members will have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `removeCustomRoles`  Removes the custom roles on the team. Team members will no longer have these custom roles granted to them.  ##### Parameters  - `values`: list of custom role keys  #### `addMembers`  Adds members to the team.  ##### Parameters  - `values`: list of member IDs  #### `removeMembers`  Removes members from the team.  ##### Parameters  - `values`: list of member IDs  #### `addPermissionGrants`  Adds permission grants to members for the team, allowing them to, for example, act as a team maintainer. A permission grant may have either an `actionSet` or a list of `actions` but not both at the same time. The members do not have to be team members to have a permission grant for the team.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `removePermissionGrants`  Removes permission grants from members for the team. The `actionSet` and `actions` must match an existing permission grant.  ##### Parameters  - `actionSet`: name of the action set - `actions`: list of actions - `memberIDs`: list of member IDs  #### `updateDescription`  Updates the team\'s description.  ##### Parameters  - `value`: the team\'s new description  #### `updateName`  Updates the team\'s name.  ##### Parameters  - `value`: the team\'s new name 
      * @summary Update team
-     * @param {string} key The team key
+     * @param {string} teamKey The team key
      * @param {TeamPatchInput} teamPatchInput 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public patchTeam(key: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig) {
-        return TeamsBetaApiFp(this.configuration).patchTeam(key, teamPatchInput, options).then((request) => request(this.axios, this.basePath));
+    public patchTeam(teamKey: string, teamPatchInput: TeamPatchInput, options?: AxiosRequestConfig) {
+        return TeamsBetaApiFp(this.configuration).patchTeam(teamKey, teamPatchInput, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18649,14 +21149,14 @@ export class TeamsBetaApi extends BaseAPI {
     /**
      * Add multiple members to an existing team by uploading a CSV file of member email addresses. Your CSV file must include email addresses in the first column. You can include data in additional columns, but LaunchDarkly ignores all data outside the first column. Headers are optional.  **Members are only added on a `201` response.** A `207` indicates the CSV file contains a combination of valid and invalid entries and will _not_ result in any members being added to the team.  On a `207` response, if an entry contains bad user input the `message` field will contain the row number as well as the reason for the error. The `message` field will be omitted if the entry is valid.  Example `207` response: ```json {   \"items\": [     {       \"status\": \"success\",       \"value\": \"a-valid-email@launchdarkly.com\"     },     {       \"message\": \"Line 2: empty row\",       \"status\": \"error\",       \"value\": \"\"     },     {       \"message\": \"Line 3: email already exists in the specified team\",       \"status\": \"error\",       \"value\": \"existing-team-member@launchdarkly.com\"     },     {       \"message\": \"Line 4: invalid email formatting\",       \"status\": \"error\",       \"value\": \"invalid email format\"     }   ] } ```  Message | Resolution --- | --- Empty row | This line is blank. Add an email address and try again. Duplicate entry | This email address appears in the file twice. Remove the email from the file and try again. Email already exists in the specified team | This member is already on your team. Remove the email from the file and try again. Invalid formatting | This email address is not formatted correctly. Fix the formatting and try again. Email does not belong to a LaunchDarkly member | The email address doesn\'t belong to a LaunchDarkly account member. Invite them to LaunchDarkly, then re-add them to the team.  On a `400` response, the `message` field may contain errors specific to this endpoint.  Example `400` response: ```json {   \"code\": \"invalid_request\",   \"message\": \"Unable to process file\" } ```  Message | Resolution --- | --- Unable to process file | LaunchDarkly could not process the file for an unspecified reason. Review your file for errors and try again. File exceeds 25mb | Break up your file into multiple files of less than 25mbs each. All emails have invalid formatting | None of the email addresses in the file are in the correct format. Fix the formatting and try again. All emails belong to existing team members | All listed members are already on this team. Populate the file with member emails that do not belong to the team and try again. File is empty | The CSV file does not contain any email addresses. Populate the file and try again. No emails belong to members of your LaunchDarkly organization | None of the email addresses belong to members of your LaunchDarkly account. Invite these members to LaunchDarkly, then re-add them to the team. 
      * @summary Add members to team
-     * @param {string} key The team key
+     * @param {string} teamKey The team key
      * @param {any} [file] CSV file containing email addresses
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof TeamsBetaApi
      */
-    public postTeamMembers(key: string, file?: any, options?: AxiosRequestConfig) {
-        return TeamsBetaApiFp(this.configuration).postTeamMembers(key, file, options).then((request) => request(this.axios, this.basePath));
+    public postTeamMembers(teamKey: string, file?: any, options?: AxiosRequestConfig) {
+        return TeamsBetaApiFp(this.configuration).postTeamMembers(teamKey, file, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -18670,23 +21170,23 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a list of flags for which the given user is scheduled for removal.
          * @summary Get expiring dates on flags for user
-         * @param {string} projKey The project key.
-         * @param {string} userKey The user key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} userKey The user key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringFlagsForUser: async (projKey: string, userKey: string, envKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getExpiringFlagsForUser', 'projKey', projKey)
+        getExpiringFlagsForUser: async (projectKey: string, userKey: string, environmentKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getExpiringFlagsForUser', 'projectKey', projectKey)
             // verify required parameter 'userKey' is not null or undefined
             assertParamExists('getExpiringFlagsForUser', 'userKey', userKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getExpiringFlagsForUser', 'envKey', envKey)
-            const localVarPath = `/api/v2/users/{projKey}/{userKey}/expiring-user-targets/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getExpiringFlagsForUser', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/users/{projectKey}/{userKey}/expiring-user-targets/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
                 .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18715,27 +21215,27 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get a single flag setting for a user by key. The most important attribute in the response is the `_value`. The `_value` is the current setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallback value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
          * @summary Get flag setting for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
-         * @param {string} featureKey The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUserFlagSetting: async (projKey: string, envKey: string, key: string, featureKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getUserFlagSetting', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getUserFlagSetting', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getUserFlagSetting', 'key', key)
-            // verify required parameter 'featureKey' is not null or undefined
-            assertParamExists('getUserFlagSetting', 'featureKey', featureKey)
-            const localVarPath = `/api/v2/users/{projKey}/{envKey}/{key}/flags/{featureKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)))
-                .replace(`{${"featureKey"}}`, encodeURIComponent(String(featureKey)));
+        getUserFlagSetting: async (projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getUserFlagSetting', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getUserFlagSetting', 'environmentKey', environmentKey)
+            // verify required parameter 'userKey' is not null or undefined
+            assertParamExists('getUserFlagSetting', 'userKey', userKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('getUserFlagSetting', 'featureFlagKey', featureFlagKey)
+            const localVarPath = `/api/v2/users/{projectKey}/{environmentKey}/{userKey}/flags/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18764,23 +21264,23 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Get the current flag settings for a given user. The most important attribute in the response is the `_value`. The `_value` is the setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallthrough value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled and the `alternate.page` flag disabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
          * @summary List flag settings for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUserFlagSettings: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getUserFlagSettings', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getUserFlagSettings', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getUserFlagSettings', 'key', key)
-            const localVarPath = `/api/v2/users/{projKey}/{envKey}/{key}/flags`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getUserFlagSettings: async (projectKey: string, environmentKey: string, userKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getUserFlagSettings', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getUserFlagSettings', 'environmentKey', environmentKey)
+            // verify required parameter 'userKey' is not null or undefined
+            assertParamExists('getUserFlagSettings', 'userKey', userKey)
+            const localVarPath = `/api/v2/users/{projectKey}/{environmentKey}/{userKey}/flags`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18809,26 +21309,26 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Schedule the specified user for removal from individual user targeting on one or more flags. You can only schedule a user for removal on a single variation per flag.  To learn more about semantic patches, read [Updates](/#section/Updates).  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
          * @summary Update expiring user target for flags
-         * @param {string} projKey The project key.
-         * @param {string} userKey The user key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} userKey The user key
+         * @param {string} environmentKey The environment key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringFlagsForUser: async (projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('patchExpiringFlagsForUser', 'projKey', projKey)
+        patchExpiringFlagsForUser: async (projectKey: string, userKey: string, environmentKey: string, patchWithComment: PatchWithComment, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchExpiringFlagsForUser', 'projectKey', projectKey)
             // verify required parameter 'userKey' is not null or undefined
             assertParamExists('patchExpiringFlagsForUser', 'userKey', userKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('patchExpiringFlagsForUser', 'envKey', envKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchExpiringFlagsForUser', 'environmentKey', environmentKey)
             // verify required parameter 'patchWithComment' is not null or undefined
             assertParamExists('patchExpiringFlagsForUser', 'patchWithComment', patchWithComment)
-            const localVarPath = `/api/v2/users/{projKey}/{userKey}/expiring-user-targets/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
+            const localVarPath = `/api/v2/users/{projectKey}/{userKey}/expiring-user-targets/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
                 .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18860,30 +21360,30 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
         /**
          * Enable or disable a feature flag for a user based on their key.  To change the setting, send a `PUT` request to this URL with a request body containing the flag value. For example, to disable the sort.order flag for the user `test@test.com`, send a `PUT` to `https://app.launchdarkly.com/api/v2/users/default/production/test@test.com/flags/sort.order` with the following body:  ```json {   \"setting\": false } ```  Omitting the setting attribute, or a setting of null, in your `PUT` \"clears\" the current setting for a user.  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
          * @summary Update flag settings for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
-         * @param {string} featureKey The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
+         * @param {string} featureFlagKey The feature flag key
          * @param {ValuePut} valuePut 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putFlagSetting: async (projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('putFlagSetting', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('putFlagSetting', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('putFlagSetting', 'key', key)
-            // verify required parameter 'featureKey' is not null or undefined
-            assertParamExists('putFlagSetting', 'featureKey', featureKey)
+        putFlagSetting: async (projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, valuePut: ValuePut, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('putFlagSetting', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('putFlagSetting', 'environmentKey', environmentKey)
+            // verify required parameter 'userKey' is not null or undefined
+            assertParamExists('putFlagSetting', 'userKey', userKey)
+            // verify required parameter 'featureFlagKey' is not null or undefined
+            assertParamExists('putFlagSetting', 'featureFlagKey', featureFlagKey)
             // verify required parameter 'valuePut' is not null or undefined
             assertParamExists('putFlagSetting', 'valuePut', valuePut)
-            const localVarPath = `/api/v2/users/{projKey}/{envKey}/{key}/flags/{featureKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)))
-                .replace(`{${"featureKey"}}`, encodeURIComponent(String(featureKey)));
+            const localVarPath = `/api/v2/users/{projectKey}/{environmentKey}/{userKey}/flags/{featureFlagKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)))
+                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -18925,70 +21425,70 @@ export const UserSettingsApiFp = function(configuration?: Configuration) {
         /**
          * Get a list of flags for which the given user is scheduled for removal.
          * @summary Get expiring dates on flags for user
-         * @param {string} projKey The project key.
-         * @param {string} userKey The user key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} userKey The user key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringFlagsForUser(projKey, userKey, envKey, options);
+        async getExpiringFlagsForUser(projectKey: string, userKey: string, environmentKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetGetResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiringFlagsForUser(projectKey, userKey, environmentKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a single flag setting for a user by key. The most important attribute in the response is the `_value`. The `_value` is the current setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallback value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
          * @summary Get flag setting for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
-         * @param {string} featureKey The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUserFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSetting>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getUserFlagSetting(projKey, envKey, key, featureKey, options);
+        async getUserFlagSetting(projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSetting>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getUserFlagSetting(projectKey, environmentKey, userKey, featureFlagKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get the current flag settings for a given user. The most important attribute in the response is the `_value`. The `_value` is the setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallthrough value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled and the `alternate.page` flag disabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
          * @summary List flag settings for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUserFlagSettings(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSettings>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getUserFlagSettings(projKey, envKey, key, options);
+        async getUserFlagSettings(projectKey: string, environmentKey: string, userKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserFlagSettings>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getUserFlagSettings(projectKey, environmentKey, userKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Schedule the specified user for removal from individual user targeting on one or more flags. You can only schedule a user for removal on a single variation per flag.  To learn more about semantic patches, read [Updates](/#section/Updates).  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
          * @summary Update expiring user target for flags
-         * @param {string} projKey The project key.
-         * @param {string} userKey The user key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} userKey The user key
+         * @param {string} environmentKey The environment key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringFlagsForUser(projKey, userKey, envKey, patchWithComment, options);
+        async patchExpiringFlagsForUser(projectKey: string, userKey: string, environmentKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpiringUserTargetPatchResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchExpiringFlagsForUser(projectKey, userKey, environmentKey, patchWithComment, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Enable or disable a feature flag for a user based on their key.  To change the setting, send a `PUT` request to this URL with a request body containing the flag value. For example, to disable the sort.order flag for the user `test@test.com`, send a `PUT` to `https://app.launchdarkly.com/api/v2/users/default/production/test@test.com/flags/sort.order` with the following body:  ```json {   \"setting\": false } ```  Omitting the setting attribute, or a setting of null, in your `PUT` \"clears\" the current setting for a user.  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
          * @summary Update flag settings for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
-         * @param {string} featureKey The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
+         * @param {string} featureFlagKey The feature flag key
          * @param {ValuePut} valuePut 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async putFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.putFlagSetting(projKey, envKey, key, featureKey, valuePut, options);
+        async putFlagSetting(projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, valuePut: ValuePut, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.putFlagSetting(projectKey, environmentKey, userKey, featureFlagKey, valuePut, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -19004,66 +21504,66 @@ export const UserSettingsApiFactory = function (configuration?: Configuration, b
         /**
          * Get a list of flags for which the given user is scheduled for removal.
          * @summary Get expiring dates on flags for user
-         * @param {string} projKey The project key.
-         * @param {string} userKey The user key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} userKey The user key
+         * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, options?: any): AxiosPromise<ExpiringUserTargetGetResponse> {
-            return localVarFp.getExpiringFlagsForUser(projKey, userKey, envKey, options).then((request) => request(axios, basePath));
+        getExpiringFlagsForUser(projectKey: string, userKey: string, environmentKey: string, options?: any): AxiosPromise<ExpiringUserTargetGetResponse> {
+            return localVarFp.getExpiringFlagsForUser(projectKey, userKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a single flag setting for a user by key. The most important attribute in the response is the `_value`. The `_value` is the current setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallback value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
          * @summary Get flag setting for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
-         * @param {string} featureKey The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
+         * @param {string} featureFlagKey The feature flag key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUserFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, options?: any): AxiosPromise<UserFlagSetting> {
-            return localVarFp.getUserFlagSetting(projKey, envKey, key, featureKey, options).then((request) => request(axios, basePath));
+        getUserFlagSetting(projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, options?: any): AxiosPromise<UserFlagSetting> {
+            return localVarFp.getUserFlagSetting(projectKey, environmentKey, userKey, featureFlagKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get the current flag settings for a given user. The most important attribute in the response is the `_value`. The `_value` is the setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallthrough value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled and the `alternate.page` flag disabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
          * @summary List flag settings for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUserFlagSettings(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<UserFlagSettings> {
-            return localVarFp.getUserFlagSettings(projKey, envKey, key, options).then((request) => request(axios, basePath));
+        getUserFlagSettings(projectKey: string, environmentKey: string, userKey: string, options?: any): AxiosPromise<UserFlagSettings> {
+            return localVarFp.getUserFlagSettings(projectKey, environmentKey, userKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Schedule the specified user for removal from individual user targeting on one or more flags. You can only schedule a user for removal on a single variation per flag.  To learn more about semantic patches, read [Updates](/#section/Updates).  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
          * @summary Update expiring user target for flags
-         * @param {string} projKey The project key.
-         * @param {string} userKey The user key.
-         * @param {string} envKey The environment key.
+         * @param {string} projectKey The project key
+         * @param {string} userKey The user key
+         * @param {string} environmentKey The environment key
          * @param {PatchWithComment} patchWithComment 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<ExpiringUserTargetPatchResponse> {
-            return localVarFp.patchExpiringFlagsForUser(projKey, userKey, envKey, patchWithComment, options).then((request) => request(axios, basePath));
+        patchExpiringFlagsForUser(projectKey: string, userKey: string, environmentKey: string, patchWithComment: PatchWithComment, options?: any): AxiosPromise<ExpiringUserTargetPatchResponse> {
+            return localVarFp.patchExpiringFlagsForUser(projectKey, userKey, environmentKey, patchWithComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Enable or disable a feature flag for a user based on their key.  To change the setting, send a `PUT` request to this URL with a request body containing the flag value. For example, to disable the sort.order flag for the user `test@test.com`, send a `PUT` to `https://app.launchdarkly.com/api/v2/users/default/production/test@test.com/flags/sort.order` with the following body:  ```json {   \"setting\": false } ```  Omitting the setting attribute, or a setting of null, in your `PUT` \"clears\" the current setting for a user.  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
          * @summary Update flag settings for user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
-         * @param {string} featureKey The feature flag key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
+         * @param {string} featureFlagKey The feature flag key
          * @param {ValuePut} valuePut 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options?: any): AxiosPromise<void> {
-            return localVarFp.putFlagSetting(projKey, envKey, key, featureKey, valuePut, options).then((request) => request(axios, basePath));
+        putFlagSetting(projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, valuePut: ValuePut, options?: any): AxiosPromise<void> {
+            return localVarFp.putFlagSetting(projectKey, environmentKey, userKey, featureFlagKey, valuePut, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -19078,75 +21578,75 @@ export class UserSettingsApi extends BaseAPI {
     /**
      * Get a list of flags for which the given user is scheduled for removal.
      * @summary Get expiring dates on flags for user
-     * @param {string} projKey The project key.
-     * @param {string} userKey The user key.
-     * @param {string} envKey The environment key.
+     * @param {string} projectKey The project key
+     * @param {string} userKey The user key
+     * @param {string} environmentKey The environment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public getExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, options?: AxiosRequestConfig) {
-        return UserSettingsApiFp(this.configuration).getExpiringFlagsForUser(projKey, userKey, envKey, options).then((request) => request(this.axios, this.basePath));
+    public getExpiringFlagsForUser(projectKey: string, userKey: string, environmentKey: string, options?: AxiosRequestConfig) {
+        return UserSettingsApiFp(this.configuration).getExpiringFlagsForUser(projectKey, userKey, environmentKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a single flag setting for a user by key. The most important attribute in the response is the `_value`. The `_value` is the current setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallback value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
      * @summary Get flag setting for user
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} key The user key
-     * @param {string} featureKey The feature flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} userKey The user key
+     * @param {string} featureFlagKey The feature flag key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public getUserFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, options?: AxiosRequestConfig) {
-        return UserSettingsApiFp(this.configuration).getUserFlagSetting(projKey, envKey, key, featureKey, options).then((request) => request(this.axios, this.basePath));
+    public getUserFlagSetting(projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, options?: AxiosRequestConfig) {
+        return UserSettingsApiFp(this.configuration).getUserFlagSetting(projectKey, environmentKey, userKey, featureFlagKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get the current flag settings for a given user. The most important attribute in the response is the `_value`. The `_value` is the setting that the user sees. For a boolean feature toggle, this is `true`, `false`, or `null`. `null` returns if there is no defined fallthrough value. The example response indicates that the user `Abbie_Braun` has the `sort.order` flag enabled and the `alternate.page` flag disabled.<br /><br />The setting attribute indicates whether you\'ve explicitly targeted a user to receive a particular variation. For example, if you have turned off a feature flag for a user, this setting will be `false`. A setting of `null` means that you haven\'t assigned that user to a specific variation.
      * @summary List flag settings for user
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} key The user key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} userKey The user key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public getUserFlagSettings(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
-        return UserSettingsApiFp(this.configuration).getUserFlagSettings(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
+    public getUserFlagSettings(projectKey: string, environmentKey: string, userKey: string, options?: AxiosRequestConfig) {
+        return UserSettingsApiFp(this.configuration).getUserFlagSettings(projectKey, environmentKey, userKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Schedule the specified user for removal from individual user targeting on one or more flags. You can only schedule a user for removal on a single variation per flag.  To learn more about semantic patches, read [Updates](/#section/Updates).  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
      * @summary Update expiring user target for flags
-     * @param {string} projKey The project key.
-     * @param {string} userKey The user key.
-     * @param {string} envKey The environment key.
+     * @param {string} projectKey The project key
+     * @param {string} userKey The user key
+     * @param {string} environmentKey The environment key
      * @param {PatchWithComment} patchWithComment 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public patchExpiringFlagsForUser(projKey: string, userKey: string, envKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
-        return UserSettingsApiFp(this.configuration).patchExpiringFlagsForUser(projKey, userKey, envKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
+    public patchExpiringFlagsForUser(projectKey: string, userKey: string, environmentKey: string, patchWithComment: PatchWithComment, options?: AxiosRequestConfig) {
+        return UserSettingsApiFp(this.configuration).patchExpiringFlagsForUser(projectKey, userKey, environmentKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Enable or disable a feature flag for a user based on their key.  To change the setting, send a `PUT` request to this URL with a request body containing the flag value. For example, to disable the sort.order flag for the user `test@test.com`, send a `PUT` to `https://app.launchdarkly.com/api/v2/users/default/production/test@test.com/flags/sort.order` with the following body:  ```json {   \"setting\": false } ```  Omitting the setting attribute, or a setting of null, in your `PUT` \"clears\" the current setting for a user.  If you previously patched the flag, and the patch included the user\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the user\'s key before, it calculates the flag values based on the user key alone. 
      * @summary Update flag settings for user
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} key The user key
-     * @param {string} featureKey The feature flag key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} userKey The user key
+     * @param {string} featureFlagKey The feature flag key
      * @param {ValuePut} valuePut 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UserSettingsApi
      */
-    public putFlagSetting(projKey: string, envKey: string, key: string, featureKey: string, valuePut: ValuePut, options?: AxiosRequestConfig) {
-        return UserSettingsApiFp(this.configuration).putFlagSetting(projKey, envKey, key, featureKey, valuePut, options).then((request) => request(this.axios, this.basePath));
+    public putFlagSetting(projectKey: string, environmentKey: string, userKey: string, featureFlagKey: string, valuePut: ValuePut, options?: AxiosRequestConfig) {
+        return UserSettingsApiFp(this.configuration).putFlagSetting(projectKey, environmentKey, userKey, featureFlagKey, valuePut, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -19160,23 +21660,23 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
         /**
          * Delete a user by key
          * @summary Delete user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteUser: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('deleteUser', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('deleteUser', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('deleteUser', 'key', key)
-            const localVarPath = `/api/v2/users/{projKey}/{envKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        deleteUser: async (projectKey: string, environmentKey: string, userKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteUser', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('deleteUser', 'environmentKey', environmentKey)
+            // verify required parameter 'userKey' is not null or undefined
+            assertParamExists('deleteUser', 'userKey', userKey)
+            const localVarPath = `/api/v2/users/{projectKey}/{environmentKey}/{userKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -19203,10 +21703,10 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](/#section/Representations).  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
          * @summary Find users
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} [q] Full-text search for users based on name, first name, last name, e-mail address, or key
          * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
          * @param {number} [offset] Specifies the first item to return in the collection
@@ -19217,14 +21717,14 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSearchUsers: async (projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getSearchUsers', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getSearchUsers', 'envKey', envKey)
-            const localVarPath = `/api/v2/user-search/{projKey}/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+        getSearchUsers: async (projectKey: string, environmentKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getSearchUsers', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getSearchUsers', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/user-search/{projectKey}/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -19281,23 +21781,23 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
         /**
          * Get a user by key. The `user` object contains all attributes sent in `variation` calls for that key.
          * @summary Get user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUser: async (projKey: string, envKey: string, key: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getUser', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getUser', 'envKey', envKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('getUser', 'key', key)
-            const localVarPath = `/api/v2/users/{projKey}/{envKey}/{key}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+        getUser: async (projectKey: string, environmentKey: string, userKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getUser', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getUser', 'environmentKey', environmentKey)
+            // verify required parameter 'userKey' is not null or undefined
+            assertParamExists('getUser', 'userKey', userKey)
+            const localVarPath = `/api/v2/users/{projectKey}/{environmentKey}/{userKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -19326,21 +21826,21 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
         /**
          * List all users in the environment. Includes the total count of users. In each page, there is up to `limit` users returned. The default is 20. This is useful for exporting all users in the system for further analysis. To paginate through, follow the `next` link in the `_links` object, as [described in Representations](/#section/Representations). 
          * @summary List users
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {number} [limit] The number of elements to return per page
          * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUsers: async (projKey: string, envKey: string, limit?: number, searchAfter?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projKey' is not null or undefined
-            assertParamExists('getUsers', 'projKey', projKey)
-            // verify required parameter 'envKey' is not null or undefined
-            assertParamExists('getUsers', 'envKey', envKey)
-            const localVarPath = `/api/v2/users/{projKey}/{envKey}`
-                .replace(`{${"projKey"}}`, encodeURIComponent(String(projKey)))
-                .replace(`{${"envKey"}}`, encodeURIComponent(String(envKey)));
+        getUsers: async (projectKey: string, environmentKey: string, limit?: number, searchAfter?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getUsers', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getUsers', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/users/{projectKey}/{environmentKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -19387,21 +21887,21 @@ export const UsersApiFp = function(configuration?: Configuration) {
         /**
          * Delete a user by key
          * @summary Delete user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteUser(projKey, envKey, key, options);
+        async deleteUser(projectKey: string, environmentKey: string, userKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteUser(projectKey, environmentKey, userKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](/#section/Representations).  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
          * @summary Find users
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} [q] Full-text search for users based on name, first name, last name, e-mail address, or key
          * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
          * @param {number} [offset] Specifies the first item to return in the collection
@@ -19412,35 +21912,35 @@ export const UsersApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options);
+        async getSearchUsers(projectKey: string, environmentKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSearchUsers(projectKey, environmentKey, q, limit, offset, after, sort, searchAfter, filter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * Get a user by key. The `user` object contains all attributes sent in `variation` calls for that key.
          * @summary Get user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserRecord>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getUser(projKey, envKey, key, options);
+        async getUser(projectKey: string, environmentKey: string, userKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserRecord>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getUser(projectKey, environmentKey, userKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
          * List all users in the environment. Includes the total count of users. In each page, there is up to `limit` users returned. The default is 20. This is useful for exporting all users in the system for further analysis. To paginate through, follow the `next` link in the `_links` object, as [described in Representations](/#section/Representations). 
          * @summary List users
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {number} [limit] The number of elements to return per page
          * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getUsers(projKey: string, envKey: string, limit?: number, searchAfter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getUsers(projKey, envKey, limit, searchAfter, options);
+        async getUsers(projectKey: string, environmentKey: string, limit?: number, searchAfter?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Users>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getUsers(projectKey, environmentKey, limit, searchAfter, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -19456,20 +21956,20 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
         /**
          * Delete a user by key
          * @summary Delete user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteUser(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<void> {
-            return localVarFp.deleteUser(projKey, envKey, key, options).then((request) => request(axios, basePath));
+        deleteUser(projectKey: string, environmentKey: string, userKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteUser(projectKey, environmentKey, userKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+         * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](/#section/Representations).  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
          * @summary Find users
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {string} [q] Full-text search for users based on name, first name, last name, e-mail address, or key
          * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
          * @param {number} [offset] Specifies the first item to return in the collection
@@ -19480,33 +21980,33 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: any): AxiosPromise<Users> {
-            return localVarFp.getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options).then((request) => request(axios, basePath));
+        getSearchUsers(projectKey: string, environmentKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: any): AxiosPromise<Users> {
+            return localVarFp.getSearchUsers(projectKey, environmentKey, q, limit, offset, after, sort, searchAfter, filter, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a user by key. The `user` object contains all attributes sent in `variation` calls for that key.
          * @summary Get user
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
-         * @param {string} key The user key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} userKey The user key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUser(projKey: string, envKey: string, key: string, options?: any): AxiosPromise<UserRecord> {
-            return localVarFp.getUser(projKey, envKey, key, options).then((request) => request(axios, basePath));
+        getUser(projectKey: string, environmentKey: string, userKey: string, options?: any): AxiosPromise<UserRecord> {
+            return localVarFp.getUser(projectKey, environmentKey, userKey, options).then((request) => request(axios, basePath));
         },
         /**
          * List all users in the environment. Includes the total count of users. In each page, there is up to `limit` users returned. The default is 20. This is useful for exporting all users in the system for further analysis. To paginate through, follow the `next` link in the `_links` object, as [described in Representations](/#section/Representations). 
          * @summary List users
-         * @param {string} projKey The project key
-         * @param {string} envKey The environment key
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
          * @param {number} [limit] The number of elements to return per page
          * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getUsers(projKey: string, envKey: string, limit?: number, searchAfter?: string, options?: any): AxiosPromise<Users> {
-            return localVarFp.getUsers(projKey, envKey, limit, searchAfter, options).then((request) => request(axios, basePath));
+        getUsers(projectKey: string, environmentKey: string, limit?: number, searchAfter?: string, options?: any): AxiosPromise<Users> {
+            return localVarFp.getUsers(projectKey, environmentKey, limit, searchAfter, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -19521,22 +22021,22 @@ export class UsersApi extends BaseAPI {
     /**
      * Delete a user by key
      * @summary Delete user
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} key The user key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} userKey The user key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public deleteUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
-        return UsersApiFp(this.configuration).deleteUser(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
+    public deleteUser(projectKey: string, environmentKey: string, userKey: string, options?: AxiosRequestConfig) {
+        return UsersApiFp(this.configuration).deleteUser(projectKey, environmentKey, userKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query. Do not use to list all users in LaunchDarkly. Instead, use the [List users](getUsers) API resource.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
+     * Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](/#section/Representations).  > ### `offset` is deprecated > > `offset` is deprecated and will be removed in a future API version. You can still use `offset` and `limit` for pagination, but we recommend you use `sort` and `searchAfter` instead. `searchAfter` allows you to page through more than 10,000 users, but `offset` and `limit` do not. 
      * @summary Find users
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {string} [q] Full-text search for users based on name, first name, last name, e-mail address, or key
      * @param {number} [limit] Specifies the maximum number of items in the collection to return (max: 50, default: 20)
      * @param {number} [offset] Specifies the first item to return in the collection
@@ -19548,37 +22048,37 @@ export class UsersApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public getSearchUsers(projKey: string, envKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: AxiosRequestConfig) {
-        return UsersApiFp(this.configuration).getSearchUsers(projKey, envKey, q, limit, offset, after, sort, searchAfter, filter, options).then((request) => request(this.axios, this.basePath));
+    public getSearchUsers(projectKey: string, environmentKey: string, q?: string, limit?: number, offset?: number, after?: number, sort?: string, searchAfter?: string, filter?: string, options?: AxiosRequestConfig) {
+        return UsersApiFp(this.configuration).getSearchUsers(projectKey, environmentKey, q, limit, offset, after, sort, searchAfter, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a user by key. The `user` object contains all attributes sent in `variation` calls for that key.
      * @summary Get user
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
-     * @param {string} key The user key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} userKey The user key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public getUser(projKey: string, envKey: string, key: string, options?: AxiosRequestConfig) {
-        return UsersApiFp(this.configuration).getUser(projKey, envKey, key, options).then((request) => request(this.axios, this.basePath));
+    public getUser(projectKey: string, environmentKey: string, userKey: string, options?: AxiosRequestConfig) {
+        return UsersApiFp(this.configuration).getUser(projectKey, environmentKey, userKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * List all users in the environment. Includes the total count of users. In each page, there is up to `limit` users returned. The default is 20. This is useful for exporting all users in the system for further analysis. To paginate through, follow the `next` link in the `_links` object, as [described in Representations](/#section/Representations). 
      * @summary List users
-     * @param {string} projKey The project key
-     * @param {string} envKey The environment key
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
      * @param {number} [limit] The number of elements to return per page
      * @param {string} [searchAfter] Limits results to users with sort values after the value you specify. You can use this for pagination, but we recommend using the &#x60;next&#x60; link we provide instead.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof UsersApi
      */
-    public getUsers(projKey: string, envKey: string, limit?: number, searchAfter?: string, options?: AxiosRequestConfig) {
-        return UsersApiFp(this.configuration).getUsers(projKey, envKey, limit, searchAfter, options).then((request) => request(this.axios, this.basePath));
+    public getUsers(projectKey: string, environmentKey: string, limit?: number, searchAfter?: string, options?: AxiosRequestConfig) {
+        return UsersApiFp(this.configuration).getUsers(projectKey, environmentKey, limit, searchAfter, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -20100,7 +22600,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
          * Delete a workflow from a feature flag
          * @summary Delete workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} workflowId The workflow id
          * @param {*} [options] Override http request option.
@@ -20149,7 +22649,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
          * Get a specific workflow by ID
          * @summary Get custom workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} workflowId The workflow ID
          * @param {*} [options] Override http request option.
@@ -20198,7 +22698,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
          * Get workflows from a feature flag
          * @summary Get workflows
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -20243,7 +22743,7 @@ export const WorkflowsBetaApiAxiosParamCreator = function (configuration?: Confi
          * Create a workflow for a feature flag
          * @summary Create workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CustomWorkflowInputRep} customWorkflowInputRep 
          * @param {*} [options] Override http request option.
@@ -20304,7 +22804,7 @@ export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
          * Delete a workflow from a feature flag
          * @summary Delete workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} workflowId The workflow id
          * @param {*} [options] Override http request option.
@@ -20318,7 +22818,7 @@ export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
          * Get a specific workflow by ID
          * @summary Get custom workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} workflowId The workflow ID
          * @param {*} [options] Override http request option.
@@ -20332,7 +22832,7 @@ export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
          * Get workflows from a feature flag
          * @summary Get workflows
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -20345,7 +22845,7 @@ export const WorkflowsBetaApiFp = function(configuration?: Configuration) {
          * Create a workflow for a feature flag
          * @summary Create workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CustomWorkflowInputRep} customWorkflowInputRep 
          * @param {*} [options] Override http request option.
@@ -20369,7 +22869,7 @@ export const WorkflowsBetaApiFactory = function (configuration?: Configuration, 
          * Delete a workflow from a feature flag
          * @summary Delete workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} workflowId The workflow id
          * @param {*} [options] Override http request option.
@@ -20382,7 +22882,7 @@ export const WorkflowsBetaApiFactory = function (configuration?: Configuration, 
          * Get a specific workflow by ID
          * @summary Get custom workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {string} workflowId The workflow ID
          * @param {*} [options] Override http request option.
@@ -20395,7 +22895,7 @@ export const WorkflowsBetaApiFactory = function (configuration?: Configuration, 
          * Get workflows from a feature flag
          * @summary Get workflows
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -20407,7 +22907,7 @@ export const WorkflowsBetaApiFactory = function (configuration?: Configuration, 
          * Create a workflow for a feature flag
          * @summary Create workflow
          * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag\&#39;s key
+         * @param {string} featureFlagKey The feature flag key
          * @param {string} environmentKey The environment key
          * @param {CustomWorkflowInputRep} customWorkflowInputRep 
          * @param {*} [options] Override http request option.
@@ -20430,7 +22930,7 @@ export class WorkflowsBetaApi extends BaseAPI {
      * Delete a workflow from a feature flag
      * @summary Delete workflow
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} workflowId The workflow id
      * @param {*} [options] Override http request option.
@@ -20445,7 +22945,7 @@ export class WorkflowsBetaApi extends BaseAPI {
      * Get a specific workflow by ID
      * @summary Get custom workflow
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {string} workflowId The workflow ID
      * @param {*} [options] Override http request option.
@@ -20460,7 +22960,7 @@ export class WorkflowsBetaApi extends BaseAPI {
      * Get workflows from a feature flag
      * @summary Get workflows
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -20474,7 +22974,7 @@ export class WorkflowsBetaApi extends BaseAPI {
      * Create a workflow for a feature flag
      * @summary Create workflow
      * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag\&#39;s key
+     * @param {string} featureFlagKey The feature flag key
      * @param {string} environmentKey The environment key
      * @param {CustomWorkflowInputRep} customWorkflowInputRep 
      * @param {*} [options] Override http request option.
