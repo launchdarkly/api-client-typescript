@@ -8731,7 +8731,7 @@ export interface PutBranch {
  */
 export interface RandomizationUnitInput {
     /**
-     * The unit of randomization.
+     * The unit of randomization. Must match the key of an existing context kind in this project.
      * @type {string}
      * @memberof RandomizationUnitInput
      */
@@ -16916,10 +16916,10 @@ export class CodeReferencesApi extends BaseAPI {
 
 
 /**
- * ContextSettingsBetaApi - axios parameter creator
+ * ContextSettingsApi - axios parameter creator
  * @export
  */
-export const ContextSettingsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+export const ContextSettingsApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
          *  Enable or disable a feature flag for a context based on its context kind and key.  Omitting the `setting` attribute from the request body, or including a `setting` of `null`, erases the current setting for a context.  If you previously patched the flag, and the patch included the context\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the combination of the context\'s key and kind before, it calculates the flag values based on the context kind and key. 
@@ -16984,11 +16984,11 @@ export const ContextSettingsBetaApiAxiosParamCreator = function (configuration?:
 };
 
 /**
- * ContextSettingsBetaApi - functional programming interface
+ * ContextSettingsApi - functional programming interface
  * @export
  */
-export const ContextSettingsBetaApiFp = function(configuration?: Configuration) {
-    const localVarAxiosParamCreator = ContextSettingsBetaApiAxiosParamCreator(configuration)
+export const ContextSettingsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = ContextSettingsApiAxiosParamCreator(configuration)
     return {
         /**
          *  Enable or disable a feature flag for a context based on its context kind and key.  Omitting the `setting` attribute from the request body, or including a `setting` of `null`, erases the current setting for a context.  If you previously patched the flag, and the patch included the context\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the combination of the context\'s key and kind before, it calculates the flag values based on the context kind and key. 
@@ -17010,11 +17010,11 @@ export const ContextSettingsBetaApiFp = function(configuration?: Configuration) 
 };
 
 /**
- * ContextSettingsBetaApi - factory interface
+ * ContextSettingsApi - factory interface
  * @export
  */
-export const ContextSettingsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
-    const localVarFp = ContextSettingsBetaApiFp(configuration)
+export const ContextSettingsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = ContextSettingsApiFp(configuration)
     return {
         /**
          *  Enable or disable a feature flag for a context based on its context kind and key.  Omitting the `setting` attribute from the request body, or including a `setting` of `null`, erases the current setting for a context.  If you previously patched the flag, and the patch included the context\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the combination of the context\'s key and kind before, it calculates the flag values based on the context kind and key. 
@@ -17035,12 +17035,12 @@ export const ContextSettingsBetaApiFactory = function (configuration?: Configura
 };
 
 /**
- * ContextSettingsBetaApi - object-oriented interface
+ * ContextSettingsApi - object-oriented interface
  * @export
- * @class ContextSettingsBetaApi
+ * @class ContextSettingsApi
  * @extends {BaseAPI}
  */
-export class ContextSettingsBetaApi extends BaseAPI {
+export class ContextSettingsApi extends BaseAPI {
     /**
      *  Enable or disable a feature flag for a context based on its context kind and key.  Omitting the `setting` attribute from the request body, or including a `setting` of `null`, erases the current setting for a context.  If you previously patched the flag, and the patch included the context\'s data, LaunchDarkly continues to use that data. If LaunchDarkly has never encountered the combination of the context\'s key and kind before, it calculates the flag values based on the context kind and key. 
      * @summary Update flag settings for context
@@ -17052,19 +17052,19 @@ export class ContextSettingsBetaApi extends BaseAPI {
      * @param {ValuePut} valuePut 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextSettingsBetaApi
+     * @memberof ContextSettingsApi
      */
     public putContextFlagSetting(projectKey: string, environmentKey: string, contextKind: string, contextKey: string, featureFlagKey: string, valuePut: ValuePut, options?: AxiosRequestConfig) {
-        return ContextSettingsBetaApiFp(this.configuration).putContextFlagSetting(projectKey, environmentKey, contextKind, contextKey, featureFlagKey, valuePut, options).then((request) => request(this.axios, this.basePath));
+        return ContextSettingsApiFp(this.configuration).putContextFlagSetting(projectKey, environmentKey, contextKind, contextKey, featureFlagKey, valuePut, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
 
 /**
- * ContextsBetaApi - axios parameter creator
+ * ContextsApi - axios parameter creator
  * @export
  */
-export const ContextsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+export const ContextsApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
          * Delete context instances by ID.
@@ -17345,43 +17345,6 @@ export const ContextsBetaApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Get all context kinds for a given project.
-         * @summary Get context kinds
-         * @param {string} projectKey The project key
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        getContextKindsByProjectKey: async (projectKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projectKey' is not null or undefined
-            assertParamExists('getContextKindsByProjectKey', 'projectKey', projectKey)
-            const localVarPath = `/api/v2/projects/{projectKey}/context-kinds`
-                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication ApiKey required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
          * Get contexts based on kind and key.
          * @summary Get contexts
          * @param {string} projectKey The project key
@@ -17449,53 +17412,6 @@ export const ContextsBetaApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Create or update a context kind by key. Only the included fields will be updated.
-         * @summary Create or update context kind
-         * @param {string} projectKey The project key
-         * @param {string} key The context kind key
-         * @param {UpsertContextKindPayload} upsertContextKindPayload 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        putContextKind: async (projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projectKey' is not null or undefined
-            assertParamExists('putContextKind', 'projectKey', projectKey)
-            // verify required parameter 'key' is not null or undefined
-            assertParamExists('putContextKind', 'key', key)
-            // verify required parameter 'upsertContextKindPayload' is not null or undefined
-            assertParamExists('putContextKind', 'upsertContextKindPayload', upsertContextKindPayload)
-            const localVarPath = `/api/v2/projects/{projectKey}/context-kinds/{key}`
-                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication ApiKey required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(upsertContextKindPayload, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17650,11 +17566,11 @@ export const ContextsBetaApiAxiosParamCreator = function (configuration?: Config
 };
 
 /**
- * ContextsBetaApi - functional programming interface
+ * ContextsApi - functional programming interface
  * @export
  */
-export const ContextsBetaApiFp = function(configuration?: Configuration) {
-    const localVarAxiosParamCreator = ContextsBetaApiAxiosParamCreator(configuration)
+export const ContextsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = ContextsApiAxiosParamCreator(configuration)
     return {
         /**
          * Delete context instances by ID.
@@ -17732,17 +17648,6 @@ export const ContextsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get all context kinds for a given project.
-         * @summary Get context kinds
-         * @param {string} projectKey The project key
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async getContextKindsByProjectKey(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ContextKindsCollectionRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getContextKindsByProjectKey(projectKey, options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
-        /**
          * Get contexts based on kind and key.
          * @summary Get contexts
          * @param {string} projectKey The project key
@@ -17759,19 +17664,6 @@ export const ContextsBetaApiFp = function(configuration?: Configuration) {
          */
         async getContexts(projectKey: string, environmentKey: string, kind: string, key: string, limit?: number, continuationToken?: string, sort?: string, filter?: string, includeTotalCount?: boolean, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Contexts>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getContexts(projectKey, environmentKey, kind, key, limit, continuationToken, sort, filter, includeTotalCount, options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
-        /**
-         * Create or update a context kind by key. Only the included fields will be updated.
-         * @summary Create or update context kind
-         * @param {string} projectKey The project key
-         * @param {string} key The context kind key
-         * @param {UpsertContextKindPayload} upsertContextKindPayload 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async putContextKind(projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UpsertResponseRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.putContextKind(projectKey, key, upsertContextKindPayload, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -17814,11 +17706,11 @@ export const ContextsBetaApiFp = function(configuration?: Configuration) {
 };
 
 /**
- * ContextsBetaApi - factory interface
+ * ContextsApi - factory interface
  * @export
  */
-export const ContextsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
-    const localVarFp = ContextsBetaApiFp(configuration)
+export const ContextsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = ContextsApiFp(configuration)
     return {
         /**
          * Delete context instances by ID.
@@ -17891,16 +17783,6 @@ export const ContextsBetaApiFactory = function (configuration?: Configuration, b
             return localVarFp.getContextInstances(projectKey, environmentKey, id, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get all context kinds for a given project.
-         * @summary Get context kinds
-         * @param {string} projectKey The project key
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        getContextKindsByProjectKey(projectKey: string, options?: any): AxiosPromise<ContextKindsCollectionRep> {
-            return localVarFp.getContextKindsByProjectKey(projectKey, options).then((request) => request(axios, basePath));
-        },
-        /**
          * Get contexts based on kind and key.
          * @summary Get contexts
          * @param {string} projectKey The project key
@@ -17917,18 +17799,6 @@ export const ContextsBetaApiFactory = function (configuration?: Configuration, b
          */
         getContexts(projectKey: string, environmentKey: string, kind: string, key: string, limit?: number, continuationToken?: string, sort?: string, filter?: string, includeTotalCount?: boolean, options?: any): AxiosPromise<Contexts> {
             return localVarFp.getContexts(projectKey, environmentKey, kind, key, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Create or update a context kind by key. Only the included fields will be updated.
-         * @summary Create or update context kind
-         * @param {string} projectKey The project key
-         * @param {string} key The context kind key
-         * @param {UpsertContextKindPayload} upsertContextKindPayload 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        putContextKind(projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options?: any): AxiosPromise<UpsertResponseRep> {
-            return localVarFp.putContextKind(projectKey, key, upsertContextKindPayload, options).then((request) => request(axios, basePath));
         },
         /**
          *  Search for context instances.  You can use either the query parameters or the request body parameters. If both are provided, there is an error.  To learn more about the filter syntax, read [Filtering contexts and context instances](/tag/Contexts-(beta)#filtering-contexts-and-context-instances). To learn more about context instances, read [Understanding context instances](https://docs.launchdarkly.com/home/contexts#understanding-context-instances). 
@@ -17968,12 +17838,12 @@ export const ContextsBetaApiFactory = function (configuration?: Configuration, b
 };
 
 /**
- * ContextsBetaApi - object-oriented interface
+ * ContextsApi - object-oriented interface
  * @export
- * @class ContextsBetaApi
+ * @class ContextsApi
  * @extends {BaseAPI}
  */
-export class ContextsBetaApi extends BaseAPI {
+export class ContextsApi extends BaseAPI {
     /**
      * Delete context instances by ID.
      * @summary Delete context instances
@@ -17982,10 +17852,10 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {string} id The context instance ID
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public deleteContextInstances(projectKey: string, environmentKey: string, id: string, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).deleteContextInstances(projectKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).deleteContextInstances(projectKey, environmentKey, id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18000,10 +17870,10 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value. Supports the same filters as the List Feature Flags API.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public evaluateContextInstance(projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, limit?: number, offset?: number, sort?: string, filter?: string, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).evaluateContextInstance(projectKey, environmentKey, requestBody, limit, offset, sort, filter, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).evaluateContextInstance(projectKey, environmentKey, requestBody, limit, offset, sort, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18014,10 +17884,10 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {string} [filter] A comma-separated list of context filters. This endpoint only accepts &#x60;kind&#x60; filters, with the &#x60;equals&#x60; operator, and &#x60;name&#x60; filters, with the &#x60;startsWith&#x60; operator. To learn more about the filter syntax, read [Filtering contexts and context instances](/tag/Contexts-(beta)#filtering-contexts-and-context-instances).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public getContextAttributeNames(projectKey: string, environmentKey: string, filter?: string, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).getContextAttributeNames(projectKey, environmentKey, filter, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).getContextAttributeNames(projectKey, environmentKey, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18029,10 +17899,10 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {string} [filter] A comma-separated list of context filters. This endpoint only accepts &#x60;kind&#x60; filters, with the &#x60;equals&#x60; operator, and &#x60;value&#x60; filters, with the &#x60;startsWith&#x60; operator. To learn more about the filter syntax, read [Filtering contexts and context instances](/tag/Contexts-(beta)#filtering-contexts-and-context-instances).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public getContextAttributeValues(projectKey: string, environmentKey: string, attributeName: string, filter?: string, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).getContextAttributeValues(projectKey, environmentKey, attributeName, filter, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).getContextAttributeValues(projectKey, environmentKey, attributeName, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18048,22 +17918,10 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {boolean} [includeTotalCount] Specifies whether to include or omit the total count of matching context instances. Defaults to true.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public getContextInstances(projectKey: string, environmentKey: string, id: string, limit?: number, continuationToken?: string, sort?: string, filter?: string, includeTotalCount?: boolean, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).getContextInstances(projectKey, environmentKey, id, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Get all context kinds for a given project.
-     * @summary Get context kinds
-     * @param {string} projectKey The project key
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ContextsBetaApi
-     */
-    public getContextKindsByProjectKey(projectKey: string, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).getContextKindsByProjectKey(projectKey, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).getContextInstances(projectKey, environmentKey, id, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18080,24 +17938,10 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {boolean} [includeTotalCount] Specifies whether to include or omit the total count of matching contexts. Defaults to true.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public getContexts(projectKey: string, environmentKey: string, kind: string, key: string, limit?: number, continuationToken?: string, sort?: string, filter?: string, includeTotalCount?: boolean, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).getContexts(projectKey, environmentKey, kind, key, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Create or update a context kind by key. Only the included fields will be updated.
-     * @summary Create or update context kind
-     * @param {string} projectKey The project key
-     * @param {string} key The context kind key
-     * @param {UpsertContextKindPayload} upsertContextKindPayload 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ContextsBetaApi
-     */
-    public putContextKind(projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).putContextKind(projectKey, key, upsertContextKindPayload, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).getContexts(projectKey, environmentKey, kind, key, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18113,10 +17957,10 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {boolean} [includeTotalCount] Specifies whether to include or omit the total count of matching context instances. Defaults to true.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public searchContextInstances(projectKey: string, environmentKey: string, contextInstanceSearch: ContextInstanceSearch, limit?: number, continuationToken?: string, sort?: string, filter?: string, includeTotalCount?: boolean, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).searchContextInstances(projectKey, environmentKey, contextInstanceSearch, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).searchContextInstances(projectKey, environmentKey, contextInstanceSearch, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -18132,10 +17976,204 @@ export class ContextsBetaApi extends BaseAPI {
      * @param {boolean} [includeTotalCount] Specifies whether to include or omit the total count of matching contexts. Defaults to true.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof ContextsBetaApi
+     * @memberof ContextsApi
      */
     public searchContexts(projectKey: string, environmentKey: string, contextSearch: ContextSearch, limit?: number, continuationToken?: string, sort?: string, filter?: string, includeTotalCount?: boolean, options?: AxiosRequestConfig) {
-        return ContextsBetaApiFp(this.configuration).searchContexts(projectKey, environmentKey, contextSearch, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
+        return ContextsApiFp(this.configuration).searchContexts(projectKey, environmentKey, contextSearch, limit, continuationToken, sort, filter, includeTotalCount, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * ContextsBetaApi - axios parameter creator
+ * @export
+ */
+export const ContextsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Get all context kinds for a given project.
+         * @summary Get context kinds
+         * @param {string} projectKey The project key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getContextKindsByProjectKey: async (projectKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getContextKindsByProjectKey', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/context-kinds`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Create or update a context kind by key. Only the included fields will be updated.
+         * @summary Create or update context kind
+         * @param {string} projectKey The project key
+         * @param {string} key The context kind key
+         * @param {UpsertContextKindPayload} upsertContextKindPayload 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        putContextKind: async (projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('putContextKind', 'projectKey', projectKey)
+            // verify required parameter 'key' is not null or undefined
+            assertParamExists('putContextKind', 'key', key)
+            // verify required parameter 'upsertContextKindPayload' is not null or undefined
+            assertParamExists('putContextKind', 'upsertContextKindPayload', upsertContextKindPayload)
+            const localVarPath = `/api/v2/projects/{projectKey}/context-kinds/{key}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"key"}}`, encodeURIComponent(String(key)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(upsertContextKindPayload, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * ContextsBetaApi - functional programming interface
+ * @export
+ */
+export const ContextsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = ContextsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Get all context kinds for a given project.
+         * @summary Get context kinds
+         * @param {string} projectKey The project key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getContextKindsByProjectKey(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ContextKindsCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getContextKindsByProjectKey(projectKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Create or update a context kind by key. Only the included fields will be updated.
+         * @summary Create or update context kind
+         * @param {string} projectKey The project key
+         * @param {string} key The context kind key
+         * @param {UpsertContextKindPayload} upsertContextKindPayload 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async putContextKind(projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UpsertResponseRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.putContextKind(projectKey, key, upsertContextKindPayload, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * ContextsBetaApi - factory interface
+ * @export
+ */
+export const ContextsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = ContextsBetaApiFp(configuration)
+    return {
+        /**
+         * Get all context kinds for a given project.
+         * @summary Get context kinds
+         * @param {string} projectKey The project key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getContextKindsByProjectKey(projectKey: string, options?: any): AxiosPromise<ContextKindsCollectionRep> {
+            return localVarFp.getContextKindsByProjectKey(projectKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Create or update a context kind by key. Only the included fields will be updated.
+         * @summary Create or update context kind
+         * @param {string} projectKey The project key
+         * @param {string} key The context kind key
+         * @param {UpsertContextKindPayload} upsertContextKindPayload 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        putContextKind(projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options?: any): AxiosPromise<UpsertResponseRep> {
+            return localVarFp.putContextKind(projectKey, key, upsertContextKindPayload, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * ContextsBetaApi - object-oriented interface
+ * @export
+ * @class ContextsBetaApi
+ * @extends {BaseAPI}
+ */
+export class ContextsBetaApi extends BaseAPI {
+    /**
+     * Get all context kinds for a given project.
+     * @summary Get context kinds
+     * @param {string} projectKey The project key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ContextsBetaApi
+     */
+    public getContextKindsByProjectKey(projectKey: string, options?: AxiosRequestConfig) {
+        return ContextsBetaApiFp(this.configuration).getContextKindsByProjectKey(projectKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Create or update a context kind by key. Only the included fields will be updated.
+     * @summary Create or update context kind
+     * @param {string} projectKey The project key
+     * @param {string} key The context kind key
+     * @param {UpsertContextKindPayload} upsertContextKindPayload 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ContextsBetaApi
+     */
+    public putContextKind(projectKey: string, key: string, upsertContextKindPayload: UpsertContextKindPayload, options?: AxiosRequestConfig) {
+        return ContextsBetaApiFp(this.configuration).putContextKind(projectKey, key, upsertContextKindPayload, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -19608,7 +19646,7 @@ export class EnvironmentsApi extends BaseAPI {
 export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Create an experiment. To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments).
+         * Create an experiment.  To run this experiment, you\'ll need to [create an iteration](/tag/Experiments-(beta)#operation/createIteration) and then [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` instruction.  To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments). 
          * @summary Create experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -19655,7 +19693,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
             };
         },
         /**
-         * Create an experiment iteration. Experiment iterations let you record experiments in discrete blocks of time. To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations).
+         * Create an experiment iteration.  Experiment iterations let you record experiments in individual blocks of time. Initially, iterations are created with a status of `not_started` and appear in the `draftIteration` field of an experiment. To start or stop an iteration, [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` or `stopIteration` instruction.   To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations). 
          * @summary Create iteration
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -19706,7 +19744,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
             };
         },
         /**
-         * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+         * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
          * @summary Get experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -19837,7 +19875,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
             };
         },
         /**
-         * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+         * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
          * @summary Get experiments
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -19962,7 +20000,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
             };
         },
         /**
-         * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
+         * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  An iteration may not be started until it meets the following criteria:  * Its associated flag is toggled on and is not archived * Its `randomizationUnit` is set * At least one of its `treatments` has a non-zero `allocationPercent`  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
          * @summary Patch experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20115,7 +20153,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = ExperimentsBetaApiAxiosParamCreator(configuration)
     return {
         /**
-         * Create an experiment. To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments).
+         * Create an experiment.  To run this experiment, you\'ll need to [create an iteration](/tag/Experiments-(beta)#operation/createIteration) and then [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` instruction.  To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments). 
          * @summary Create experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20128,7 +20166,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Create an experiment iteration. Experiment iterations let you record experiments in discrete blocks of time. To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations).
+         * Create an experiment iteration.  Experiment iterations let you record experiments in individual blocks of time. Initially, iterations are created with a status of `not_started` and appear in the `draftIteration` field of an experiment. To start or stop an iteration, [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` or `stopIteration` instruction.   To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations). 
          * @summary Create iteration
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20142,7 +20180,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+         * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
          * @summary Get experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20180,7 +20218,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+         * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
          * @summary Get experiments
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20213,7 +20251,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
+         * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  An iteration may not be started until it meets the following criteria:  * Its associated flag is toggled on and is not archived * Its `randomizationUnit` is set * At least one of its `treatments` has a non-zero `allocationPercent`  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
          * @summary Patch experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20263,7 +20301,7 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
     const localVarFp = ExperimentsBetaApiFp(configuration)
     return {
         /**
-         * Create an experiment. To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments).
+         * Create an experiment.  To run this experiment, you\'ll need to [create an iteration](/tag/Experiments-(beta)#operation/createIteration) and then [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` instruction.  To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments). 
          * @summary Create experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20275,7 +20313,7 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
             return localVarFp.createExperiment(projectKey, environmentKey, experimentPost, options).then((request) => request(axios, basePath));
         },
         /**
-         * Create an experiment iteration. Experiment iterations let you record experiments in discrete blocks of time. To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations).
+         * Create an experiment iteration.  Experiment iterations let you record experiments in individual blocks of time. Initially, iterations are created with a status of `not_started` and appear in the `draftIteration` field of an experiment. To start or stop an iteration, [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` or `stopIteration` instruction.   To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations). 
          * @summary Create iteration
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20288,7 +20326,7 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
             return localVarFp.createIteration(projectKey, environmentKey, experimentKey, iterationInput, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+         * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
          * @summary Get experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20323,7 +20361,7 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
             return localVarFp.getExperimentationSettings(projectKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+         * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
          * @summary Get experiments
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20354,7 +20392,7 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
             return localVarFp.getLegacyExperimentResults(projectKey, featureFlagKey, environmentKey, metricKey, from, to, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
+         * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  An iteration may not be started until it meets the following criteria:  * Its associated flag is toggled on and is not archived * Its `randomizationUnit` is set * At least one of its `treatments` has a non-zero `allocationPercent`  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
          * @summary Patch experiment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20401,7 +20439,7 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
  */
 export class ExperimentsBetaApi extends BaseAPI {
     /**
-     * Create an experiment. To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments).
+     * Create an experiment.  To run this experiment, you\'ll need to [create an iteration](/tag/Experiments-(beta)#operation/createIteration) and then [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` instruction.  To learn more, read [Creating experiments](https://docs.launchdarkly.com/home/creating-experiments). 
      * @summary Create experiment
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -20415,7 +20453,7 @@ export class ExperimentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Create an experiment iteration. Experiment iterations let you record experiments in discrete blocks of time. To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations).
+     * Create an experiment iteration.  Experiment iterations let you record experiments in individual blocks of time. Initially, iterations are created with a status of `not_started` and appear in the `draftIteration` field of an experiment. To start or stop an iteration, [update the experiment](/tag/Experiments-(beta)#operation/patchExperiment) with the `startIteration` or `stopIteration` instruction.   To learn more, read [Starting experiment iterations](https://docs.launchdarkly.com/home/creating-experiments#starting-experiment-iterations). 
      * @summary Create iteration
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -20430,7 +20468,7 @@ export class ExperimentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+     * Get details about an experiment.  ### Expanding the experiment response  LaunchDarkly supports four fields for expanding the \"Get experiment\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
      * @summary Get experiment
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -20471,7 +20509,7 @@ export class ExperimentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes a draft of an iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
+     * Get details about all experiments in an environment.  ### Filtering experiments  LaunchDarkly supports the `filter` query param for filtering, with the following fields:  - `flagKey` filters for only experiments that use the flag with the given key. - `metricKey` filters for only experiments that use the metric with the given key. - `status` filters for only experiments with an iteration with the given status. An iteration can have the status `not_started`, `running` or `stopped`.  For example, `filter=flagKey:my-flag,status:running,metricKey:page-load-ms` filters for experiments for the given flag key and the given metric key which have a currently running iteration.  ### Expanding the experiments response  LaunchDarkly supports four fields for expanding the \"Get experiments\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `previousIterations` includes all iterations prior to the current iteration. By default only the current iteration is included in the response. - `draftIteration` includes the iteration which has not been started yet, if any. - `secondaryMetrics` includes secondary metrics. By default only the primary metric is included in the response. - `treatments` includes all treatment and parameter details. By default treatment data is not included in the response.  For example, `expand=draftIteration,treatments` includes the `draftIteration` and `treatments` fields in the response. If fields that you request with the `expand` query parameter are empty, they are not included in the response. 
      * @summary Get experiments
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -20506,7 +20544,7 @@ export class ExperimentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
+     * Update an experiment. Updating an experiment uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating experiments.  #### updateName  Updates the experiment name.  ##### Parameters  - `value`: The new name.  #### updateDescription  Updates the experiment description.  ##### Parameters  - `value`: The new description.  #### startIteration  Starts a new iteration for this experiment. You must [create a new iteration](/tag/Experiments-(beta)#operation/createIteration) before calling this instruction.  An iteration may not be started until it meets the following criteria:  * Its associated flag is toggled on and is not archived * Its `randomizationUnit` is set * At least one of its `treatments` has a non-zero `allocationPercent`  ##### Parameters  - `changeJustification`: The reason for starting a new iteration. Required when you call `startIteration` on an already running experiment, otherwise optional.  #### stopIteration  Stops the current iteration for this experiment.  ##### Parameters  - `winningTreatmentId`: The ID of the winning treatment - `winningReason`: The reason for the winner  #### archiveExperiment  Archives this experiment. Archived experiments are hidden by default in the LaunchDarkly user interface. You cannot start new iterations for archived experiments.  #### restoreExperiment  Restores an archived experiment. After restoring an experiment, you can start new iterations for it again. 
      * @summary Patch experiment
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -27121,6 +27159,53 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
+         * For a given context instance with attributes, get membership details for all segments
+         * @summary List segment memberships for context instance
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {{ [key: string]: any; }} requestBody 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getContextInstanceSegmentsMembershipByEnv: async (projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getContextInstanceSegmentsMembershipByEnv', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getContextInstanceSegmentsMembershipByEnv', 'environmentKey', environmentKey)
+            // verify required parameter 'requestBody' is not null or undefined
+            assertParamExists('getContextInstanceSegmentsMembershipByEnv', 'requestBody', requestBody)
+            const localVarPath = `/api/v2/projects/{projectKey}/environments/{environmentKey}/segments/evaluate`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(requestBody, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get a list of a segment\'s context targets that are scheduled for removal.
          * @summary Get expiring targets for segment
          * @param {string} projectKey The project key
@@ -27720,6 +27805,19 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
+         * For a given context instance with attributes, get membership details for all segments
+         * @summary List segment memberships for context instance
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {{ [key: string]: any; }} requestBody 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getContextInstanceSegmentsMembershipByEnv(projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ContextInstanceSegmentMemberships>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getContextInstanceSegmentsMembershipByEnv(projectKey, environmentKey, requestBody, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
          * Get a list of a segment\'s context targets that are scheduled for removal.
          * @summary Get expiring targets for segment
          * @param {string} projectKey The project key
@@ -27904,6 +28002,18 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.deleteSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
+         * For a given context instance with attributes, get membership details for all segments
+         * @summary List segment memberships for context instance
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {{ [key: string]: any; }} requestBody 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getContextInstanceSegmentsMembershipByEnv(projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options?: any): AxiosPromise<ContextInstanceSegmentMemberships> {
+            return localVarFp.getContextInstanceSegmentsMembershipByEnv(projectKey, environmentKey, requestBody, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get a list of a segment\'s context targets that are scheduled for removal.
          * @summary Get expiring targets for segment
          * @param {string} projectKey The project key
@@ -28075,6 +28185,20 @@ export class SegmentsApi extends BaseAPI {
      */
     public deleteSegment(projectKey: string, environmentKey: string, segmentKey: string, options?: AxiosRequestConfig) {
         return SegmentsApiFp(this.configuration).deleteSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * For a given context instance with attributes, get membership details for all segments
+     * @summary List segment memberships for context instance
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {{ [key: string]: any; }} requestBody 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof SegmentsApi
+     */
+    public getContextInstanceSegmentsMembershipByEnv(projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options?: AxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).getContextInstanceSegmentsMembershipByEnv(projectKey, environmentKey, requestBody, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -28461,53 +28585,6 @@ export const SegmentsBetaApiAxiosParamCreator = function (configuration?: Config
                 options: localVarRequestOptions,
             };
         },
-        /**
-         * For a given context instance with attributes, get membership details for all segments
-         * @summary List segment memberships for context instance
-         * @param {string} projectKey The project key
-         * @param {string} environmentKey The environment key
-         * @param {{ [key: string]: any; }} requestBody 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        getContextInstanceSegmentsMembershipByEnv: async (projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projectKey' is not null or undefined
-            assertParamExists('getContextInstanceSegmentsMembershipByEnv', 'projectKey', projectKey)
-            // verify required parameter 'environmentKey' is not null or undefined
-            assertParamExists('getContextInstanceSegmentsMembershipByEnv', 'environmentKey', environmentKey)
-            // verify required parameter 'requestBody' is not null or undefined
-            assertParamExists('getContextInstanceSegmentsMembershipByEnv', 'requestBody', requestBody)
-            const localVarPath = `/api/v2/projects/{projectKey}/environments/{environmentKey}/segments/evaluate`
-                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication ApiKey required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(requestBody, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
     }
 };
 
@@ -28574,19 +28651,6 @@ export const SegmentsBetaApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getBigSegmentImport(projectKey, environmentKey, segmentKey, importID, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
-        /**
-         * For a given context instance with attributes, get membership details for all segments
-         * @summary List segment memberships for context instance
-         * @param {string} projectKey The project key
-         * @param {string} environmentKey The environment key
-         * @param {{ [key: string]: any; }} requestBody 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async getContextInstanceSegmentsMembershipByEnv(projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ContextInstanceSegmentMemberships>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getContextInstanceSegmentsMembershipByEnv(projectKey, environmentKey, requestBody, options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
     }
 };
 
@@ -28648,18 +28712,6 @@ export const SegmentsBetaApiFactory = function (configuration?: Configuration, b
          */
         getBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, importID: string, options?: any): AxiosPromise<Import> {
             return localVarFp.getBigSegmentImport(projectKey, environmentKey, segmentKey, importID, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * For a given context instance with attributes, get membership details for all segments
-         * @summary List segment memberships for context instance
-         * @param {string} projectKey The project key
-         * @param {string} environmentKey The environment key
-         * @param {{ [key: string]: any; }} requestBody 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        getContextInstanceSegmentsMembershipByEnv(projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options?: any): AxiosPromise<ContextInstanceSegmentMemberships> {
-            return localVarFp.getContextInstanceSegmentsMembershipByEnv(projectKey, environmentKey, requestBody, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -28729,20 +28781,6 @@ export class SegmentsBetaApi extends BaseAPI {
      */
     public getBigSegmentImport(projectKey: string, environmentKey: string, segmentKey: string, importID: string, options?: AxiosRequestConfig) {
         return SegmentsBetaApiFp(this.configuration).getBigSegmentImport(projectKey, environmentKey, segmentKey, importID, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * For a given context instance with attributes, get membership details for all segments
-     * @summary List segment memberships for context instance
-     * @param {string} projectKey The project key
-     * @param {string} environmentKey The environment key
-     * @param {{ [key: string]: any; }} requestBody 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof SegmentsBetaApi
-     */
-    public getContextInstanceSegmentsMembershipByEnv(projectKey: string, environmentKey: string, requestBody: { [key: string]: any; }, options?: AxiosRequestConfig) {
-        return SegmentsBetaApiFp(this.configuration).getContextInstanceSegmentsMembershipByEnv(projectKey, environmentKey, requestBody, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
