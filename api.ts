@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * LaunchDarkly REST API
- * # Overview  ## Authentication  All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Account settings**](https://app.launchdarkly.com/settings/tokens) page.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and JavaScript-based SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations such as fetching feature flag settings.  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export. | | SDK keys                                                                                        | Can only access read-only resources specific to server-side SDKs. Restricted to a single environment. | Server-side SDKs                     | | Mobile keys                                                                                     | Can only access read-only resources specific to mobile SDKs, and only for flags marked available to mobile keys. Restricted to a single environment.           | Mobile SDKs                                        | | Client-side ID                                                                                  | Can only access read-only resources specific to JavaScript-based client-side SDKs, and only for flags marked available to client-side. Restricted to a single environment.           | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Account settings**](https://app.launchdarkly.com/settings/tokens) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Authentication using request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [**Account settings**](https://app.launchdarkly.com/settings/tokens) page.  ### Authentication using session cookie  For testing purposes, you can make API calls directly from your web browser. If you are logged in to the LaunchDarkly application, the API will use your existing session to authenticate calls.  If you have a [role](https://docs.launchdarkly.com/home/team/built-in-roles) other than Admin, or have a [custom role](https://docs.launchdarkly.com/home/team/custom-roles) defined, you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses also send a JSON body. To learn more about the error format of the API, read [Errors](/#section/Overview/Errors).  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PATCH`, `POST`, and `PUT` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource, such as a single feature flag, you receive a _detailed representation_ of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Expanding responses  Sometimes the detailed representation of a resource does not include all of the attributes of the resource by default. If this is the case, the request method will clearly document this and describe which attributes you can include in an expanded response.  To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,roles` to the [Get team](/tag/Teams#operation/getTeam) endpoint, the expanded response includes both of these attributes.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link  Each link has two attributes:  - An `href`, which contains the URL - A `type`, which describes the content type  For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb. Most resources support the [JSON patch](/reference#updates-using-json-patch) format. Some resources also support the [JSON merge patch](/reference#updates-using-json-merge-patch) format, and some resources support the [semantic patch](/reference#updates-using-semantic-patch) format, which is a way to specify the modifications to perform as a set of executable instructions. Each resource supports optional [comments](/reference#updates-with-comments) that you can submit with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  When a resource supports both JSON patch and semantic patch, we document both in the request method. However, the specific request body fields and descriptions included in our documentation only match one type of patch or the other.  ### Updates using JSON patch  [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. JSON patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. JSON patch documents are always arrays, where each element contains an operation, a path to the field to update, and the new value.  For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ``` You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that are not editable, such as a resource\'s `_links`, have names that start with an underscore.  ### Updates using JSON merge patch  [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) is another format for specifying the modifications to perform on a resource. JSON merge patch is less expressive than JSON patch. However, in many cases it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates using semantic patch  Some resources support the semantic patch format. A semantic patch is a way to specify the modifications to perform on a resource as a set of executable instructions.  Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, you can define semantic patch instructions independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header.  Here\'s how:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  The body of a semantic patch request takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some resources only) The environment key. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the instruction requires parameters, you must include those parameters as additional fields in the object. The documentation for each resource that supports semantic patch includes the available instructions and any additional parameters.  For example:  ```json {   \"comment\": \"optional comment\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  If any instruction in the patch encounters an error, the endpoint returns an error and will not change the resource. In general, each instruction silently does nothing if the resource is already in the state you request.  ### Updates with comments  You can submit optional comments with `PATCH` changes.  To submit a comment along with a JSON patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON merge patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  To submit a comment along with a semantic patch, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The `code` indicates the general class of error. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly Support to debug a problem with a specific API call.  ### HTTP status error response codes  | Code | Definition        | Description                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Invalid request       | The request cannot be understood.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Invalid access token      | Requestor is unauthorized or does not have permission for this API call.                                                | Ensure your API access token is valid and has the appropriate permissions.                                     | | 403  | Forbidden         | Requestor does not have access to this resource.                                                | Ensure that the account member or access token has proper permissions set. | | 404  | Invalid resource identifier | The requested resource is not valid. | Ensure that the resource is correctly identified by ID or key. | | 405  | Method not allowed | The request method is not allowed on this resource. | Ensure that the HTTP verb is correct. | | 409  | Conflict          | The API request can not be completed because it conflicts with a concurrent API request. | Retry your request.                                              | | 422  | Unprocessable entity | The API request can not be completed because the update description can not be understood. | Ensure that the request body is correct for the type of patch you are using, either JSON patch or semantic patch. | 429  | Too many requests | Read [Rate limiting](/#section/Overview/Rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise the request returns a wildcard, `Access-Control-Allow-Origin: *`. For more information on CORS, read the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](/#section/Overview/Authentication). If you are using session authentication, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted entities.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs return a `429` status code. Calls to our APIs include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that your account can make to the API per ten seconds. All service and personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits may return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any service or personal access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](/tag/Environments#operation/deleteEnvironment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that an account can make to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger) and client libraries  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit the [collection of client libraries on GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories). You can also use this specification to generate client libraries to interact with our REST API in your language of choice.  Our OpenAPI specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to explore our APIs.  ## Method overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `DELETE`, `PATCH`, and `PUT` verbs are inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `DELETE`, `PATCH`, and `PUT` requests using a `POST` request.  For example, to call a `PATCH` endpoint using a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](/#section/Overview/Beta-resources). > > Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Federal environments  The version of LaunchDarkly that is available on domains controlled by the United States government is different from the version of LaunchDarkly available to the general public. If you are an employee or contractor for a United States federal agency and use LaunchDarkly in your work, you likely use the federal instance of LaunchDarkly.  If you are working in the federal instance of LaunchDarkly, the base URI for each request is `https://app.launchdarkly.us`. In the \"Try it\" sandbox for each request, click the request path to view the complete resource path for the federal environment.  To learn more, read [LaunchDarkly in federal environments](https://docs.launchdarkly.com/home/advanced/federal).  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20220603 ```  The header value is the version number of the API version you would like to request. The number for each version corresponds to the date the version was released in `yyyymmdd` format. In the example above the version `20220603` corresponds to June 03, 2022.  ### Setting the API version per access token  When you create an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426`, which is the version of the API that existed before the current versioning scheme, so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing.  ### API version changelog  |<div style=\"width:75px\">Version</div> | Changes | End of life (EOL) |---|---|---| | `20220603` | <ul><li>Changed the [list projects](/tag/Projects#operation/getProjects) return value:<ul><li>Response is now paginated with a default limit of `20`.</li><li>Added support for filter and sort.</li><li>The project `environments` field is now expandable. This field is omitted by default.</li></ul></li><li>Changed the [get project](/tag/Projects#operation/getProject) return value:<ul><li>The `environments` field is now expandable. This field is omitted by default.</li></ul></li></ul> | Current | | `20210729` | <ul><li>Changed the [create approval request](/tag/Approvals#operation/postApprovalRequest) return value. It now returns HTTP Status Code `201` instead of `200`.</li><li> Changed the [get users](/tag/Users#operation/getUser) return value. It now returns a user record, not a user. </li><li>Added additional optional fields to environment, segments, flags, members, and segments, including the ability to create Big Segments. </li><li> Added default values for flag variations when new environments are created. </li><li>Added filtering and pagination for getting flags and members, including `limit`, `number`, `filter`, and `sort` query parameters. </li><li>Added endpoints for expiring user targets for flags and segments, scheduled changes, access tokens, Relay Proxy configuration, integrations and subscriptions, and approvals. </li></ul> | 2023-06-03 | | `20191212` | <ul><li>[List feature flags](/tag/Feature-flags#operation/getFeatureFlags) now defaults to sending summaries of feature flag configurations, equivalent to setting the query parameter `summary=true`. Summaries omit flag targeting rules and individual user targets from the payload. </li><li> Added endpoints for flags, flag status, projects, environments, audit logs, members, users, custom roles, segments, usage, streams, events, and data export. </li></ul> | 2022-07-29 | | `20160426` | <ul><li>Initial versioning of API. Tokens created before versioning have their version set to this.</li></ul> | 2020-12-12 | 
+ * # Overview  ## Authentication  LaunchDarkly\'s REST API uses the HTTPS protocol with a minimum TLS version of 1.2.  All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Account settings**](https://app.launchdarkly.com/settings/tokens) page.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and JavaScript-based SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations such as fetching feature flag settings.  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal or service access tokens](https://docs.launchdarkly.com/home/account-security/api-access-tokens) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export. | | SDK keys                                                                                        | Can only access read-only resources specific to server-side SDKs. Restricted to a single environment. | Server-side SDKs                     | | Mobile keys                                                                                     | Can only access read-only resources specific to mobile SDKs, and only for flags marked available to mobile keys. Restricted to a single environment.           | Mobile SDKs                                        | | Client-side ID                                                                                  | Can only access read-only resources specific to JavaScript-based client-side SDKs, and only for flags marked available to client-side. Restricted to a single environment.           | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Account settings**](https://app.launchdarkly.com/settings/tokens) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Authentication using request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [**Account settings**](https://app.launchdarkly.com/settings/tokens) page.  ### Authentication using session cookie  For testing purposes, you can make API calls directly from your web browser. If you are logged in to the LaunchDarkly application, the API will use your existing session to authenticate calls.  If you have a [role](https://docs.launchdarkly.com/home/team/built-in-roles) other than Admin, or have a [custom role](https://docs.launchdarkly.com/home/team/custom-roles) defined, you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses also send a JSON body. To learn more about the error format of the API, read [Errors](/#section/Overview/Errors).  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PATCH`, `POST`, and `PUT` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource, such as a single feature flag, you receive a _detailed representation_ of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Expanding responses  Sometimes the detailed representation of a resource does not include all of the attributes of the resource by default. If this is the case, the request method will clearly document this and describe which attributes you can include in an expanded response.  To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,roles` to the [Get team](/tag/Teams#operation/getTeam) endpoint, the expanded response includes both of these attributes.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link  Each link has two attributes:  - An `href`, which contains the URL - A `type`, which describes the content type  For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb. Most resources support the [JSON patch](/reference#updates-using-json-patch) format. Some resources also support the [JSON merge patch](/reference#updates-using-json-merge-patch) format, and some resources support the [semantic patch](/reference#updates-using-semantic-patch) format, which is a way to specify the modifications to perform as a set of executable instructions. Each resource supports optional [comments](/reference#updates-with-comments) that you can submit with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  When a resource supports both JSON patch and semantic patch, we document both in the request method. However, the specific request body fields and descriptions included in our documentation only match one type of patch or the other.  ### Updates using JSON patch  [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. JSON patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. JSON patch documents are always arrays, where each element contains an operation, a path to the field to update, and the new value.  For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ``` You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that are not editable, such as a resource\'s `_links`, have names that start with an underscore.  ### Updates using JSON merge patch  [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) is another format for specifying the modifications to perform on a resource. JSON merge patch is less expressive than JSON patch. However, in many cases it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates using semantic patch  Some resources support the semantic patch format. A semantic patch is a way to specify the modifications to perform on a resource as a set of executable instructions.  Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, you can define semantic patch instructions independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header.  Here\'s how:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  The body of a semantic patch request takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some resources only) The environment key. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the instruction requires parameters, you must include those parameters as additional fields in the object. The documentation for each resource that supports semantic patch includes the available instructions and any additional parameters.  For example:  ```json {   \"comment\": \"optional comment\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  If any instruction in the patch encounters an error, the endpoint returns an error and will not change the resource. In general, each instruction silently does nothing if the resource is already in the state you request.  ### Updates with comments  You can submit optional comments with `PATCH` changes.  To submit a comment along with a JSON patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON merge patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  To submit a comment along with a semantic patch, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The `code` indicates the general class of error. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly Support to debug a problem with a specific API call.  ### HTTP status error response codes  | Code | Definition        | Description                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Invalid request       | The request cannot be understood.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Invalid access token      | Requestor is unauthorized or does not have permission for this API call.                                                | Ensure your API access token is valid and has the appropriate permissions.                                     | | 403  | Forbidden         | Requestor does not have access to this resource.                                                | Ensure that the account member or access token has proper permissions set. | | 404  | Invalid resource identifier | The requested resource is not valid. | Ensure that the resource is correctly identified by ID or key. | | 405  | Method not allowed | The request method is not allowed on this resource. | Ensure that the HTTP verb is correct. | | 409  | Conflict          | The API request can not be completed because it conflicts with a concurrent API request. | Retry your request.                                              | | 422  | Unprocessable entity | The API request can not be completed because the update description can not be understood. | Ensure that the request body is correct for the type of patch you are using, either JSON patch or semantic patch. | 429  | Too many requests | Read [Rate limiting](/#section/Overview/Rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise the request returns a wildcard, `Access-Control-Allow-Origin: *`. For more information on CORS, read the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](/#section/Overview/Authentication). If you are using session authentication, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted entities.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs return a `429` status code. Calls to our APIs include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that your account can make to the API per ten seconds. All service and personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits may return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any service or personal access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](/tag/Environments#operation/deleteEnvironment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that an account can make to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger) and client libraries  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit the [collection of client libraries on GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories). You can also use this specification to generate client libraries to interact with our REST API in your language of choice.  Our OpenAPI specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to explore our APIs.  ## Method overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `DELETE`, `PATCH`, and `PUT` verbs are inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `DELETE`, `PATCH`, and `PUT` requests using a `POST` request.  For example, to call a `PATCH` endpoint using a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](/#section/Overview/Beta-resources). > > Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Federal environments  The version of LaunchDarkly that is available on domains controlled by the United States government is different from the version of LaunchDarkly available to the general public. If you are an employee or contractor for a United States federal agency and use LaunchDarkly in your work, you likely use the federal instance of LaunchDarkly.  If you are working in the federal instance of LaunchDarkly, the base URI for each request is `https://app.launchdarkly.us`. In the \"Try it\" sandbox for each request, click the request path to view the complete resource path for the federal environment.  To learn more, read [LaunchDarkly in federal environments](https://docs.launchdarkly.com/home/advanced/federal).  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20220603 ```  The header value is the version number of the API version you would like to request. The number for each version corresponds to the date the version was released in `yyyymmdd` format. In the example above the version `20220603` corresponds to June 03, 2022.  ### Setting the API version per access token  When you create an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426`, which is the version of the API that existed before the current versioning scheme, so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing.  ### API version changelog  |<div style=\"width:75px\">Version</div> | Changes | End of life (EOL) |---|---|---| | `20220603` | <ul><li>Changed the [list projects](/tag/Projects#operation/getProjects) return value:<ul><li>Response is now paginated with a default limit of `20`.</li><li>Added support for filter and sort.</li><li>The project `environments` field is now expandable. This field is omitted by default.</li></ul></li><li>Changed the [get project](/tag/Projects#operation/getProject) return value:<ul><li>The `environments` field is now expandable. This field is omitted by default.</li></ul></li></ul> | Current | | `20210729` | <ul><li>Changed the [create approval request](/tag/Approvals#operation/postApprovalRequest) return value. It now returns HTTP Status Code `201` instead of `200`.</li><li> Changed the [get users](/tag/Users#operation/getUser) return value. It now returns a user record, not a user. </li><li>Added additional optional fields to environment, segments, flags, members, and segments, including the ability to create big segments. </li><li> Added default values for flag variations when new environments are created. </li><li>Added filtering and pagination for getting flags and members, including `limit`, `number`, `filter`, and `sort` query parameters. </li><li>Added endpoints for expiring user targets for flags and segments, scheduled changes, access tokens, Relay Proxy configuration, integrations and subscriptions, and approvals. </li></ul> | 2023-06-03 | | `20191212` | <ul><li>[List feature flags](/tag/Feature-flags#operation/getFeatureFlags) now defaults to sending summaries of feature flag configurations, equivalent to setting the query parameter `summary=true`. Summaries omit flag targeting rules and individual user targets from the payload. </li><li> Added endpoints for flags, flag status, projects, environments, audit logs, members, users, custom roles, segments, usage, streams, events, and data export. </li></ul> | 2022-07-29 | | `20160426` | <ul><li>Initial versioning of API. Tokens created before versioning have their version set to this.</li></ul> | 2020-12-12 | 
  *
  * The version of the OpenAPI document: 2.0
  * Contact: support@launchdarkly.com
@@ -298,19 +298,6 @@ export interface ApplicationCollectionRep {
 /**
  * 
  * @export
- * @interface ApplicationExpandableFields
- */
-export interface ApplicationExpandableFields {
-    /**
-     * 
-     * @type {ApplicationFlagCollectionRep}
-     * @memberof ApplicationExpandableFields
-     */
-    'flags'?: ApplicationFlagCollectionRep;
-}
-/**
- * 
- * @export
  * @interface ApplicationFlagCollectionRep
  */
 export interface ApplicationFlagCollectionRep {
@@ -494,68 +481,6 @@ export interface ApplicationVersionsCollectionRep {
      * @memberof ApplicationVersionsCollectionRep
      */
     'totalCount'?: number;
-}
-/**
- * 
- * @export
- * @interface ApprovalConditionInput
- */
-export interface ApprovalConditionInput {
-    /**
-     * A description of the approval required for this stage
-     * @type {string}
-     * @memberof ApprovalConditionInput
-     */
-    'description'?: string;
-    /**
-     * A list of member IDs for the members to request approval from for this stage
-     * @type {Array<string>}
-     * @memberof ApprovalConditionInput
-     */
-    'notifyMemberIds'?: Array<string>;
-    /**
-     * A list of team keys for the teams to request approval from for this stage
-     * @type {Array<string>}
-     * @memberof ApprovalConditionInput
-     */
-    'notifyTeamKeys'?: Array<string>;
-}
-/**
- * 
- * @export
- * @interface ApprovalConditionOutput
- */
-export interface ApprovalConditionOutput {
-    /**
-     * 
-     * @type {string}
-     * @memberof ApprovalConditionOutput
-     */
-    'description': string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof ApprovalConditionOutput
-     */
-    'notifyMemberIds': Array<string>;
-    /**
-     * 
-     * @type {Array<ReviewOutput>}
-     * @memberof ApprovalConditionOutput
-     */
-    'allReviews': Array<ReviewOutput>;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApprovalConditionOutput
-     */
-    'reviewStatus': string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ApprovalConditionOutput
-     */
-    'appliedDate'?: number;
 }
 /**
  * 
@@ -1137,6 +1062,199 @@ export interface AuthorizedAppDataRep {
 /**
  * 
  * @export
+ * @interface BigSegmentStoreIntegration
+ */
+export interface BigSegmentStoreIntegration {
+    /**
+     * 
+     * @type {BigSegmentStoreIntegrationLinks}
+     * @memberof BigSegmentStoreIntegration
+     */
+    '_links': BigSegmentStoreIntegrationLinks;
+    /**
+     * The integration ID
+     * @type {string}
+     * @memberof BigSegmentStoreIntegration
+     */
+    '_id': string;
+    /**
+     * The integration key
+     * @type {string}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'integrationKey': BigSegmentStoreIntegrationIntegrationKeyEnum;
+    /**
+     * The project key
+     * @type {string}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'projectKey': string;
+    /**
+     * The environment key
+     * @type {string}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'environmentKey': string;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'config': { [key: string]: any; };
+    /**
+     * Whether the configuration is turned on
+     * @type {boolean}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'on': boolean;
+    /**
+     * List of tags for this configuration
+     * @type {Array<string>}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'tags': Array<string>;
+    /**
+     * Name of the configuration
+     * @type {string}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'name': string;
+    /**
+     * Version of the current configuration
+     * @type {number}
+     * @memberof BigSegmentStoreIntegration
+     */
+    'version': number;
+    /**
+     * 
+     * @type {Access}
+     * @memberof BigSegmentStoreIntegration
+     */
+    '_access'?: Access;
+    /**
+     * 
+     * @type {BigSegmentStoreStatus}
+     * @memberof BigSegmentStoreIntegration
+     */
+    '_status': BigSegmentStoreStatus;
+}
+
+export const BigSegmentStoreIntegrationIntegrationKeyEnum = {
+    Redis: 'redis',
+    Dynamodb: 'dynamodb'
+} as const;
+
+export type BigSegmentStoreIntegrationIntegrationKeyEnum = typeof BigSegmentStoreIntegrationIntegrationKeyEnum[keyof typeof BigSegmentStoreIntegrationIntegrationKeyEnum];
+
+/**
+ * 
+ * @export
+ * @interface BigSegmentStoreIntegrationCollection
+ */
+export interface BigSegmentStoreIntegrationCollection {
+    /**
+     * 
+     * @type {BigSegmentStoreIntegrationCollectionLinks}
+     * @memberof BigSegmentStoreIntegrationCollection
+     */
+    '_links': BigSegmentStoreIntegrationCollectionLinks;
+    /**
+     * An array of persistent store integration configurations
+     * @type {Array<BigSegmentStoreIntegration>}
+     * @memberof BigSegmentStoreIntegrationCollection
+     */
+    'items': Array<BigSegmentStoreIntegration>;
+}
+/**
+ * 
+ * @export
+ * @interface BigSegmentStoreIntegrationCollectionLinks
+ */
+export interface BigSegmentStoreIntegrationCollectionLinks {
+    /**
+     * 
+     * @type {Link}
+     * @memberof BigSegmentStoreIntegrationCollectionLinks
+     */
+    'self': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof BigSegmentStoreIntegrationCollectionLinks
+     */
+    'parent'?: Link;
+}
+/**
+ * 
+ * @export
+ * @interface BigSegmentStoreIntegrationLinks
+ */
+export interface BigSegmentStoreIntegrationLinks {
+    /**
+     * 
+     * @type {Link}
+     * @memberof BigSegmentStoreIntegrationLinks
+     */
+    'self': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof BigSegmentStoreIntegrationLinks
+     */
+    'parent': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof BigSegmentStoreIntegrationLinks
+     */
+    'project': Link;
+    /**
+     * 
+     * @type {Link}
+     * @memberof BigSegmentStoreIntegrationLinks
+     */
+    'environment': Link;
+}
+/**
+ * 
+ * @export
+ * @interface BigSegmentStoreStatus
+ */
+export interface BigSegmentStoreStatus {
+    /**
+     * Whether the persistent store integration is fully synchronized with the LaunchDarkly environment, and the <code>lastSync</code> occurred within a few minutes
+     * @type {boolean}
+     * @memberof BigSegmentStoreStatus
+     */
+    'available'?: boolean;
+    /**
+     * Whether the persistent store integration may not be fully synchronized with the LaunchDarkly environment. <code>true</code> if the integration could be stale.
+     * @type {boolean}
+     * @memberof BigSegmentStoreStatus
+     */
+    'potentiallyStale'?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof BigSegmentStoreStatus
+     */
+    'lastSync'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof BigSegmentStoreStatus
+     */
+    'lastError'?: number;
+    /**
+     * 
+     * @type {Array<StoreIntegrationError>}
+     * @memberof BigSegmentStoreStatus
+     */
+    'errors'?: Array<StoreIntegrationError>;
+}
+/**
+ * 
+ * @export
  * @interface BigSegmentTarget
  */
 export interface BigSegmentTarget {
@@ -1524,31 +1642,6 @@ export interface CompletedBy {
      * @memberof CompletedBy
      */
     'token'?: TokenSummary;
-}
-/**
- * 
- * @export
- * @interface ConditionBaseOutput
- */
-export interface ConditionBaseOutput {
-    /**
-     * 
-     * @type {string}
-     * @memberof ConditionBaseOutput
-     */
-    '_id': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ConditionBaseOutput
-     */
-    'kind'?: string;
-    /**
-     * 
-     * @type {ExecutionOutput}
-     * @memberof ConditionBaseOutput
-     */
-    '_execution': ExecutionOutput;
 }
 /**
  * 
@@ -2065,7 +2158,7 @@ export interface ContextInstanceSegmentMembership {
      */
     'description': string;
     /**
-     * Whether this is an unbounded segment. Unbounded segments, also called Big Segments, may be list-based segments with more than 15,000 entries, or synced segments.
+     * Whether this is an unbounded segment. Unbounded segments, also called big segments, may be list-based segments with more than 15,000 entries, or synced segments.
      * @type {boolean}
      * @memberof ContextInstanceSegmentMembership
      */
@@ -2156,73 +2249,6 @@ export interface ContextInstances {
      * @memberof ContextInstances
      */
     'items': Array<ContextInstanceRecord>;
-}
-/**
- * 
- * @export
- * @interface ContextKind
- */
-export interface ContextKind {
-    /**
-     * The context kind key
-     * @type {string}
-     * @memberof ContextKind
-     */
-    'key': string;
-    /**
-     * The context kind name
-     * @type {string}
-     * @memberof ContextKind
-     */
-    'name': string;
-    /**
-     * The context kind description
-     * @type {string}
-     * @memberof ContextKind
-     */
-    'description': string;
-    /**
-     * The context kind version
-     * @type {number}
-     * @memberof ContextKind
-     */
-    'version': number;
-    /**
-     * 
-     * @type {number}
-     * @memberof ContextKind
-     */
-    'creationDate': number;
-    /**
-     * 
-     * @type {number}
-     * @memberof ContextKind
-     */
-    'lastModified': number;
-    /**
-     * 
-     * @type {number}
-     * @memberof ContextKind
-     */
-    'lastSeen'?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof ContextKind
-     */
-    'createdFrom': string;
-    /**
-     * Alias for archived.
-     * @type {boolean}
-     * @memberof ContextKind
-     */
-    'hideInTargeting'?: boolean;
-    /**
-     * Whether the context kind is archived. Archived context kinds are unavailable for targeting.
-     * @type {boolean}
-     * @memberof ContextKind
-     */
-    'archived'?: boolean;
 }
 /**
  * 
@@ -2445,77 +2471,6 @@ export interface CopiedFromEnv {
      * @memberof CopiedFromEnv
      */
     'version'?: number;
-}
-/**
- * 
- * @export
- * @interface CreateApplicationInput
- */
-export interface CreateApplicationInput {
-    /**
-     * The application description
-     * @type {string}
-     * @memberof CreateApplicationInput
-     */
-    'description'?: string;
-    /**
-     * The unique identifier of this application
-     * @type {string}
-     * @memberof CreateApplicationInput
-     */
-    'key': string;
-    /**
-     * To distinguish the kind of application
-     * @type {string}
-     * @memberof CreateApplicationInput
-     */
-    'kind': CreateApplicationInputKindEnum;
-    /**
-     * 
-     * @type {MaintainerInput}
-     * @memberof CreateApplicationInput
-     */
-    'maintainer'?: MaintainerInput;
-    /**
-     * The name of the application
-     * @type {string}
-     * @memberof CreateApplicationInput
-     */
-    'name': string;
-}
-
-export const CreateApplicationInputKindEnum = {
-    Browser: 'browser',
-    Mobile: 'mobile',
-    Server: 'server'
-} as const;
-
-export type CreateApplicationInputKindEnum = typeof CreateApplicationInputKindEnum[keyof typeof CreateApplicationInputKindEnum];
-
-/**
- * 
- * @export
- * @interface CreateApplicationVersionInput
- */
-export interface CreateApplicationVersionInput {
-    /**
-     * The unique identifier of this application version
-     * @type {string}
-     * @memberof CreateApplicationVersionInput
-     */
-    'key': string;
-    /**
-     * The name of this version
-     * @type {string}
-     * @memberof CreateApplicationVersionInput
-     */
-    'name': string;
-    /**
-     * Whether this version is supported. Only applicable if the application <code>kind</code> is <code>mobile</code>. Defaults to <code>true</code>.
-     * @type {boolean}
-     * @memberof CreateApplicationVersionInput
-     */
-    'supported'?: boolean;
 }
 /**
  * 
@@ -2936,74 +2891,6 @@ export interface CustomRolePost {
 /**
  * 
  * @export
- * @interface CustomRolePostData
- */
-export interface CustomRolePostData {
-    /**
-     * A human-friendly name for the custom role
-     * @type {string}
-     * @memberof CustomRolePostData
-     */
-    'name': string;
-    /**
-     * The custom role key
-     * @type {string}
-     * @memberof CustomRolePostData
-     */
-    'key': string;
-    /**
-     * Description of custom role
-     * @type {string}
-     * @memberof CustomRolePostData
-     */
-    'description'?: string;
-    /**
-     * 
-     * @type {Array<StatementPost>}
-     * @memberof CustomRolePostData
-     */
-    'policy': Array<StatementPost>;
-    /**
-     * 
-     * @type {string}
-     * @memberof CustomRolePostData
-     */
-    'basePermissions'?: string;
-}
-/**
- * 
- * @export
- * @interface CustomRoleSummary
- */
-export interface CustomRoleSummary {
-    /**
-     * The custom role\'s\' ID
-     * @type {string}
-     * @memberof CustomRoleSummary
-     */
-    '_id': string;
-    /**
-     * The key of the custom role
-     * @type {string}
-     * @memberof CustomRoleSummary
-     */
-    'key'?: string;
-    /**
-     * The name of the custom role
-     * @type {string}
-     * @memberof CustomRoleSummary
-     */
-    'name'?: string;
-    /**
-     * The location and content type of related resources
-     * @type {{ [key: string]: Link; }}
-     * @memberof CustomRoleSummary
-     */
-    '_links': { [key: string]: Link; };
-}
-/**
- * 
- * @export
  * @interface CustomRoles
  */
 export interface CustomRoles {
@@ -3192,49 +3079,6 @@ export interface CustomWorkflowsListingOutput {
      * @memberof CustomWorkflowsListingOutput
      */
     'items': Array<CustomWorkflowOutput>;
-    /**
-     * Total number of workflows
-     * @type {number}
-     * @memberof CustomWorkflowsListingOutput
-     */
-    'totalCount': number;
-    /**
-     * The location and content type of related resources
-     * @type {{ [key: string]: Link; }}
-     * @memberof CustomWorkflowsListingOutput
-     */
-    '_links': { [key: string]: Link; };
-}
-/**
- * 
- * @export
- * @interface Database
- */
-export interface Database {
-    /**
-     * 
-     * @type {string}
-     * @memberof Database
-     */
-    'Id'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Database
-     */
-    'Label'?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof Database
-     */
-    'StartTime'?: number;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof Database
-     */
-    'Tracked'?: boolean;
 }
 /**
  * 
@@ -3317,6 +3161,12 @@ export interface DependentExperimentRep {
      * @memberof DependentExperimentRep
      */
     'environmentId': string;
+    /**
+     * The environment key
+     * @type {string}
+     * @memberof DependentExperimentRep
+     */
+    'environmentKey': string;
     /**
      * 
      * @type {number}
@@ -3426,6 +3276,88 @@ export interface DependentFlagsByEnvironment {
 /**
  * 
  * @export
+ * @interface DependentMetricGroupRep
+ */
+export interface DependentMetricGroupRep {
+    /**
+     * A unique key to reference the metric group
+     * @type {string}
+     * @memberof DependentMetricGroupRep
+     */
+    'key': string;
+    /**
+     * A human-friendly name for the metric group
+     * @type {string}
+     * @memberof DependentMetricGroupRep
+     */
+    'name': string;
+    /**
+     * The type of the metric group
+     * @type {string}
+     * @memberof DependentMetricGroupRep
+     */
+    'kind': DependentMetricGroupRepKindEnum;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof DependentMetricGroupRep
+     */
+    '_links': { [key: string]: Link; };
+}
+
+export const DependentMetricGroupRepKindEnum = {
+    Funnel: 'funnel'
+} as const;
+
+export type DependentMetricGroupRepKindEnum = typeof DependentMetricGroupRepKindEnum[keyof typeof DependentMetricGroupRepKindEnum];
+
+/**
+ * 
+ * @export
+ * @interface DependentMetricGroupRepWithMetrics
+ */
+export interface DependentMetricGroupRepWithMetrics {
+    /**
+     * A unique key to reference the metric group
+     * @type {string}
+     * @memberof DependentMetricGroupRepWithMetrics
+     */
+    'key': string;
+    /**
+     * A human-friendly name for the metric group
+     * @type {string}
+     * @memberof DependentMetricGroupRepWithMetrics
+     */
+    'name': string;
+    /**
+     * The type of the metric group
+     * @type {string}
+     * @memberof DependentMetricGroupRepWithMetrics
+     */
+    'kind': DependentMetricGroupRepWithMetricsKindEnum;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof DependentMetricGroupRepWithMetrics
+     */
+    '_links': { [key: string]: Link; };
+    /**
+     * The metrics in the metric group
+     * @type {Array<MetricInGroupRep>}
+     * @memberof DependentMetricGroupRepWithMetrics
+     */
+    'metrics'?: Array<MetricInGroupRep>;
+}
+
+export const DependentMetricGroupRepWithMetricsKindEnum = {
+    Funnel: 'funnel'
+} as const;
+
+export type DependentMetricGroupRepWithMetricsKindEnum = typeof DependentMetricGroupRepWithMetricsKindEnum[keyof typeof DependentMetricGroupRepWithMetricsKindEnum];
+
+/**
+ * 
+ * @export
  * @interface DependentMetricOrMetricGroupRep
  */
 export interface DependentMetricOrMetricGroupRep {
@@ -3435,6 +3367,12 @@ export interface DependentMetricOrMetricGroupRep {
      * @memberof DependentMetricOrMetricGroupRep
      */
     'key': string;
+    /**
+     * The version ID of the metric or metric group
+     * @type {string}
+     * @memberof DependentMetricOrMetricGroupRep
+     */
+    '_versionId': string;
     /**
      * A human-friendly name for the metric or metric group
      * @type {string}
@@ -3447,6 +3385,12 @@ export interface DependentMetricOrMetricGroupRep {
      * @memberof DependentMetricOrMetricGroupRep
      */
     'kind': DependentMetricOrMetricGroupRepKindEnum;
+    /**
+     * For custom metrics, whether to track numeric changes in value against a baseline (<code>true</code>) or to track a conversion when an end user takes an action (<code>false</code>).
+     * @type {boolean}
+     * @memberof DependentMetricOrMetricGroupRep
+     */
+    'isNumeric'?: boolean;
     /**
      * The location and content type of related resources
      * @type {{ [key: string]: Link; }}
@@ -3471,7 +3415,8 @@ export const DependentMetricOrMetricGroupRepKindEnum = {
     Pageview: 'pageview',
     Click: 'click',
     Custom: 'custom',
-    Funnel: 'funnel'
+    Funnel: 'funnel',
+    Standard: 'standard'
 } as const;
 
 export type DependentMetricOrMetricGroupRepKindEnum = typeof DependentMetricOrMetricGroupRepKindEnum[keyof typeof DependentMetricOrMetricGroupRepKindEnum];
@@ -3479,70 +3424,154 @@ export type DependentMetricOrMetricGroupRepKindEnum = typeof DependentMetricOrMe
 /**
  * 
  * @export
- * @interface DesignExpandableProperties
+ * @interface DeploymentCollectionRep
  */
-export interface DesignExpandableProperties {
+export interface DeploymentCollectionRep {
     /**
-     * Details on the variations you are testing in the experiment
-     * @type {Array<TreatmentRep>}
-     * @memberof DesignExpandableProperties
+     * The total number of deployments
+     * @type {number}
+     * @memberof DeploymentCollectionRep
      */
-    'treatments'?: Array<TreatmentRep>;
+    'totalCount': number;
     /**
-     * Details on the secondary metrics for this experiment
-     * @type {Array<MetricV2Rep>}
-     * @memberof DesignExpandableProperties
+     * A list of deployments
+     * @type {Array<DeploymentRep>}
+     * @memberof DeploymentCollectionRep
      */
-    'secondaryMetrics'?: Array<MetricV2Rep>;
+    'items': Array<DeploymentRep>;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof DeploymentCollectionRep
+     */
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
  * @export
- * @interface DesignRep
+ * @interface DeploymentRep
  */
-export interface DesignRep {
+export interface DeploymentRep {
     /**
-     * The expected outcome of this experiment
+     * The deployment ID
      * @type {string}
-     * @memberof DesignRep
+     * @memberof DeploymentRep
      */
-    'hypothesis': string;
+    'id': string;
     /**
-     * Whether the experiment can reassign traffic to different variations when you increase or decrease the traffic in your experiment audience (true) or keep all traffic assigned to its initial variation (false).
-     * @type {boolean}
-     * @memberof DesignRep
+     * The application key
+     * @type {string}
+     * @memberof DeploymentRep
      */
-    'canReshuffleTraffic'?: boolean;
+    'applicationKey': string;
     /**
-     * Details on the flag used in this experiment
-     * @type {{ [key: string]: FlagRep; }}
-     * @memberof DesignRep
+     * The application version
+     * @type {string}
+     * @memberof DeploymentRep
      */
-    'flags'?: { [key: string]: FlagRep; };
+    'applicationVersion': string;
     /**
      * 
-     * @type {DependentMetricOrMetricGroupRep}
-     * @memberof DesignRep
+     * @type {number}
+     * @memberof DeploymentRep
      */
-    'primaryMetric'?: DependentMetricOrMetricGroupRep;
+    'startedAt': number;
     /**
-     * The unit of randomization for this iteration
+     * 
+     * @type {number}
+     * @memberof DeploymentRep
+     */
+    'endedAt'?: number;
+    /**
+     * The duration of the deployment in milliseconds
+     * @type {number}
+     * @memberof DeploymentRep
+     */
+    'durationMs'?: number;
+    /**
+     * 
      * @type {string}
-     * @memberof DesignRep
+     * @memberof DeploymentRep
      */
-    'randomizationUnit'?: string;
+    'status': string;
     /**
-     * Details on the variations you are testing in the experiment
-     * @type {Array<TreatmentRep>}
-     * @memberof DesignRep
+     * 
+     * @type {string}
+     * @memberof DeploymentRep
      */
-    'treatments'?: Array<TreatmentRep>;
+    'kind': string;
     /**
-     * Details on the secondary metrics for this experiment
-     * @type {Array<MetricV2Rep>}
-     * @memberof DesignRep
+     * Whether the deployment is active
+     * @type {boolean}
+     * @memberof DeploymentRep
      */
-    'secondaryMetrics'?: Array<MetricV2Rep>;
+    'active': boolean;
+    /**
+     * The metadata associated with the deployment
+     * @type {{ [key: string]: any; }}
+     * @memberof DeploymentRep
+     */
+    'metadata'?: { [key: string]: any; };
+    /**
+     * Whether the deployment is archived
+     * @type {boolean}
+     * @memberof DeploymentRep
+     */
+    'archived': boolean;
+    /**
+     * The environment key
+     * @type {string}
+     * @memberof DeploymentRep
+     */
+    'environmentKey': string;
+    /**
+     * The number of contributors
+     * @type {number}
+     * @memberof DeploymentRep
+     */
+    'numberOfContributors': number;
+    /**
+     * The number of pull requests
+     * @type {number}
+     * @memberof DeploymentRep
+     */
+    'numberOfPullRequests': number;
+    /**
+     * The number of lines added
+     * @type {number}
+     * @memberof DeploymentRep
+     */
+    'linesAdded': number;
+    /**
+     * The number of lines deleted
+     * @type {number}
+     * @memberof DeploymentRep
+     */
+    'linesDeleted': number;
+    /**
+     * The total lead time from first commit to deployment end in milliseconds
+     * @type {number}
+     * @memberof DeploymentRep
+     */
+    'leadTime': number;
+    /**
+     * 
+     * @type {PullRequestCollectionRep}
+     * @memberof DeploymentRep
+     */
+    'pullRequests'?: PullRequestCollectionRep;
+    /**
+     * 
+     * @type {FlagReferenceCollectionRep}
+     * @memberof DeploymentRep
+     */
+    'flagReferences'?: FlagReferenceCollectionRep;
+    /**
+     * 
+     * @type {LeadTimeStagesRep}
+     * @memberof DeploymentRep
+     */
+    'leadTimeStages'?: LeadTimeStagesRep;
 }
 /**
  * 
@@ -3788,6 +3817,12 @@ export interface Environment {
      * @memberof Environment
      */
     'approvalSettings'?: ApprovalSettings;
+    /**
+     * Whether the environment is critical
+     * @type {boolean}
+     * @memberof Environment
+     */
+    'critical': boolean;
 }
 /**
  * 
@@ -3855,6 +3890,12 @@ export interface EnvironmentPost {
      * @memberof EnvironmentPost
      */
     'source'?: SourceEnv;
+    /**
+     * Whether the environment is critical
+     * @type {boolean}
+     * @memberof EnvironmentPost
+     */
+    'critical'?: boolean;
 }
 /**
  * 
@@ -3954,6 +3995,19 @@ export interface EvaluationReason {
      * @memberof EvaluationReason
      */
     'errorKind'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface EvaluationsSummary
+ */
+export interface EvaluationsSummary {
+    /**
+     * A list of variation evaluations
+     * @type {Array<VariationEvalSummary>}
+     * @memberof EvaluationsSummary
+     */
+    'variations'?: Array<VariationEvalSummary>;
 }
 /**
  * 
@@ -4414,9 +4468,10 @@ export interface ExperimentBayesianResultsRep {
      */
     '_links'?: { [key: string]: Link; };
     /**
-     * A list of the results for each treatment
+     * Deprecated, use <code>results</code> instead. Only populated when response does not contain results sliced by multiple attributes.
      * @type {Array<TreatmentResultRep>}
      * @memberof ExperimentBayesianResultsRep
+     * @deprecated
      */
     'treatmentResults'?: Array<TreatmentResultRep>;
     /**
@@ -4431,6 +4486,12 @@ export interface ExperimentBayesianResultsRep {
      * @memberof ExperimentBayesianResultsRep
      */
     'probabilityOfMismatch'?: number;
+    /**
+     * A list of attribute values and their corresponding treatment results
+     * @type {Array<SlicedResultsRep>}
+     * @memberof ExperimentBayesianResultsRep
+     */
+    'results'?: Array<SlicedResultsRep>;
 }
 /**
  * 
@@ -4500,25 +4561,6 @@ export interface ExperimentEnvironmentSettingRep {
      * @memberof ExperimentEnvironmentSettingRep
      */
     'enabledPeriods'?: Array<ExperimentEnabledPeriodRep>;
-}
-/**
- * 
- * @export
- * @interface ExperimentExpandableProperties
- */
-export interface ExperimentExpandableProperties {
-    /**
-     * 
-     * @type {IterationRep}
-     * @memberof ExperimentExpandableProperties
-     */
-    'draftIteration'?: IterationRep;
-    /**
-     * Details on the previous iterations for this experiment.
-     * @type {Array<IterationRep>}
-     * @memberof ExperimentExpandableProperties
-     */
-    'previousIterations'?: Array<IterationRep>;
 }
 /**
  * 
@@ -4816,56 +4858,6 @@ export interface ExperimentTotalsRep {
      * @memberof ExperimentTotalsRep
      */
     'minSampleSize'?: number;
-}
-/**
- * 
- * @export
- * @interface ExperimentationSettingsPut
- */
-export interface ExperimentationSettingsPut {
-    /**
-     * An array of randomization units allowed for this project.
-     * @type {Array<RandomizationUnitInput>}
-     * @memberof ExperimentationSettingsPut
-     */
-    'randomizationUnits': Array<RandomizationUnitInput>;
-}
-/**
- * 
- * @export
- * @interface ExperimentationSettingsRep
- */
-export interface ExperimentationSettingsRep {
-    /**
-     * The project ID
-     * @type {string}
-     * @memberof ExperimentationSettingsRep
-     */
-    '_projectId'?: string;
-    /**
-     * The project key
-     * @type {string}
-     * @memberof ExperimentationSettingsRep
-     */
-    '_projectKey'?: string;
-    /**
-     * An array of the randomization units in this project
-     * @type {Array<RandomizationUnitRep>}
-     * @memberof ExperimentationSettingsRep
-     */
-    'randomizationUnits'?: Array<RandomizationUnitRep>;
-    /**
-     * 
-     * @type {number}
-     * @memberof ExperimentationSettingsRep
-     */
-    '_creationDate'?: number;
-    /**
-     * The location and content type of related resources
-     * @type {{ [key: string]: Link; }}
-     * @memberof ExperimentationSettingsRep
-     */
-    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -5228,6 +5220,25 @@ export interface ExtinctionCollectionRep {
 /**
  * 
  * @export
+ * @interface FailureReasonRep
+ */
+export interface FailureReasonRep {
+    /**
+     * The attribute that failed validation
+     * @type {string}
+     * @memberof FailureReasonRep
+     */
+    'attribute': string;
+    /**
+     * The reason the attribute failed validation
+     * @type {string}
+     * @memberof FailureReasonRep
+     */
+    'reason': string;
+}
+/**
+ * 
+ * @export
  * @interface FeatureFlag
  */
 export interface FeatureFlag {
@@ -5359,6 +5370,18 @@ export interface FeatureFlag {
      * @memberof FeatureFlag
      */
     'archivedDate'?: number;
+    /**
+     * Boolean indicating if the feature flag is deprecated
+     * @type {boolean}
+     * @memberof FeatureFlag
+     */
+    'deprecated': boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof FeatureFlag
+     */
+    'deprecatedDate'?: number;
     /**
      * 
      * @type {Defaults}
@@ -6083,50 +6106,6 @@ export type FlagCopyConfigPostExcludedActionsEnum = typeof FlagCopyConfigPostExc
 /**
  * 
  * @export
- * @interface FlagDefaults
- */
-export interface FlagDefaults {
-    /**
-     * A list of default tags for each flag
-     * @type {Array<string>}
-     * @memberof FlagDefaults
-     */
-    'tags'?: Array<string>;
-    /**
-     * Whether the flag should be temporary by default
-     * @type {boolean}
-     * @memberof FlagDefaults
-     */
-    'temporary'?: boolean;
-    /**
-     * 
-     * @type {ClientSideAvailability}
-     * @memberof FlagDefaults
-     */
-    'defaultClientSideAvailability'?: ClientSideAvailability;
-    /**
-     * 
-     * @type {BooleanDefaults}
-     * @memberof FlagDefaults
-     */
-    'booleanDefaults'?: BooleanDefaults;
-}
-/**
- * 
- * @export
- * @interface FlagDefaultsApiBaseRep
- */
-export interface FlagDefaultsApiBaseRep {
-    /**
-     * The location and content type of related resources
-     * @type {{ [key: string]: Link; }}
-     * @memberof FlagDefaultsApiBaseRep
-     */
-    '_links'?: { [key: string]: Link; };
-}
-/**
- * 
- * @export
  * @interface FlagDefaultsRep
  */
 export interface FlagDefaultsRep {
@@ -6137,6 +6116,12 @@ export interface FlagDefaultsRep {
      */
     '_links'?: { [key: string]: Link; };
     /**
+     * A unique key for the flag default
+     * @type {string}
+     * @memberof FlagDefaultsRep
+     */
+    'key'?: string;
+    /**
      * A list of default tags for each flag
      * @type {Array<string>}
      * @memberof FlagDefaultsRep
@@ -6160,6 +6145,281 @@ export interface FlagDefaultsRep {
      * @memberof FlagDefaultsRep
      */
     'booleanDefaults'?: BooleanDefaults;
+}
+/**
+ * 
+ * @export
+ * @interface FlagEventCollectionRep
+ */
+export interface FlagEventCollectionRep {
+    /**
+     * The total number of flag events
+     * @type {number}
+     * @memberof FlagEventCollectionRep
+     */
+    'totalCount': number;
+    /**
+     * A list of flag events
+     * @type {Array<FlagEventRep>}
+     * @memberof FlagEventCollectionRep
+     */
+    'items': Array<FlagEventRep>;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof FlagEventCollectionRep
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface FlagEventExperiment
+ */
+export interface FlagEventExperiment {
+    /**
+     * The experiment key
+     * @type {string}
+     * @memberof FlagEventExperiment
+     */
+    'key': string;
+    /**
+     * The experiment name
+     * @type {string}
+     * @memberof FlagEventExperiment
+     */
+    'name': string;
+    /**
+     * 
+     * @type {FlagEventExperimentIteration}
+     * @memberof FlagEventExperiment
+     */
+    'iteration': FlagEventExperimentIteration;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof FlagEventExperiment
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface FlagEventExperimentCollection
+ */
+export interface FlagEventExperimentCollection {
+    /**
+     * The total number of experiments
+     * @type {number}
+     * @memberof FlagEventExperimentCollection
+     */
+    'totalCount': number;
+    /**
+     * A list of experiments
+     * @type {Array<FlagEventExperiment>}
+     * @memberof FlagEventExperimentCollection
+     */
+    'items': Array<FlagEventExperiment>;
+}
+/**
+ * 
+ * @export
+ * @interface FlagEventExperimentIteration
+ */
+export interface FlagEventExperimentIteration {
+    /**
+     * The experiment iteration ID
+     * @type {string}
+     * @memberof FlagEventExperimentIteration
+     */
+    'id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagEventExperimentIteration
+     */
+    'status': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof FlagEventExperimentIteration
+     */
+    'startedAt': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof FlagEventExperimentIteration
+     */
+    'endedAt'?: number;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof FlagEventExperimentIteration
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface FlagEventImpactRep
+ */
+export interface FlagEventImpactRep {
+    /**
+     * The size of the flag event impact. Sizes are defined as: none (0%), small (0-20%), medium (20-80%), large (>80%)
+     * @type {string}
+     * @memberof FlagEventImpactRep
+     */
+    'size'?: FlagEventImpactRepSizeEnum;
+    /**
+     * The percentage of the flag event impact
+     * @type {number}
+     * @memberof FlagEventImpactRep
+     */
+    'percentage'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagEventImpactRep
+     */
+    'reason'?: string;
+    /**
+     * 
+     * @type {EvaluationsSummary}
+     * @memberof FlagEventImpactRep
+     */
+    'evaluationsSummary'?: EvaluationsSummary;
+}
+
+export const FlagEventImpactRepSizeEnum = {
+    None: 'none',
+    Small: 'small',
+    Medium: 'medium',
+    Large: 'large'
+} as const;
+
+export type FlagEventImpactRepSizeEnum = typeof FlagEventImpactRepSizeEnum[keyof typeof FlagEventImpactRepSizeEnum];
+
+/**
+ * 
+ * @export
+ * @interface FlagEventMemberRep
+ */
+export interface FlagEventMemberRep {
+    /**
+     * The member ID
+     * @type {string}
+     * @memberof FlagEventMemberRep
+     */
+    'id': string;
+    /**
+     * The member email
+     * @type {string}
+     * @memberof FlagEventMemberRep
+     */
+    'email': string;
+    /**
+     * The member first name
+     * @type {string}
+     * @memberof FlagEventMemberRep
+     */
+    'firstName': string;
+    /**
+     * The member last name
+     * @type {string}
+     * @memberof FlagEventMemberRep
+     */
+    'lastName': string;
+}
+/**
+ * 
+ * @export
+ * @interface FlagEventRep
+ */
+export interface FlagEventRep {
+    /**
+     * The flag event ID
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'id': string;
+    /**
+     * The project ID
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'projectId': string;
+    /**
+     * The project key
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'projectKey': string;
+    /**
+     * The environment ID
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'environmentId'?: string;
+    /**
+     * The environment key
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'environmentKey'?: string;
+    /**
+     * The flag key
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'flagKey': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'eventType': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof FlagEventRep
+     */
+    'eventTime': number;
+    /**
+     * The event description
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'description': string;
+    /**
+     * The audit log entry ID
+     * @type {string}
+     * @memberof FlagEventRep
+     */
+    'auditLogEntryId'?: string;
+    /**
+     * 
+     * @type {FlagEventMemberRep}
+     * @memberof FlagEventRep
+     */
+    'member'?: FlagEventMemberRep;
+    /**
+     * The resource actions
+     * @type {Array<string>}
+     * @memberof FlagEventRep
+     */
+    'actions'?: Array<string>;
+    /**
+     * 
+     * @type {FlagEventImpactRep}
+     * @memberof FlagEventRep
+     */
+    'impact': FlagEventImpactRep;
+    /**
+     * 
+     * @type {FlagEventExperimentCollection}
+     * @memberof FlagEventRep
+     */
+    'experiments'?: FlagEventExperimentCollection;
 }
 /**
  * 
@@ -6199,167 +6459,6 @@ export interface FlagFollowersGetRep {
      */
     'items': Array<FollowFlagMember>;
 }
-/**
- * 
- * @export
- * @interface FlagGlobalAttributesRep
- */
-export interface FlagGlobalAttributesRep {
-    /**
-     * A human-friendly name for the feature flag
-     * @type {string}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'name': string;
-    /**
-     * Kind of feature flag
-     * @type {string}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'kind': FlagGlobalAttributesRepKindEnum;
-    /**
-     * Description of the feature flag
-     * @type {string}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'description'?: string;
-    /**
-     * A unique key used to reference the flag in your code
-     * @type {string}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'key': string;
-    /**
-     * Version of the feature flag
-     * @type {number}
-     * @memberof FlagGlobalAttributesRep
-     */
-    '_version': number;
-    /**
-     * 
-     * @type {number}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'creationDate': number;
-    /**
-     * Deprecated, use <code>clientSideAvailability</code>. Whether this flag should be made available to the client-side JavaScript SDK
-     * @type {boolean}
-     * @memberof FlagGlobalAttributesRep
-     * @deprecated
-     */
-    'includeInSnippet'?: boolean;
-    /**
-     * 
-     * @type {ClientSideAvailability}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'clientSideAvailability'?: ClientSideAvailability;
-    /**
-     * An array of possible variations for the flag
-     * @type {Array<Variation>}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'variations': Array<Variation>;
-    /**
-     * Whether the flag is a temporary flag
-     * @type {boolean}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'temporary': boolean;
-    /**
-     * Tags for the feature flag
-     * @type {Array<string>}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'tags': Array<string>;
-    /**
-     * The location and content type of related resources
-     * @type {{ [key: string]: Link; }}
-     * @memberof FlagGlobalAttributesRep
-     */
-    '_links': { [key: string]: Link; };
-    /**
-     * Associated maintainerId for the feature flag
-     * @type {string}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'maintainerId'?: string;
-    /**
-     * 
-     * @type {MemberSummary}
-     * @memberof FlagGlobalAttributesRep
-     */
-    '_maintainer'?: MemberSummary;
-    /**
-     * The key of the associated team that maintains this feature flag
-     * @type {string}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'maintainerTeamKey'?: string;
-    /**
-     * 
-     * @type {MaintainerTeam}
-     * @memberof FlagGlobalAttributesRep
-     */
-    '_maintainerTeam'?: MaintainerTeam;
-    /**
-     * Deprecated, use <code>experiments</code> instead
-     * @type {Array<string>}
-     * @memberof FlagGlobalAttributesRep
-     * @deprecated
-     */
-    'goalIds'?: Array<string>;
-    /**
-     * 
-     * @type {ExperimentInfoRep}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'experiments': ExperimentInfoRep;
-    /**
-     * 
-     * @type {{ [key: string]: CustomProperty; }}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'customProperties': { [key: string]: CustomProperty; };
-    /**
-     * Boolean indicating if the feature flag is archived
-     * @type {boolean}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'archived': boolean;
-    /**
-     * 
-     * @type {number}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'archivedDate'?: number;
-    /**
-     * 
-     * @type {Defaults}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'defaults'?: Defaults;
-    /**
-     * 
-     * @type {string}
-     * @memberof FlagGlobalAttributesRep
-     */
-    '_purpose'?: string;
-    /**
-     * 
-     * @type {FlagMigrationSettingsRep}
-     * @memberof FlagGlobalAttributesRep
-     */
-    'migrationSettings'?: FlagMigrationSettingsRep;
-}
-
-export const FlagGlobalAttributesRepKindEnum = {
-    Boolean: 'boolean',
-    Multivariate: 'multivariate'
-} as const;
-
-export type FlagGlobalAttributesRepKindEnum = typeof FlagGlobalAttributesRepKindEnum[keyof typeof FlagGlobalAttributesRepKindEnum];
-
 /**
  * 
  * @export
@@ -6600,6 +6699,56 @@ export interface FlagMigrationSettingsRep {
      * @memberof FlagMigrationSettingsRep
      */
     'stageCount'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface FlagReferenceCollectionRep
+ */
+export interface FlagReferenceCollectionRep {
+    /**
+     * The total number of flag references
+     * @type {number}
+     * @memberof FlagReferenceCollectionRep
+     */
+    'totalCount': number;
+    /**
+     * A list of flag references
+     * @type {Array<FlagReferenceRep>}
+     * @memberof FlagReferenceCollectionRep
+     */
+    'items': Array<FlagReferenceRep>;
+}
+/**
+ * 
+ * @export
+ * @interface FlagReferenceRep
+ */
+export interface FlagReferenceRep {
+    /**
+     * The project key
+     * @type {string}
+     * @memberof FlagReferenceRep
+     */
+    'projectKey': string;
+    /**
+     * The flag key
+     * @type {string}
+     * @memberof FlagReferenceRep
+     */
+    'flagKey': string;
+    /**
+     * The number of references added
+     * @type {number}
+     * @memberof FlagReferenceRep
+     */
+    'referencesAdded': number;
+    /**
+     * The number of references removed
+     * @type {number}
+     * @memberof FlagReferenceRep
+     */
+    'referencesRemoved': number;
 }
 /**
  * 
@@ -6930,6 +7079,714 @@ export interface InitiatorRep {
      * @memberof InitiatorRep
      */
     'email'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface InsightGroup
+ */
+export interface InsightGroup {
+    /**
+     * 
+     * @type {Environment}
+     * @memberof InsightGroup
+     */
+    'environment'?: Environment;
+    /**
+     * 
+     * @type {InsightGroupScores}
+     * @memberof InsightGroup
+     */
+    'scores'?: InsightGroupScores;
+    /**
+     * 
+     * @type {InsightGroupCollectionScoreMetadata}
+     * @memberof InsightGroup
+     */
+    'scoreMetadata'?: InsightGroupCollectionScoreMetadata;
+    /**
+     * The insight group key
+     * @type {string}
+     * @memberof InsightGroup
+     */
+    'key': string;
+    /**
+     * The insight group name
+     * @type {string}
+     * @memberof InsightGroup
+     */
+    'name': string;
+    /**
+     * The project key
+     * @type {string}
+     * @memberof InsightGroup
+     */
+    'projectKey': string;
+    /**
+     * The environment key
+     * @type {string}
+     * @memberof InsightGroup
+     */
+    'environmentKey': string;
+    /**
+     * The application keys
+     * @type {Array<string>}
+     * @memberof InsightGroup
+     */
+    'applicationKeys'?: Array<string>;
+    /**
+     * 
+     * @type {number}
+     * @memberof InsightGroup
+     */
+    'createdAt': number;
+}
+/**
+ * 
+ * @export
+ * @interface InsightGroupCollection
+ */
+export interface InsightGroupCollection {
+    /**
+     * The total number of insight groups
+     * @type {number}
+     * @memberof InsightGroupCollection
+     */
+    'totalCount': number;
+    /**
+     * A list of insight groups
+     * @type {Array<InsightGroup>}
+     * @memberof InsightGroupCollection
+     */
+    'items': Array<InsightGroup>;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof InsightGroupCollection
+     */
+    '_links'?: { [key: string]: Link; };
+    /**
+     * 
+     * @type {InsightGroupCollectionMetadata}
+     * @memberof InsightGroupCollection
+     */
+    'metadata'?: InsightGroupCollectionMetadata;
+    /**
+     * 
+     * @type {InsightGroupCollectionScoreMetadata}
+     * @memberof InsightGroupCollection
+     */
+    'scoreMetadata'?: InsightGroupCollectionScoreMetadata;
+}
+/**
+ * 
+ * @export
+ * @interface InsightGroupCollectionMetadata
+ */
+export interface InsightGroupCollectionMetadata {
+    /**
+     * 
+     * @type {InsightGroupsCountByIndicator}
+     * @memberof InsightGroupCollectionMetadata
+     */
+    'countByIndicator': InsightGroupsCountByIndicator;
+}
+/**
+ * 
+ * @export
+ * @interface InsightGroupCollectionScoreMetadata
+ */
+export interface InsightGroupCollectionScoreMetadata {
+    /**
+     * 
+     * @type {InsightPeriod}
+     * @memberof InsightGroupCollectionScoreMetadata
+     */
+    'period': InsightPeriod;
+    /**
+     * 
+     * @type {InsightPeriod}
+     * @memberof InsightGroupCollectionScoreMetadata
+     */
+    'lastPeriod': InsightPeriod;
+}
+/**
+ * 
+ * @export
+ * @interface InsightGroupScores
+ */
+export interface InsightGroupScores {
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'overall': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'deploymentFrequency': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'deploymentFailureRate': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'leadTime': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'impactSize': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'experimentationCoverage': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'flagHealth': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'velocity': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'risk': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'efficiency': InsightsMetricScore;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightGroupScores
+     */
+    'creationRatio'?: InsightsMetricScore;
+}
+/**
+ * 
+ * @export
+ * @interface InsightGroupsCountByIndicator
+ */
+export interface InsightGroupsCountByIndicator {
+    /**
+     * The number of insight groups with an excellent indicator
+     * @type {number}
+     * @memberof InsightGroupsCountByIndicator
+     */
+    'excellent': number;
+    /**
+     * The number of insight groups with a good indicator
+     * @type {number}
+     * @memberof InsightGroupsCountByIndicator
+     */
+    'good': number;
+    /**
+     * The number of insight groups with a fair indicator
+     * @type {number}
+     * @memberof InsightGroupsCountByIndicator
+     */
+    'fair': number;
+    /**
+     * The number of insight groups with a needs attention indicator
+     * @type {number}
+     * @memberof InsightGroupsCountByIndicator
+     */
+    'needsAttention': number;
+    /**
+     * The number of insight groups with a not calculated indicator
+     * @type {number}
+     * @memberof InsightGroupsCountByIndicator
+     */
+    'notCalculated': number;
+    /**
+     * The number of insight groups with an unknown indicator
+     * @type {number}
+     * @memberof InsightGroupsCountByIndicator
+     */
+    'unknown': number;
+    /**
+     * The total number of insight groups
+     * @type {number}
+     * @memberof InsightGroupsCountByIndicator
+     */
+    'total': number;
+}
+/**
+ * 
+ * @export
+ * @interface InsightPeriod
+ */
+export interface InsightPeriod {
+    /**
+     * 
+     * @type {number}
+     * @memberof InsightPeriod
+     */
+    'startTime': number;
+    /**
+     * 
+     * @type {number}
+     * @memberof InsightPeriod
+     */
+    'endTime': number;
+}
+/**
+ * 
+ * @export
+ * @interface InsightScores
+ */
+export interface InsightScores {
+    /**
+     * 
+     * @type {InsightPeriod}
+     * @memberof InsightScores
+     */
+    'period': InsightPeriod;
+    /**
+     * 
+     * @type {InsightPeriod}
+     * @memberof InsightScores
+     */
+    'lastPeriod': InsightPeriod;
+    /**
+     * 
+     * @type {InsightGroupScores}
+     * @memberof InsightScores
+     */
+    'scores': InsightGroupScores;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof InsightScores
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChart
+ */
+export interface InsightsChart {
+    /**
+     * 
+     * @type {InsightsChartMetadata}
+     * @memberof InsightsChart
+     */
+    'metadata': InsightsChartMetadata;
+    /**
+     * Series data for the chart
+     * @type {Array<InsightsChartSeries>}
+     * @memberof InsightsChart
+     */
+    'series': Array<InsightsChartSeries>;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChartBounds
+ */
+export interface InsightsChartBounds {
+    /**
+     * Name of the bound
+     * @type {string}
+     * @memberof InsightsChartBounds
+     */
+    'name': string;
+    /**
+     * Value of the bound
+     * @type {number}
+     * @memberof InsightsChartBounds
+     */
+    'value': number;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChartMetadata
+ */
+export interface InsightsChartMetadata {
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof InsightsChartMetadata
+     */
+    'summary': { [key: string]: any; };
+    /**
+     * Name of the chart
+     * @type {string}
+     * @memberof InsightsChartMetadata
+     */
+    'name'?: string;
+    /**
+     * 
+     * @type {{ [key: string]: InsightsChartMetric; }}
+     * @memberof InsightsChartMetadata
+     */
+    'metrics'?: { [key: string]: InsightsChartMetric; };
+    /**
+     * 
+     * @type {InsightsChartSeriesMetadataAxis}
+     * @memberof InsightsChartMetadata
+     */
+    'xAxis': InsightsChartSeriesMetadataAxis;
+    /**
+     * 
+     * @type {InsightsChartSeriesMetadataAxis}
+     * @memberof InsightsChartMetadata
+     */
+    'yAxis': InsightsChartSeriesMetadataAxis;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChartMetric
+ */
+export interface InsightsChartMetric {
+    /**
+     * Metric indicator tier
+     * @type {string}
+     * @memberof InsightsChartMetric
+     */
+    'indicator': string;
+    /**
+     * Metric value
+     * @type {number}
+     * @memberof InsightsChartMetric
+     */
+    'value': number;
+    /**
+     * Metric unit
+     * @type {string}
+     * @memberof InsightsChartMetric
+     */
+    'unit': string;
+    /**
+     * Metric modifier
+     * @type {string}
+     * @memberof InsightsChartMetric
+     */
+    'modifier': string;
+    /**
+     * Metric indicator tiers
+     * @type {Array<InsightsMetricTierDefinition>}
+     * @memberof InsightsChartMetric
+     */
+    'tiers': Array<InsightsMetricTierDefinition>;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChartSeries
+ */
+export interface InsightsChartSeries {
+    /**
+     * 
+     * @type {InsightsChartSeriesMetadata}
+     * @memberof InsightsChartSeries
+     */
+    'metadata': InsightsChartSeriesMetadata;
+    /**
+     * Data points for the series
+     * @type {Array<InsightsChartSeriesDataPoint>}
+     * @memberof InsightsChartSeries
+     */
+    'data': Array<InsightsChartSeriesDataPoint>;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChartSeriesDataPoint
+ */
+export interface InsightsChartSeriesDataPoint {
+    /**
+     * X-axis value
+     * @type {number}
+     * @memberof InsightsChartSeriesDataPoint
+     */
+    'x': number;
+    /**
+     * Y-axis value
+     * @type {number}
+     * @memberof InsightsChartSeriesDataPoint
+     */
+    'y': number;
+    /**
+     * Additional values for the data point
+     * @type {{ [key: string]: any; }}
+     * @memberof InsightsChartSeriesDataPoint
+     */
+    'values'?: { [key: string]: any; };
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChartSeriesMetadata
+ */
+export interface InsightsChartSeriesMetadata {
+    /**
+     * Name of the series
+     * @type {string}
+     * @memberof InsightsChartSeriesMetadata
+     */
+    'name': string;
+    /**
+     * Aggregate count of the series values
+     * @type {number}
+     * @memberof InsightsChartSeriesMetadata
+     */
+    'count'?: number;
+    /**
+     * Bounds for the series data
+     * @type {Array<InsightsChartBounds>}
+     * @memberof InsightsChartSeriesMetadata
+     */
+    'bounds'?: Array<InsightsChartBounds>;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsChartSeriesMetadataAxis
+ */
+export interface InsightsChartSeriesMetadataAxis {
+    /**
+     * Unit of the axis
+     * @type {string}
+     * @memberof InsightsChartSeriesMetadataAxis
+     */
+    'unit': string;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsMetricIndicatorRange
+ */
+export interface InsightsMetricIndicatorRange {
+    /**
+     * The minimum value for the indicator range
+     * @type {number}
+     * @memberof InsightsMetricIndicatorRange
+     */
+    'min': number;
+    /**
+     * The maximum value for the indicator range
+     * @type {number}
+     * @memberof InsightsMetricIndicatorRange
+     */
+    'max': number;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsMetricScore
+ */
+export interface InsightsMetricScore {
+    /**
+     * The score for the metric
+     * @type {number}
+     * @memberof InsightsMetricScore
+     */
+    'score': number;
+    /**
+     * The keys of the metrics that were aggregated to calculate this score
+     * @type {Array<string>}
+     * @memberof InsightsMetricScore
+     */
+    'aggregateOf'?: Array<string>;
+    /**
+     * 
+     * @type {number}
+     * @memberof InsightsMetricScore
+     */
+    'diffVsLastPeriod'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof InsightsMetricScore
+     */
+    'indicator': string;
+    /**
+     * 
+     * @type {InsightsMetricIndicatorRange}
+     * @memberof InsightsMetricScore
+     */
+    'indicatorRange': InsightsMetricIndicatorRange;
+    /**
+     * 
+     * @type {InsightsMetricScore}
+     * @memberof InsightsMetricScore
+     */
+    'lastPeriod'?: InsightsMetricScore;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsMetricTierDefinition
+ */
+export interface InsightsMetricTierDefinition {
+    /**
+     * Metric indicator tier
+     * @type {string}
+     * @memberof InsightsMetricTierDefinition
+     */
+    'indicator': string;
+    /**
+     * Metric indicator description
+     * @type {string}
+     * @memberof InsightsMetricTierDefinition
+     */
+    'description': string;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsRepository
+ */
+export interface InsightsRepository {
+    /**
+     * The repository ID
+     * @type {string}
+     * @memberof InsightsRepository
+     */
+    '_id': string;
+    /**
+     * The repository version
+     * @type {number}
+     * @memberof InsightsRepository
+     */
+    'version': number;
+    /**
+     * The repository key
+     * @type {string}
+     * @memberof InsightsRepository
+     */
+    'key': string;
+    /**
+     * The repository type
+     * @type {string}
+     * @memberof InsightsRepository
+     */
+    'type': string;
+    /**
+     * The repository URL
+     * @type {string}
+     * @memberof InsightsRepository
+     */
+    'url': string;
+    /**
+     * The repository main branch
+     * @type {string}
+     * @memberof InsightsRepository
+     */
+    'mainBranch': string;
+    /**
+     * 
+     * @type {ProjectSummaryCollection}
+     * @memberof InsightsRepository
+     */
+    'projects'?: ProjectSummaryCollection;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsRepositoryCollection
+ */
+export interface InsightsRepositoryCollection {
+    /**
+     * Total number of repositories
+     * @type {number}
+     * @memberof InsightsRepositoryCollection
+     */
+    'totalCount': number;
+    /**
+     * List of repositories
+     * @type {Array<InsightsRepository>}
+     * @memberof InsightsRepositoryCollection
+     */
+    'items': Array<InsightsRepository>;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof InsightsRepositoryCollection
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface InsightsRepositoryProject
+ */
+export interface InsightsRepositoryProject {
+    /**
+     * The repository key
+     * @type {string}
+     * @memberof InsightsRepositoryProject
+     */
+    'repositoryKey': string;
+    /**
+     * The project key
+     * @type {string}
+     * @memberof InsightsRepositoryProject
+     */
+    'projectKey': string;
+}
+/**
+ * 
+ * @export
+ * @interface InsightsRepositoryProjectCollection
+ */
+export interface InsightsRepositoryProjectCollection {
+    /**
+     * Total number of repository project associations
+     * @type {number}
+     * @memberof InsightsRepositoryProjectCollection
+     */
+    'totalCount': number;
+    /**
+     * List of repository project associations
+     * @type {Array<InsightsRepositoryProject>}
+     * @memberof InsightsRepositoryProjectCollection
+     */
+    'items': Array<InsightsRepositoryProject>;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof InsightsRepositoryProjectCollection
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface InsightsRepositoryProjectMappings
+ */
+export interface InsightsRepositoryProjectMappings {
+    /**
+     * 
+     * @type {Array<InsightsRepositoryProject>}
+     * @memberof InsightsRepositoryProjectMappings
+     */
+    'mappings': Array<InsightsRepositoryProject>;
 }
 /**
  * 
@@ -7460,6 +8317,18 @@ export interface IterationInput {
      */
     'metrics': Array<MetricInput>;
     /**
+     * The key of the primary metric for this experiment. Either <code>primarySingleMetricKey</code> or <code>primaryFunnelKey</code> must be present.
+     * @type {string}
+     * @memberof IterationInput
+     */
+    'primarySingleMetricKey'?: string;
+    /**
+     * The key of the primary funnel group for this experiment. Either <code>primarySingleMetricKey</code> or <code>primaryFunnelKey</code> must be present.
+     * @type {string}
+     * @memberof IterationInput
+     */
+    'primaryFunnelKey'?: string;
+    /**
      * 
      * @type {Array<TreatmentInput>}
      * @memberof IterationInput
@@ -7551,6 +8420,18 @@ export interface IterationRep {
      */
     'primaryMetric'?: DependentMetricOrMetricGroupRep;
     /**
+     * 
+     * @type {MetricV2Rep}
+     * @memberof IterationRep
+     */
+    'primarySingleMetric'?: MetricV2Rep;
+    /**
+     * 
+     * @type {DependentMetricGroupRepWithMetrics}
+     * @memberof IterationRep
+     */
+    'primaryFunnel'?: DependentMetricGroupRepWithMetrics;
+    /**
      * The unit of randomization for this iteration
      * @type {string}
      * @memberof IterationRep
@@ -7563,11 +8444,18 @@ export interface IterationRep {
      */
     'treatments'?: Array<TreatmentRep>;
     /**
-     * Details on the secondary metrics for this experiment
+     * Deprecated, use <code>metrics</code> instead. Details on the secondary metrics for this experiment.
      * @type {Array<MetricV2Rep>}
      * @memberof IterationRep
+     * @deprecated
      */
     'secondaryMetrics'?: Array<MetricV2Rep>;
+    /**
+     * Details on the metrics for this experiment
+     * @type {Array<DependentMetricOrMetricGroupRep>}
+     * @memberof IterationRep
+     */
+    'metrics'?: Array<DependentMetricOrMetricGroupRep>;
 }
 /**
  * 
@@ -7581,6 +8469,43 @@ export interface LastSeenMetadata {
      * @memberof LastSeenMetadata
      */
     'tokenId'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface LeadTimeStagesRep
+ */
+export interface LeadTimeStagesRep {
+    /**
+     * The coding duration in milliseconds
+     * @type {number}
+     * @memberof LeadTimeStagesRep
+     */
+    'codingDurationMs': number;
+    /**
+     * The review duration in milliseconds
+     * @type {number}
+     * @memberof LeadTimeStagesRep
+     */
+    'reviewDurationMs'?: number;
+    /**
+     * The wait duration between merge time and deploy start time in milliseconds
+     * @type {number}
+     * @memberof LeadTimeStagesRep
+     */
+    'waitDurationMs'?: number;
+    /**
+     * The deploy duration in milliseconds
+     * @type {number}
+     * @memberof LeadTimeStagesRep
+     */
+    'deployDurationMs'?: number;
+    /**
+     * The total lead time in milliseconds
+     * @type {number}
+     * @memberof LeadTimeStagesRep
+     */
+    'totalLeadTimeMs'?: number;
 }
 /**
  * 
@@ -7635,25 +8560,6 @@ export interface Link {
 /**
  * 
  * @export
- * @interface MaintainerInput
- */
-export interface MaintainerInput {
-    /**
-     * 
-     * @type {MemberInput}
-     * @memberof MaintainerInput
-     */
-    'member'?: MemberInput;
-    /**
-     * 
-     * @type {TeamInput}
-     * @memberof MaintainerInput
-     */
-    'team'?: TeamInput;
-}
-/**
- * 
- * @export
  * @interface MaintainerRep
  */
 export interface MaintainerRep {
@@ -7681,13 +8587,13 @@ export interface MaintainerTeam {
      * @type {string}
      * @memberof MaintainerTeam
      */
-    'key'?: string;
+    'key': string;
     /**
      * A human-friendly name for the maintainer team
      * @type {string}
      * @memberof MaintainerTeam
      */
-    'name'?: string;
+    'name': string;
     /**
      * The location and content type of related resources
      * @type {{ [key: string]: Link; }}
@@ -7877,19 +8783,6 @@ export interface MemberImportItem {
      * @memberof MemberImportItem
      */
     'value': string;
-}
-/**
- * 
- * @export
- * @interface MemberInput
- */
-export interface MemberInput {
-    /**
-     * The ID of the associated member who maintains the application
-     * @type {string}
-     * @memberof MemberInput
-     */
-    'id'?: string;
 }
 /**
  * 
@@ -8278,30 +9171,12 @@ export interface MetricGroupRep {
 }
 
 export const MetricGroupRepKindEnum = {
-    Funnel: 'funnel'
+    Funnel: 'funnel',
+    Standard: 'standard'
 } as const;
 
 export type MetricGroupRepKindEnum = typeof MetricGroupRepKindEnum[keyof typeof MetricGroupRepKindEnum];
 
-/**
- * 
- * @export
- * @interface MetricGroupRepExpandableProperties
- */
-export interface MetricGroupRepExpandableProperties {
-    /**
-     * 
-     * @type {Array<DependentExperimentRep>}
-     * @memberof MetricGroupRepExpandableProperties
-     */
-    'experiments'?: Array<DependentExperimentRep>;
-    /**
-     * The number of experiments using this metric group
-     * @type {number}
-     * @memberof MetricGroupRepExpandableProperties
-     */
-    'experimentCount'?: number;
-}
 /**
  * 
  * @export
@@ -8334,6 +9209,12 @@ export interface MetricInGroupRep {
      */
     'key': string;
     /**
+     * The version ID of the metric
+     * @type {string}
+     * @memberof MetricInGroupRep
+     */
+    '_versionId'?: string;
+    /**
      * The metric name
      * @type {string}
      * @memberof MetricInGroupRep
@@ -8346,17 +9227,23 @@ export interface MetricInGroupRep {
      */
     'kind': MetricInGroupRepKindEnum;
     /**
+     * For custom metrics, whether to track numeric changes in value against a baseline (<code>true</code>) or to track a conversion when an end user takes an action (<code>false</code>).
+     * @type {boolean}
+     * @memberof MetricInGroupRep
+     */
+    'isNumeric'?: boolean;
+    /**
      * The location and content type of related resources
      * @type {{ [key: string]: Link; }}
      * @memberof MetricInGroupRep
      */
     '_links': { [key: string]: Link; };
     /**
-     * Name of the metric when used within the associated metric group. Can be different from the original name of the metric
+     * Name of the metric when used within the associated metric group. Can be different from the original name of the metric. Required if and only if the metric group is a <code>funnel</code>.
      * @type {string}
      * @memberof MetricInGroupRep
      */
-    'nameInGroup': string;
+    'nameInGroup'?: string;
     /**
      * The randomization units for the metric
      * @type {Array<string>}
@@ -8430,11 +9317,12 @@ export interface MetricInput {
      */
     'isGroup'?: boolean;
     /**
-     * Whether this is a primary metric (true) or a secondary metric (false)
+     * Deprecated, use <code>primarySingleMetricKey</code> and <code>primaryFunnelKey</code>. Whether this is a primary metric (true) or a secondary metric (false)
      * @type {boolean}
      * @memberof MetricInput
+     * @deprecated
      */
-    'primary': boolean;
+    'primary'?: boolean;
 }
 /**
  * 
@@ -8449,11 +9337,23 @@ export interface MetricListingRep {
      */
     'experimentCount'?: number;
     /**
+     * The number of metric groups using this metric
+     * @type {number}
+     * @memberof MetricListingRep
+     */
+    'metricGroupCount'?: number;
+    /**
      * The ID of this metric
      * @type {string}
      * @memberof MetricListingRep
      */
     '_id': string;
+    /**
+     * The version ID of the metric
+     * @type {string}
+     * @memberof MetricListingRep
+     */
+    '_versionId': string;
     /**
      * A unique key to reference the metric
      * @type {string}
@@ -8617,19 +9517,6 @@ export type MetricListingRepAnalysisTypeEnum = typeof MetricListingRepAnalysisTy
 /**
  * 
  * @export
- * @interface MetricListingRepExpandableProperties
- */
-export interface MetricListingRepExpandableProperties {
-    /**
-     * The number of experiments using this metric
-     * @type {number}
-     * @memberof MetricListingRepExpandableProperties
-     */
-    'experimentCount'?: number;
-}
-/**
- * 
- * @export
  * @interface MetricPost
  */
 export interface MetricPost {
@@ -8688,7 +9575,7 @@ export interface MetricPost {
      */
     'unit'?: string;
     /**
-     * The event key to use in your code. Required for custom metrics only.
+     * The event key to use in your code. Required for custom conversion/binary and custom numeric metrics only.
      * @type {string}
      * @memberof MetricPost
      */
@@ -8752,11 +9639,23 @@ export interface MetricRep {
      */
     'experimentCount'?: number;
     /**
+     * The number of metric groups using this metric
+     * @type {number}
+     * @memberof MetricRep
+     */
+    'metricGroupCount'?: number;
+    /**
      * The ID of this metric
      * @type {string}
      * @memberof MetricRep
      */
     '_id': string;
+    /**
+     * The version ID of the metric
+     * @type {string}
+     * @memberof MetricRep
+     */
+    '_versionId': string;
     /**
      * A unique key to reference the metric
      * @type {string}
@@ -8896,6 +9795,12 @@ export interface MetricRep {
      */
     'experiments'?: Array<DependentExperimentRep>;
     /**
+     * Metric groups that use this metric
+     * @type {Array<DependentMetricGroupRep>}
+     * @memberof MetricRep
+     */
+    'metricGroups'?: Array<DependentMetricGroupRep>;
+    /**
      * Whether the metric is active
      * @type {boolean}
      * @memberof MetricRep
@@ -8956,19 +9861,6 @@ export type MetricRepAnalysisTypeEnum = typeof MetricRepAnalysisTypeEnum[keyof t
 /**
  * 
  * @export
- * @interface MetricRepExpandableProperties
- */
-export interface MetricRepExpandableProperties {
-    /**
-     * 
-     * @type {Array<DependentExperimentRep>}
-     * @memberof MetricRepExpandableProperties
-     */
-    'experiments'?: Array<DependentExperimentRep>;
-}
-/**
- * 
- * @export
  * @interface MetricSeen
  */
 export interface MetricSeen {
@@ -8998,6 +9890,12 @@ export interface MetricV2Rep {
      */
     'key': string;
     /**
+     * The version ID of the metric
+     * @type {string}
+     * @memberof MetricV2Rep
+     */
+    '_versionId'?: string;
+    /**
      * The metric name
      * @type {string}
      * @memberof MetricV2Rep
@@ -9009,6 +9907,12 @@ export interface MetricV2Rep {
      * @memberof MetricV2Rep
      */
     'kind': MetricV2RepKindEnum;
+    /**
+     * For custom metrics, whether to track numeric changes in value against a baseline (<code>true</code>) or to track a conversion when an end user takes an action (<code>false</code>).
+     * @type {boolean}
+     * @memberof MetricV2Rep
+     */
+    'isNumeric'?: boolean;
     /**
      * The location and content type of related resources
      * @type {{ [key: string]: Link; }}
@@ -9265,25 +10169,6 @@ export interface ParameterDefault {
      * @memberof ParameterDefault
      */
     'ruleClause'?: RuleClause;
-}
-/**
- * 
- * @export
- * @interface ParameterDefaultInput
- */
-export interface ParameterDefaultInput {
-    /**
-     * 
-     * @type {any}
-     * @memberof ParameterDefaultInput
-     */
-    'value'?: any;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof ParameterDefaultInput
-     */
-    'booleanVariationValue'?: boolean;
 }
 /**
  * 
@@ -9679,6 +10564,96 @@ export type PostApprovalRequestReviewRequestKindEnum = typeof PostApprovalReques
 /**
  * 
  * @export
+ * @interface PostDeploymentEventInput
+ */
+export interface PostDeploymentEventInput {
+    /**
+     * The project key
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'projectKey': string;
+    /**
+     * The environment key
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'environmentKey': string;
+    /**
+     * The application key. This defines the granularity at which you want to view your insights metrics. Typically it is the name of one of the GitHub repositories that you use in this project.<br/><br/>LaunchDarkly automatically creates a new application each time you send a unique application key.
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'applicationKey': string;
+    /**
+     * The application name. This defines how the application is displayed
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'applicationName'?: string;
+    /**
+     * The kind of application. Default: <code>server</code>
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'applicationKind'?: PostDeploymentEventInputApplicationKindEnum;
+    /**
+     * The application version. You can set the application version to any string that includes only letters, numbers, periods (<code>.</code>), hyphens (<code>-</code>), or underscores (<code>_</code>).<br/><br/>We recommend setting the application version to at least the first seven characters of the SHA or to the tag of the GitHub commit for this deployment.
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'version': string;
+    /**
+     * The version name. This defines how the version is displayed
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'versionName'?: string;
+    /**
+     * The event type
+     * @type {string}
+     * @memberof PostDeploymentEventInput
+     */
+    'eventType': PostDeploymentEventInputEventTypeEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof PostDeploymentEventInput
+     */
+    'eventTime'?: number;
+    /**
+     * A JSON object containing metadata about the event
+     * @type {{ [key: string]: any; }}
+     * @memberof PostDeploymentEventInput
+     */
+    'eventMetadata'?: { [key: string]: any; };
+    /**
+     * A JSON object containing metadata about the deployment
+     * @type {{ [key: string]: any; }}
+     * @memberof PostDeploymentEventInput
+     */
+    'deploymentMetadata'?: { [key: string]: any; };
+}
+
+export const PostDeploymentEventInputApplicationKindEnum = {
+    Server: 'server',
+    Browser: 'browser',
+    Mobile: 'mobile'
+} as const;
+
+export type PostDeploymentEventInputApplicationKindEnum = typeof PostDeploymentEventInputApplicationKindEnum[keyof typeof PostDeploymentEventInputApplicationKindEnum];
+export const PostDeploymentEventInputEventTypeEnum = {
+    Started: 'started',
+    Failed: 'failed',
+    Finished: 'finished',
+    Custom: 'custom'
+} as const;
+
+export type PostDeploymentEventInputEventTypeEnum = typeof PostDeploymentEventInputEventTypeEnum[keyof typeof PostDeploymentEventInputEventTypeEnum];
+
+/**
+ * 
+ * @export
  * @interface PostFlagScheduledChangesInput
  */
 export interface PostFlagScheduledChangesInput {
@@ -9700,6 +10675,43 @@ export interface PostFlagScheduledChangesInput {
      * @memberof PostFlagScheduledChangesInput
      */
     'instructions': Array<{ [key: string]: any; }>;
+}
+/**
+ * 
+ * @export
+ * @interface PostInsightGroupParams
+ */
+export interface PostInsightGroupParams {
+    /**
+     * The name of the insight group
+     * @type {string}
+     * @memberof PostInsightGroupParams
+     */
+    'name': string;
+    /**
+     * The key of the insight group
+     * @type {string}
+     * @memberof PostInsightGroupParams
+     */
+    'key': string;
+    /**
+     * The projectKey to be associated with the insight group
+     * @type {string}
+     * @memberof PostInsightGroupParams
+     */
+    'projectKey': string;
+    /**
+     * The environmentKey to be associated with the insight group
+     * @type {string}
+     * @memberof PostInsightGroupParams
+     */
+    'environmentKey': string;
+    /**
+     * The application keys to associate with the insight group. If not provided, the insight group will include data from all applications.
+     * @type {Array<string>}
+     * @memberof PostInsightGroupParams
+     */
+    'applicationKeys'?: Array<string>;
 }
 /**
  * 
@@ -9769,60 +10781,17 @@ export interface Project {
      */
     'tags': Array<string>;
     /**
+     * The key of the default release pipeline for this project
+     * @type {string}
+     * @memberof Project
+     */
+    'defaultReleasePipelineKey'?: string;
+    /**
      * 
      * @type {Environments}
      * @memberof Project
      */
     'environments'?: Environments;
-}
-/**
- * 
- * @export
- * @interface ProjectListingRep
- */
-export interface ProjectListingRep {
-    /**
-     * The location and content type of related resources
-     * @type {{ [key: string]: Link; }}
-     * @memberof ProjectListingRep
-     */
-    '_links': { [key: string]: Link; };
-    /**
-     * The ID of this project
-     * @type {string}
-     * @memberof ProjectListingRep
-     */
-    '_id': string;
-    /**
-     * The key of this project
-     * @type {string}
-     * @memberof ProjectListingRep
-     */
-    'key': string;
-    /**
-     * Whether or not flags created in this project are made available to the client-side JavaScript SDK by default
-     * @type {boolean}
-     * @memberof ProjectListingRep
-     */
-    'includeInSnippetByDefault': boolean;
-    /**
-     * 
-     * @type {ClientSideAvailability}
-     * @memberof ProjectListingRep
-     */
-    'defaultClientSideAvailability'?: ClientSideAvailability;
-    /**
-     * A human-friendly name for the project
-     * @type {string}
-     * @memberof ProjectListingRep
-     */
-    'name': string;
-    /**
-     * A list of tags for the project
-     * @type {Array<string>}
-     * @memberof ProjectListingRep
-     */
-    'tags': Array<string>;
 }
 /**
  * 
@@ -9916,6 +10885,12 @@ export interface ProjectRep {
      */
     'tags': Array<string>;
     /**
+     * The key of the default release pipeline for this project
+     * @type {string}
+     * @memberof ProjectRep
+     */
+    'defaultReleasePipelineKey'?: string;
+    /**
      * A list of environments for the project
      * @type {Array<Environment>}
      * @memberof ProjectRep
@@ -9956,6 +10931,31 @@ export interface ProjectSummary {
 /**
  * 
  * @export
+ * @interface ProjectSummaryCollection
+ */
+export interface ProjectSummaryCollection {
+    /**
+     * 
+     * @type {number}
+     * @memberof ProjectSummaryCollection
+     */
+    'totalCount': number;
+    /**
+     * 
+     * @type {Array<ProjectSummary>}
+     * @memberof ProjectSummaryCollection
+     */
+    'items': Array<ProjectSummary>;
+    /**
+     * 
+     * @type {{ [key: string]: Link; }}
+     * @memberof ProjectSummaryCollection
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
  * @interface Projects
  */
 export interface Projects {
@@ -9981,21 +10981,191 @@ export interface Projects {
 /**
  * 
  * @export
- * @interface PubNubDetailRep
+ * @interface PullRequestCollectionRep
  */
-export interface PubNubDetailRep {
+export interface PullRequestCollectionRep {
+    /**
+     * The total number of pull requests
+     * @type {number}
+     * @memberof PullRequestCollectionRep
+     */
+    'totalCount': number;
+    /**
+     * A list of pull requests
+     * @type {Array<PullRequestRep>}
+     * @memberof PullRequestCollectionRep
+     */
+    'items': Array<PullRequestRep>;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof PullRequestCollectionRep
+     */
+    '_links'?: { [key: string]: Link; };
+}
+/**
+ * 
+ * @export
+ * @interface PullRequestLeadTimeRep
+ */
+export interface PullRequestLeadTimeRep {
+    /**
+     * The coding duration in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'codingDurationMs': number;
+    /**
+     * The review duration in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'reviewDurationMs'?: number;
+    /**
+     * The max wait duration between merge time and deploy start time in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'maxWaitDurationMs'?: number;
+    /**
+     * The average wait duration between merge time and deploy start time in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'avgWaitDurationMs'?: number;
+    /**
+     * The max deploy duration in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'maxDeployDurationMs'?: number;
+    /**
+     * The average deploy duration in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'avgDeployDurationMs'?: number;
+    /**
+     * The max total lead time in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'maxTotalLeadTimeMs'?: number;
+    /**
+     * The average total lead time in milliseconds
+     * @type {number}
+     * @memberof PullRequestLeadTimeRep
+     */
+    'avgTotalLeadTimeMs'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface PullRequestRep
+ */
+export interface PullRequestRep {
+    /**
+     * The pull request internal ID
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'id': string;
+    /**
+     * The pull request number
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'externalId': string;
+    /**
+     * The pull request title
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'title': string;
+    /**
+     * The pull request status
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'status': string;
+    /**
+     * The pull request author
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'author': string;
     /**
      * 
-     * @type {string}
-     * @memberof PubNubDetailRep
+     * @type {number}
+     * @memberof PullRequestRep
      */
-    'channel'?: string;
+    'createTime': number;
     /**
      * 
-     * @type {string}
-     * @memberof PubNubDetailRep
+     * @type {number}
+     * @memberof PullRequestRep
      */
-    'cipherKey'?: string;
+    'mergeTime'?: number;
+    /**
+     * The pull request merge commit key
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'mergeCommitKey'?: string;
+    /**
+     * The pull request base commit key
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'baseCommitKey': string;
+    /**
+     * The pull request head commit key
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'headCommitKey': string;
+    /**
+     * The number of files changed
+     * @type {number}
+     * @memberof PullRequestRep
+     */
+    'filesChanged': number;
+    /**
+     * The number of lines added
+     * @type {number}
+     * @memberof PullRequestRep
+     */
+    'linesAdded': number;
+    /**
+     * The number of lines deleted
+     * @type {number}
+     * @memberof PullRequestRep
+     */
+    'linesDeleted': number;
+    /**
+     * The pull request URL
+     * @type {string}
+     * @memberof PullRequestRep
+     */
+    'url': string;
+    /**
+     * 
+     * @type {DeploymentCollectionRep}
+     * @memberof PullRequestRep
+     */
+    'deployments'?: DeploymentCollectionRep;
+    /**
+     * 
+     * @type {FlagReferenceCollectionRep}
+     * @memberof PullRequestRep
+     */
+    'flagReferences'?: FlagReferenceCollectionRep;
+    /**
+     * 
+     * @type {PullRequestLeadTimeRep}
+     * @memberof PullRequestRep
+     */
+    'leadTime'?: PullRequestLeadTimeRep;
 }
 /**
  * 
@@ -10039,6 +11209,56 @@ export interface PutBranch {
      * @memberof PutBranch
      */
     'commitTime'?: number;
+}
+/**
+ * 
+ * @export
+ * @interface RandomizationSettingsPut
+ */
+export interface RandomizationSettingsPut {
+    /**
+     * An array of randomization units allowed for this project.
+     * @type {Array<RandomizationUnitInput>}
+     * @memberof RandomizationSettingsPut
+     */
+    'randomizationUnits': Array<RandomizationUnitInput>;
+}
+/**
+ * 
+ * @export
+ * @interface RandomizationSettingsRep
+ */
+export interface RandomizationSettingsRep {
+    /**
+     * The project ID
+     * @type {string}
+     * @memberof RandomizationSettingsRep
+     */
+    '_projectId'?: string;
+    /**
+     * The project key
+     * @type {string}
+     * @memberof RandomizationSettingsRep
+     */
+    '_projectKey'?: string;
+    /**
+     * An array of the randomization units in this project
+     * @type {Array<RandomizationUnitRep>}
+     * @memberof RandomizationSettingsRep
+     */
+    'randomizationUnits'?: Array<RandomizationUnitRep>;
+    /**
+     * 
+     * @type {number}
+     * @memberof RandomizationSettingsRep
+     */
+    '_creationDate'?: number;
+    /**
+     * The location and content type of related resources
+     * @type {{ [key: string]: Link; }}
+     * @memberof RandomizationSettingsRep
+     */
+    '_links'?: { [key: string]: Link; };
 }
 /**
  * 
@@ -10619,131 +11839,6 @@ export type RepositoryRepTypeEnum = typeof RepositoryRepTypeEnum[keyof typeof Re
 /**
  * 
  * @export
- * @interface ResolvedContext
- */
-export interface ResolvedContext {
-    /**
-     * 
-     * @type {Array<ResolvedUIBlockElement>}
-     * @memberof ResolvedContext
-     */
-    'elements'?: Array<ResolvedUIBlockElement>;
-}
-/**
- * 
- * @export
- * @interface ResolvedImage
- */
-export interface ResolvedImage {
-    /**
-     * 
-     * @type {boolean}
-     * @memberof ResolvedImage
-     */
-    'isAvatar'?: boolean;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof ResolvedImage
-     */
-    'isIcon'?: boolean;
-    /**
-     * 
-     * @type {string}
-     * @memberof ResolvedImage
-     */
-    'sourceUrl'?: string;
-}
-/**
- * 
- * @export
- * @interface ResolvedTitle
- */
-export interface ResolvedTitle {
-    /**
-     * 
-     * @type {Array<ResolvedUIBlockElement>}
-     * @memberof ResolvedTitle
-     */
-    'elements'?: Array<ResolvedUIBlockElement>;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof ResolvedTitle
-     */
-    'linkToReference'?: boolean;
-}
-/**
- * 
- * @export
- * @interface ResolvedUIBlockElement
- */
-export interface ResolvedUIBlockElement {
-    /**
-     * 
-     * @type {boolean}
-     * @memberof ResolvedUIBlockElement
-     */
-    'isBold'?: boolean;
-    /**
-     * 
-     * @type {string}
-     * @memberof ResolvedUIBlockElement
-     */
-    'text'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ResolvedUIBlockElement
-     */
-    'url'?: string;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof ResolvedUIBlockElement
-     */
-    'isTimestamp'?: boolean;
-}
-/**
- * 
- * @export
- * @interface ResolvedUIBlocks
- */
-export interface ResolvedUIBlocks {
-    /**
-     * 
-     * @type {ResolvedImage}
-     * @memberof ResolvedUIBlocks
-     */
-    'image'?: ResolvedImage;
-    /**
-     * 
-     * @type {ResolvedContext}
-     * @memberof ResolvedUIBlocks
-     */
-    'context'?: ResolvedContext;
-    /**
-     * 
-     * @type {string}
-     * @memberof ResolvedUIBlocks
-     */
-    'description'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ResolvedUIBlocks
-     */
-    'name'?: string;
-    /**
-     * 
-     * @type {ResolvedTitle}
-     * @memberof ResolvedUIBlocks
-     */
-    'title'?: ResolvedTitle;
-}
-/**
- * 
- * @export
  * @interface ResourceAccess
  */
 export interface ResourceAccess {
@@ -11078,74 +12173,6 @@ export type RuleClauseOpEnum = typeof RuleClauseOpEnum[keyof typeof RuleClauseOp
 /**
  * 
  * @export
- * @interface ScheduleConditionInput
- */
-export interface ScheduleConditionInput {
-    /**
-     * 
-     * @type {string}
-     * @memberof ScheduleConditionInput
-     */
-    'scheduleKind'?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ScheduleConditionInput
-     */
-    'executionDate'?: number;
-    /**
-     * For workflow stages whose scheduled execution is relative, how far in the future the stage should start.
-     * @type {number}
-     * @memberof ScheduleConditionInput
-     */
-    'waitDuration'?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof ScheduleConditionInput
-     */
-    'waitDurationUnit'?: string;
-    /**
-     * Whether the workflow stage should be executed immediately
-     * @type {boolean}
-     * @memberof ScheduleConditionInput
-     */
-    'executeNow'?: boolean;
-}
-/**
- * 
- * @export
- * @interface ScheduleConditionOutput
- */
-export interface ScheduleConditionOutput {
-    /**
-     * 
-     * @type {string}
-     * @memberof ScheduleConditionOutput
-     */
-    'scheduleKind'?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ScheduleConditionOutput
-     */
-    'executionDate'?: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof ScheduleConditionOutput
-     */
-    'waitDuration'?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof ScheduleConditionOutput
-     */
-    'waitDurationUnit'?: string;
-}
-/**
- * 
- * @export
  * @interface SdkListRep
  */
 export interface SdkListRep {
@@ -11231,13 +12258,13 @@ export interface SegmentBody {
      */
     'tags'?: Array<string>;
     /**
-     * Whether to create a standard segment (<code>false</code>) or a Big Segment (<code>true</code>). Standard segments include rule-based and smaller list-based segments. Big Segments include larger list-based segments and synced segments. Only use a Big Segment if you need to add more than 15,000 individual targets.
+     * Whether to create a standard segment (<code>false</code>) or a big segment (<code>true</code>). Standard segments include rule-based and smaller list-based segments. Big segments include larger list-based segments and synced segments. Only use a big segment if you need to add more than 15,000 individual targets.
      * @type {boolean}
      * @memberof SegmentBody
      */
     'unbounded'?: boolean;
     /**
-     * For Big Segments, the targeted context kind.
+     * For big segments, the targeted context kind.
      * @type {string}
      * @memberof SegmentBody
      */
@@ -11279,6 +12306,12 @@ export interface SegmentMetadata {
      * @memberof SegmentMetadata
      */
     'excludedCount'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof SegmentMetadata
+     */
+    'lastModified'?: number;
     /**
      * 
      * @type {boolean}
@@ -11630,51 +12663,6 @@ export type StatementPostEffectEnum = typeof StatementPostEffectEnum[keyof typeo
 /**
  * 
  * @export
- * @interface StatementPostData
- */
-export interface StatementPostData {
-    /**
-     * Resource specifier strings
-     * @type {Array<string>}
-     * @memberof StatementPostData
-     */
-    'resources'?: Array<string>;
-    /**
-     * Targeted resources are the resources NOT in this list. The <code>resources</code> field must be empty to use this field.
-     * @type {Array<string>}
-     * @memberof StatementPostData
-     */
-    'notResources'?: Array<string>;
-    /**
-     * Actions to perform on a resource
-     * @type {Array<string>}
-     * @memberof StatementPostData
-     */
-    'actions'?: Array<string>;
-    /**
-     * Targeted actions are the actions NOT in this list. The <code>actions</code> field must be empty to use this field.
-     * @type {Array<string>}
-     * @memberof StatementPostData
-     */
-    'notActions'?: Array<string>;
-    /**
-     * Whether this statement should allow or deny actions on the resources.
-     * @type {string}
-     * @memberof StatementPostData
-     */
-    'effect': StatementPostDataEffectEnum;
-}
-
-export const StatementPostDataEffectEnum = {
-    Allow: 'allow',
-    Deny: 'deny'
-} as const;
-
-export type StatementPostDataEffectEnum = typeof StatementPostDataEffectEnum[keyof typeof StatementPostDataEffectEnum];
-
-/**
- * 
- * @export
  * @interface StatisticCollectionRep
  */
 export interface StatisticCollectionRep {
@@ -11703,6 +12691,12 @@ export interface StatisticRep {
      * @memberof StatisticRep
      */
     'name': string;
+    /**
+     * The type of repository
+     * @type {string}
+     * @memberof StatisticRep
+     */
+    'type': StatisticRepTypeEnum;
     /**
      * A URL to access the repository
      * @type {string}
@@ -11746,25 +12740,16 @@ export interface StatisticRep {
      */
     '_links': { [key: string]: Link; };
 }
-/**
- * 
- * @export
- * @interface StatisticsRep
- */
-export interface StatisticsRep {
-    /**
-     * A list of code reference statistics for each code repository
-     * @type {Array<StatisticRep>}
-     * @memberof StatisticsRep
-     */
-    'items'?: Array<StatisticRep>;
-    /**
-     * The location and content type of related resources
-     * @type {{ [key: string]: Link; }}
-     * @memberof StatisticsRep
-     */
-    '_links'?: { [key: string]: Link; };
-}
+
+export const StatisticRepTypeEnum = {
+    Bitbucket: 'bitbucket',
+    Custom: 'custom',
+    Github: 'github',
+    Gitlab: 'gitlab'
+} as const;
+
+export type StatisticRepTypeEnum = typeof StatisticRepTypeEnum[keyof typeof StatisticRepTypeEnum];
+
 /**
  * 
  * @export
@@ -11821,6 +12806,31 @@ export interface StatusServiceUnavailable {
      * @memberof StatusServiceUnavailable
      */
     'message': string;
+}
+/**
+ * 
+ * @export
+ * @interface StoreIntegrationError
+ */
+export interface StoreIntegrationError {
+    /**
+     * 
+     * @type {number}
+     * @memberof StoreIntegrationError
+     */
+    'statusCode'?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof StoreIntegrationError
+     */
+    'message'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof StoreIntegrationError
+     */
+    'timestamp'?: number;
 }
 /**
  * 
@@ -12128,19 +13138,6 @@ export interface TeamImportsRep {
 /**
  * 
  * @export
- * @interface TeamInput
- */
-export interface TeamInput {
-    /**
-     * The key of the associated team that maintains the application
-     * @type {string}
-     * @memberof TeamInput
-     */
-    'key'?: string;
-}
-/**
- * 
- * @export
  * @interface TeamMaintainers
  */
 export interface TeamMaintainers {
@@ -12260,37 +13257,6 @@ export interface TeamProjects {
 /**
  * 
  * @export
- * @interface TeamRepExpandableProperties
- */
-export interface TeamRepExpandableProperties {
-    /**
-     * 
-     * @type {TeamCustomRoles}
-     * @memberof TeamRepExpandableProperties
-     */
-    'roles'?: TeamCustomRoles;
-    /**
-     * 
-     * @type {TeamMembers}
-     * @memberof TeamRepExpandableProperties
-     */
-    'members'?: TeamMembers;
-    /**
-     * 
-     * @type {TeamProjects}
-     * @memberof TeamRepExpandableProperties
-     */
-    'projects'?: TeamProjects;
-    /**
-     * 
-     * @type {TeamMaintainers}
-     * @memberof TeamRepExpandableProperties
-     */
-    'maintainers'?: TeamMaintainers;
-}
-/**
- * 
- * @export
  * @interface Teams
  */
 export interface Teams {
@@ -12362,61 +13328,6 @@ export interface TimestampRep {
      * @memberof TimestampRep
      */
     'simple'?: string;
-}
-/**
- * 
- * @export
- * @interface TitleRep
- */
-export interface TitleRep {
-    /**
-     * 
-     * @type {SubjectDataRep}
-     * @memberof TitleRep
-     */
-    'subject'?: SubjectDataRep;
-    /**
-     * 
-     * @type {MemberDataRep}
-     * @memberof TitleRep
-     */
-    'member'?: MemberDataRep;
-    /**
-     * 
-     * @type {TokenSummary}
-     * @memberof TitleRep
-     */
-    'token'?: TokenSummary;
-    /**
-     * 
-     * @type {AuthorizedAppDataRep}
-     * @memberof TitleRep
-     */
-    'app'?: AuthorizedAppDataRep;
-    /**
-     * The action and resource recorded in this audit log entry
-     * @type {string}
-     * @memberof TitleRep
-     */
-    'titleVerb'?: string;
-    /**
-     * A description of what occurred, in the format <code>member</code> <code>titleVerb</code> <code>target</code>
-     * @type {string}
-     * @memberof TitleRep
-     */
-    'title'?: string;
-    /**
-     * 
-     * @type {TargetResourceRep}
-     * @memberof TitleRep
-     */
-    'target'?: TargetResourceRep;
-    /**
-     * 
-     * @type {ParentResourceRep}
-     * @memberof TitleRep
-     */
-    'parent'?: ParentResourceRep;
 }
 /**
  * 
@@ -12576,6 +13487,12 @@ export interface Tokens {
      * @memberof Tokens
      */
     '_links'?: { [key: string]: Link; };
+    /**
+     * The number of access tokens returned
+     * @type {number}
+     * @memberof Tokens
+     */
+    'totalCount'?: number;
 }
 /**
  * 
@@ -12707,11 +13624,17 @@ export interface TreatmentResultRep {
      */
     'relativeDifferences'?: Array<RelativeDifferenceRep>;
     /**
-     * The number of end users in this variation of the experiment
+     * The number of units exposed to this treatment that have event values, including those that are configured to default to 0
      * @type {number}
      * @memberof TreatmentResultRep
      */
     'units'?: number;
+    /**
+     * The number of units exposed to this treatment.
+     * @type {number}
+     * @memberof TreatmentResultRep
+     */
+    'traffic'?: number;
     /**
      * 
      * @type {Distribution}
@@ -12924,16 +13847,16 @@ export interface UpsertFlagDefaultsPayload {
     'temporary': boolean;
     /**
      * 
-     * @type {DefaultClientSideAvailability}
-     * @memberof UpsertFlagDefaultsPayload
-     */
-    'defaultClientSideAvailability': DefaultClientSideAvailability;
-    /**
-     * 
      * @type {BooleanFlagDefaults}
      * @memberof UpsertFlagDefaultsPayload
      */
     'booleanDefaults': BooleanFlagDefaults;
+    /**
+     * 
+     * @type {DefaultClientSideAvailability}
+     * @memberof UpsertFlagDefaultsPayload
+     */
+    'defaultClientSideAvailability': DefaultClientSideAvailability;
 }
 /**
  * 
@@ -12961,16 +13884,16 @@ export interface UpsertPayloadRep {
     'temporary': boolean;
     /**
      * 
-     * @type {DefaultClientSideAvailability}
-     * @memberof UpsertPayloadRep
-     */
-    'defaultClientSideAvailability': DefaultClientSideAvailability;
-    /**
-     * 
      * @type {BooleanFlagDefaults}
      * @memberof UpsertPayloadRep
      */
     'booleanDefaults': BooleanFlagDefaults;
+    /**
+     * 
+     * @type {DefaultClientSideAvailability}
+     * @memberof UpsertPayloadRep
+     */
+    'defaultClientSideAvailability': DefaultClientSideAvailability;
 }
 /**
  * 
@@ -13238,43 +14161,6 @@ export interface UserRecord {
 /**
  * 
  * @export
- * @interface UserRecordRep
- */
-export interface UserRecordRep {
-    /**
-     * Timestamp of the last time this user was seen
-     * @type {string}
-     * @memberof UserRecordRep
-     */
-    'lastPing'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof UserRecordRep
-     */
-    'environmentId'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof UserRecordRep
-     */
-    'ownerId'?: string;
-    /**
-     * 
-     * @type {User}
-     * @memberof UserRecordRep
-     */
-    'user'?: User;
-    /**
-     * If this record is returned as part of a list, the value used to sort the list. This is only included when the <code>sort</code> query parameter is specified. It is a time, in Unix milliseconds, if the sort is by <code>lastSeen</code>. It is a user key if the sort is by <code>userKey</code>.
-     * @type {any}
-     * @memberof UserRecordRep
-     */
-    'sortValue'?: any;
-}
-/**
- * 
- * @export
  * @interface UserSegment
  */
 export interface UserSegment {
@@ -13315,13 +14201,13 @@ export interface UserSegment {
      */
     'key': string;
     /**
-     * An array of keys for included targets. Included individual targets are always segment members, regardless of segment rules. For list-based segments over 15,000 entries, also called Big Segments, this array is either empty or omitted.
+     * An array of keys for included targets. Included individual targets are always segment members, regardless of segment rules. For list-based segments over 15,000 entries, also called big segments, this array is either empty or omitted.
      * @type {Array<string>}
      * @memberof UserSegment
      */
     'included'?: Array<string>;
     /**
-     * An array of keys for excluded targets. Segment rules bypass individual excluded targets, so they will never be included based on rules. Excluded targets may still be included explicitly. This value is omitted for list-based segments over 15,000 entries, also called Big Segments.
+     * An array of keys for excluded targets. Segment rules bypass individual excluded targets, so they will never be included based on rules. Excluded targets may still be included explicitly. This value is omitted for list-based segments over 15,000 entries, also called big segments.
      * @type {Array<string>}
      * @memberof UserSegment
      */
@@ -13375,19 +14261,19 @@ export interface UserSegment {
      */
     '_flags'?: Array<FlagListingRep>;
     /**
-     * Whether this is a standard segment (<code>false</code>) or a Big Segment (<code>true</code>). Standard segments include rule-based segments and smaller list-based segments. Big Segments include larger list-based segments and synced segments. If omitted, the segment is a standard segment.
+     * Whether this is a standard segment (<code>false</code>) or a big segment (<code>true</code>). Standard segments include rule-based segments and smaller list-based segments. Big segments include larger list-based segments and synced segments. If omitted, the segment is a standard segment.
      * @type {boolean}
      * @memberof UserSegment
      */
     'unbounded'?: boolean;
     /**
-     * For Big Segments, the targeted context kind.
+     * For big segments, the targeted context kind.
      * @type {string}
      * @memberof UserSegment
      */
     'unboundedContextKind'?: string;
     /**
-     * For Big Segments, how many times this segment has been created.
+     * For big segments, how many times this segment has been created.
      * @type {number}
      * @memberof UserSegment
      */
@@ -13411,7 +14297,7 @@ export interface UserSegment {
      */
     '_externalLink'?: string;
     /**
-     * Whether an import is currently in progress for the specified segment. Only applies to Big Segments.
+     * Whether an import is currently in progress for the specified segment. Only applies to big segments.
      * @type {boolean}
      * @memberof UserSegment
      */
@@ -13453,6 +14339,12 @@ export interface UserSegmentRule {
      * @memberof UserSegmentRule
      */
     'bucketBy'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UserSegmentRule
+     */
+    'description'?: string;
 }
 /**
  * 
@@ -13532,6 +14424,31 @@ export interface UsersRep {
 /**
  * 
  * @export
+ * @interface ValidationFailedErrorRep
+ */
+export interface ValidationFailedErrorRep {
+    /**
+     * Specific error code encountered
+     * @type {string}
+     * @memberof ValidationFailedErrorRep
+     */
+    'code': string;
+    /**
+     * Description of the error
+     * @type {string}
+     * @memberof ValidationFailedErrorRep
+     */
+    'message': string;
+    /**
+     * List of validation errors
+     * @type {Array<FailureReasonRep>}
+     * @memberof ValidationFailedErrorRep
+     */
+    'errors': Array<FailureReasonRep>;
+}
+/**
+ * 
+ * @export
  * @interface ValuePut
  */
 export interface ValuePut {
@@ -13547,37 +14464,6 @@ export interface ValuePut {
      * @memberof ValuePut
      */
     'comment'?: string;
-}
-/**
- * 
- * @export
- * @interface Variate
- */
-export interface Variate {
-    /**
-     * 
-     * @type {string}
-     * @memberof Variate
-     */
-    'id'?: string;
-    /**
-     * 
-     * @type {any}
-     * @memberof Variate
-     */
-    'value': any;
-    /**
-     * 
-     * @type {string}
-     * @memberof Variate
-     */
-    'description'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Variate
-     */
-    'name'?: string;
 }
 /**
  * 
@@ -13609,6 +14495,31 @@ export interface Variation {
      * @memberof Variation
      */
     'name'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface VariationEvalSummary
+ */
+export interface VariationEvalSummary {
+    /**
+     * The variation value
+     * @type {any}
+     * @memberof VariationEvalSummary
+     */
+    'value'?: any;
+    /**
+     * The number of evaluations in the ten minutes before the flag event
+     * @type {number}
+     * @memberof VariationEvalSummary
+     */
+    'before'?: number;
+    /**
+     * The number of evaluations in the ten minutes after the flag event
+     * @type {number}
+     * @memberof VariationEvalSummary
+     */
+    'after'?: number;
 }
 /**
  * 
@@ -13977,31 +14888,6 @@ export interface WorkflowTemplateParameter {
 /**
  * 
  * @export
- * @interface WorkflowTemplateParameterInput
- */
-export interface WorkflowTemplateParameterInput {
-    /**
-     * 
-     * @type {string}
-     * @memberof WorkflowTemplateParameterInput
-     */
-    '_id'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof WorkflowTemplateParameterInput
-     */
-    'path'?: string;
-    /**
-     * 
-     * @type {ParameterDefaultInput}
-     * @memberof WorkflowTemplateParameterInput
-     */
-    'default'?: ParameterDefaultInput;
-}
-/**
- * 
- * @export
  * @interface WorkflowTemplatesListingOutputRep
  */
 export interface WorkflowTemplatesListingOutputRep {
@@ -14097,10 +14983,12 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
          * Fetch a list of all access tokens.
          * @summary List access tokens
          * @param {boolean} [showAll] If set to true, and the authentication access token has the \&#39;Admin\&#39; role, personal access tokens for all members will be retrieved.
+         * @param {number} [limit] The number of access tokens to return in the response. Defaults to 25.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTokens: async (showAll?: boolean, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getTokens: async (showAll?: boolean, limit?: number, offset?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/tokens`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -14118,6 +15006,14 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
 
             if (showAll !== undefined) {
                 localVarQueryParameter['showAll'] = showAll;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
             }
 
 
@@ -14291,11 +15187,13 @@ export const AccessTokensApiFp = function(configuration?: Configuration) {
          * Fetch a list of all access tokens.
          * @summary List access tokens
          * @param {boolean} [showAll] If set to true, and the authentication access token has the \&#39;Admin\&#39; role, personal access tokens for all members will be retrieved.
+         * @param {number} [limit] The number of access tokens to return in the response. Defaults to 25.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getTokens(showAll?: boolean, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Tokens>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getTokens(showAll, options);
+        async getTokens(showAll?: boolean, limit?: number, offset?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Tokens>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTokens(showAll, limit, offset, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -14367,11 +15265,13 @@ export const AccessTokensApiFactory = function (configuration?: Configuration, b
          * Fetch a list of all access tokens.
          * @summary List access tokens
          * @param {boolean} [showAll] If set to true, and the authentication access token has the \&#39;Admin\&#39; role, personal access tokens for all members will be retrieved.
+         * @param {number} [limit] The number of access tokens to return in the response. Defaults to 25.
+         * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getTokens(showAll?: boolean, options?: any): AxiosPromise<Tokens> {
-            return localVarFp.getTokens(showAll, options).then((request) => request(axios, basePath));
+        getTokens(showAll?: boolean, limit?: number, offset?: number, options?: any): AxiosPromise<Tokens> {
+            return localVarFp.getTokens(showAll, limit, offset, options).then((request) => request(axios, basePath));
         },
         /**
          * Update an access token\'s settings. Updating an access token uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
@@ -14443,12 +15343,14 @@ export class AccessTokensApi extends BaseAPI {
      * Fetch a list of all access tokens.
      * @summary List access tokens
      * @param {boolean} [showAll] If set to true, and the authentication access token has the \&#39;Admin\&#39; role, personal access tokens for all members will be retrieved.
+     * @param {number} [limit] The number of access tokens to return in the response. Defaults to 25.
+     * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof AccessTokensApi
      */
-    public getTokens(showAll?: boolean, options?: AxiosRequestConfig) {
-        return AccessTokensApiFp(this.configuration).getTokens(showAll, options).then((request) => request(this.axios, this.basePath));
+    public getTokens(showAll?: boolean, limit?: number, offset?: number, options?: AxiosRequestConfig) {
+        return AccessTokensApiFp(this.configuration).getTokens(showAll, limit, offset, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -14572,7 +15474,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             };
         },
         /**
-         * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource.    - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
+         * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource. Note: `accessCheck` is only supported in API version `20220603` and earlier. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).   - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
          * @summary List account members
          * @param {number} [limit] The number of members to return in the response. Defaults to 20.
          * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
@@ -14711,7 +15613,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             };
         },
         /**
-         * > ### Full use of this API resource is an Enterprise feature > > The ability to bulk invite members is available to customers on an Enterprise plan. If you are on a Pro plan, you can invite members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+         * Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
          * @summary Invite new members
          * @param {Array<NewMemberForm>} newMemberForm 
          * @param {*} [options] Override http request option.
@@ -14782,7 +15684,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource.    - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
+         * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource. Note: `accessCheck` is only supported in API version `20220603` and earlier. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).   - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
          * @summary List account members
          * @param {number} [limit] The number of members to return in the response. Defaults to 20.
          * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
@@ -14820,7 +15722,7 @@ export const AccountMembersApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * > ### Full use of this API resource is an Enterprise feature > > The ability to bulk invite members is available to customers on an Enterprise plan. If you are on a Pro plan, you can invite members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+         * Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
          * @summary Invite new members
          * @param {Array<NewMemberForm>} newMemberForm 
          * @param {*} [options] Override http request option.
@@ -14861,7 +15763,7 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
             return localVarFp.getMember(id, options).then((request) => request(axios, basePath));
         },
         /**
-         * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource.    - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
+         * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource. Note: `accessCheck` is only supported in API version `20220603` and earlier. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).   - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
          * @summary List account members
          * @param {number} [limit] The number of members to return in the response. Defaults to 20.
          * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
@@ -14896,7 +15798,7 @@ export const AccountMembersApiFactory = function (configuration?: Configuration,
             return localVarFp.postMemberTeams(id, memberTeamsPostInput, options).then((request) => request(axios, basePath));
         },
         /**
-         * > ### Full use of this API resource is an Enterprise feature > > The ability to bulk invite members is available to customers on an Enterprise plan. If you are on a Pro plan, you can invite members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+         * Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
          * @summary Invite new members
          * @param {Array<NewMemberForm>} newMemberForm 
          * @param {*} [options] Override http request option.
@@ -14940,7 +15842,7 @@ export class AccountMembersApi extends BaseAPI {
     }
 
     /**
-     * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource.    - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
+     * Return a list of account members.  By default, this returns the first 20 members. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links are not present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Filtering members  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the members\' emails and names. It is not case sensitive. - `role` is a `|` separated list of roles and custom roles. It filters the list to members who have any of the roles in the list. For the purposes of this filtering, `Owner` counts as `Admin`. - `team` is a string that matches against the key of the teams the members belong to. It is not case sensitive. - `noteam` is a boolean that filters the list of members who are not on a team if true and members on a team if false. - `lastSeen` is a JSON object in one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `accessCheck` is a string that represents a specific action on a specific resource and is in the format `<ActionSpecifier>:<ResourceSpecifier>`. It filters the list to members who have the ability to perform that action on that resource. Note: `accessCheck` is only supported in API version `20220603` and earlier. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).   - For example, the filter `accessCheck:createApprovalRequest:proj/default:env/test:flag/alternate-page` matches members with the ability to create an approval request for the `alternate-page` flag in the `test` environment of the `default` project.   - Wildcard and tag filters are not supported when filtering for access.  For example, the filter `query:abc,role:admin|customrole` matches members with the string `abc` in their email or name, ignoring case, who also are either an `Owner` or `Admin` or have the custom role `customrole`.  ### Sorting members  LaunchDarkly supports two fields for sorting: `displayName` and `lastSeen`:  - `displayName` sorts by first + last name, using the member\'s email if no name is set. - `lastSeen` sorts by the `_lastSeen` property. LaunchDarkly considers members that have never been seen or have no data the oldest. 
      * @summary List account members
      * @param {number} [limit] The number of members to return in the response. Defaults to 20.
      * @param {number} [offset] Where to start in the list. This is for use with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
@@ -14981,7 +15883,7 @@ export class AccountMembersApi extends BaseAPI {
     }
 
     /**
-     * > ### Full use of this API resource is an Enterprise feature > > The ability to bulk invite members is available to customers on an Enterprise plan. If you are on a Pro plan, you can invite members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
+     * Invite one or more new members to join an account. Each member is sent an invitation. Members with \"admin\" or \"owner\" roles may create new members, as well as anyone with a \"createMember\" permission for \"member/\\*\". If a member cannot be invited, the entire request is rejected and no members are invited from that request.  Each member _must_ have an `email` field and either a `role` or a `customRoles` field. If any of the fields are not populated correctly, the request is rejected with the reason specified in the \"message\" field of the response.  Requests to create account members will not work if SCIM is enabled for the account.  _No more than 50 members may be created per request._  A request may also fail because of conflicts with existing members. These conflicts are reported using the additional `code` and `invalid_emails` response fields with the following possible values for `code`:  - **email_already_exists_in_account**: A member with this email address already exists in this account. - **email_taken_in_different_account**: A member with this email address exists in another account. - **duplicate_email**s: This request contains two or more members with the same email address.  A request that fails for one of the above reasons returns an HTTP response code of 400 (Bad Request). 
      * @summary Invite new members
      * @param {Array<NewMemberForm>} newMemberForm 
      * @param {*} [options] Override http request option.
@@ -15001,7 +15903,7 @@ export class AccountMembersApi extends BaseAPI {
 export const AccountMembersBetaApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
+         * > ### Full use of this API resource is an Enterprise feature > > The ability to perform a partial update to multiple members is available to customers on an Enterprise plan. If you are on a Pro plan, you can update members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
          * @summary Modify account members
          * @param {MembersPatchInput} membersPatchInput 
          * @param {*} [options] Override http request option.
@@ -15050,7 +15952,7 @@ export const AccountMembersBetaApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = AccountMembersBetaApiAxiosParamCreator(configuration)
     return {
         /**
-         * Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
+         * > ### Full use of this API resource is an Enterprise feature > > The ability to perform a partial update to multiple members is available to customers on an Enterprise plan. If you are on a Pro plan, you can update members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
          * @summary Modify account members
          * @param {MembersPatchInput} membersPatchInput 
          * @param {*} [options] Override http request option.
@@ -15071,7 +15973,7 @@ export const AccountMembersBetaApiFactory = function (configuration?: Configurat
     const localVarFp = AccountMembersBetaApiFp(configuration)
     return {
         /**
-         * Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
+         * > ### Full use of this API resource is an Enterprise feature > > The ability to perform a partial update to multiple members is available to customers on an Enterprise plan. If you are on a Pro plan, you can update members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
          * @summary Modify account members
          * @param {MembersPatchInput} membersPatchInput 
          * @param {*} [options] Override http request option.
@@ -15091,7 +15993,7 @@ export const AccountMembersBetaApiFactory = function (configuration?: Configurat
  */
 export class AccountMembersBetaApi extends BaseAPI {
     /**
-     * Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
+     * > ### Full use of this API resource is an Enterprise feature > > The ability to perform a partial update to multiple members is available to customers on an Enterprise plan. If you are on a Pro plan, you can update members individually. To learn more, [read about our pricing](https://launchdarkly.com/pricing/). To upgrade your plan, [contact Sales](https://launchdarkly.com/contact-sales/).  Perform a partial update to multiple members. Updating members uses the semantic patch format.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating members.  <details> <summary>Click to expand instructions for <strong>updating members</strong></summary>  #### replaceMembersRoles  Replaces the roles of the specified members. This also removes all custom roles assigned to the specified members.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMemberRoles\",     \"value\": \"reader\",     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersRoles  Replaces the roles of all members. This also removes all custom roles assigned to the specified members.  Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `value`: The new role. Must be a valid built-in role. To learn more about built-in roles, read [LaunchDarkly\'s built-in roles](https://docs.launchdarkly.com/home/members/built-in-roles). - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersRoles\",     \"value\": \"reader\",     \"filterLastSeen\": { \"never\": true }   }] } ```  #### replaceMembersCustomRoles  Replaces the custom roles of the specified members.  ##### Parameters  - `values`: List of new custom roles. Must be a valid custom role key or ID. - `memberIDs`: List of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"memberIDs\": [       \"1234a56b7c89d012345e678f\",       \"507f1f77bcf86cd799439011\"     ]   }] } ```  #### replaceAllMembersCustomRoles  Replaces the custom roles of all members. Members that match any of the filters are **excluded** from the update.  ##### Parameters  - `values`: List of new roles. Must be a valid custom role key or ID. - `filterLastSeen`: (Optional) A JSON object with one of the following formats:   - `{\"never\": true}` - Members that have never been active, such as those who have not accepted their invitation to LaunchDarkly, or have not logged in after being provisioned via SCIM.   - `{\"noData\": true}` - Members that have not been active since LaunchDarkly began recording last seen timestamps.   - `{\"before\": 1608672063611}` - Members that have not been active since the provided value, which should be a timestamp in Unix epoch milliseconds. - `filterQuery`: (Optional) A string that matches against the members\' emails and names. It is not case sensitive. - `filterRoles`: (Optional) A `|` separated list of roles and custom roles. For the purposes of this filtering, `Owner` counts as `Admin`. - `filterTeamKey`: (Optional) A string that matches against the key of the team the members belong to. It is not case sensitive. - `ignoredMemberIDs`: (Optional) A list of member IDs.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"replaceAllMembersCustomRoles\",     \"values\": [ \"example-custom-role\" ],     \"filterLastSeen\": { \"never\": true }   }] } ```  </details> 
      * @summary Modify account members
      * @param {MembersPatchInput} membersPatchInput 
      * @param {*} [options] Override http request option.
@@ -16068,45 +16970,6 @@ export class AccountUsageBetaApi extends BaseAPI {
 export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Create a new application
-         * @summary Post application
-         * @param {CreateApplicationInput} createApplicationInput 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        createApplication: async (createApplicationInput: CreateApplicationInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'createApplicationInput' is not null or undefined
-            assertParamExists('createApplication', 'createApplicationInput', createApplicationInput)
-            const localVarPath = `/api/v2/applications`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication ApiKey required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(createApplicationInput, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
          * Delete an application.
          * @summary Delete application
          * @param {string} applicationKey The application key
@@ -16431,49 +17294,6 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
                 options: localVarRequestOptions,
             };
         },
-        /**
-         * Create an application version
-         * @summary Post application version
-         * @param {string} applicationKey The application key
-         * @param {CreateApplicationVersionInput} createApplicationVersionInput 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        postApplicationVersion: async (applicationKey: string, createApplicationVersionInput: CreateApplicationVersionInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'applicationKey' is not null or undefined
-            assertParamExists('postApplicationVersion', 'applicationKey', applicationKey)
-            // verify required parameter 'createApplicationVersionInput' is not null or undefined
-            assertParamExists('postApplicationVersion', 'createApplicationVersionInput', createApplicationVersionInput)
-            const localVarPath = `/api/v2/applications/{applicationKey}/versions`
-                .replace(`{${"applicationKey"}}`, encodeURIComponent(String(applicationKey)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication ApiKey required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(createApplicationVersionInput, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
     }
 };
 
@@ -16484,17 +17304,6 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
 export const ApplicationsBetaApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = ApplicationsBetaApiAxiosParamCreator(configuration)
     return {
-        /**
-         * Create a new application
-         * @summary Post application
-         * @param {CreateApplicationInput} createApplicationInput 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async createApplication(createApplicationInput: CreateApplicationInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApplicationRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createApplication(createApplicationInput, options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
         /**
          * Delete an application.
          * @summary Delete application
@@ -16585,18 +17394,6 @@ export const ApplicationsBetaApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchApplicationVersion(applicationKey, versionKey, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
-        /**
-         * Create an application version
-         * @summary Post application version
-         * @param {string} applicationKey The application key
-         * @param {CreateApplicationVersionInput} createApplicationVersionInput 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async postApplicationVersion(applicationKey: string, createApplicationVersionInput: CreateApplicationVersionInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApplicationVersionRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postApplicationVersion(applicationKey, createApplicationVersionInput, options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
     }
 };
 
@@ -16607,16 +17404,6 @@ export const ApplicationsBetaApiFp = function(configuration?: Configuration) {
 export const ApplicationsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = ApplicationsBetaApiFp(configuration)
     return {
-        /**
-         * Create a new application
-         * @summary Post application
-         * @param {CreateApplicationInput} createApplicationInput 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        createApplication(createApplicationInput: CreateApplicationInput, options?: any): AxiosPromise<ApplicationRep> {
-            return localVarFp.createApplication(createApplicationInput, options).then((request) => request(axios, basePath));
-        },
         /**
          * Delete an application.
          * @summary Delete application
@@ -16700,17 +17487,6 @@ export const ApplicationsBetaApiFactory = function (configuration?: Configuratio
         patchApplicationVersion(applicationKey: string, versionKey: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<ApplicationVersionRep> {
             return localVarFp.patchApplicationVersion(applicationKey, versionKey, patchOperation, options).then((request) => request(axios, basePath));
         },
-        /**
-         * Create an application version
-         * @summary Post application version
-         * @param {string} applicationKey The application key
-         * @param {CreateApplicationVersionInput} createApplicationVersionInput 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        postApplicationVersion(applicationKey: string, createApplicationVersionInput: CreateApplicationVersionInput, options?: any): AxiosPromise<ApplicationVersionRep> {
-            return localVarFp.postApplicationVersion(applicationKey, createApplicationVersionInput, options).then((request) => request(axios, basePath));
-        },
     };
 };
 
@@ -16721,18 +17497,6 @@ export const ApplicationsBetaApiFactory = function (configuration?: Configuratio
  * @extends {BaseAPI}
  */
 export class ApplicationsBetaApi extends BaseAPI {
-    /**
-     * Create a new application
-     * @summary Post application
-     * @param {CreateApplicationInput} createApplicationInput 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ApplicationsBetaApi
-     */
-    public createApplication(createApplicationInput: CreateApplicationInput, options?: AxiosRequestConfig) {
-        return ApplicationsBetaApiFp(this.configuration).createApplication(createApplicationInput, options).then((request) => request(this.axios, this.basePath));
-    }
-
     /**
      * Delete an application.
      * @summary Delete application
@@ -16828,19 +17592,6 @@ export class ApplicationsBetaApi extends BaseAPI {
      */
     public patchApplicationVersion(applicationKey: string, versionKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
         return ApplicationsBetaApiFp(this.configuration).patchApplicationVersion(applicationKey, versionKey, patchOperation, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Create an application version
-     * @summary Post application version
-     * @param {string} applicationKey The application key
-     * @param {CreateApplicationVersionInput} createApplicationVersionInput 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ApplicationsBetaApi
-     */
-    public postApplicationVersion(applicationKey: string, createApplicationVersionInput: CreateApplicationVersionInput, options?: AxiosRequestConfig) {
-        return ApplicationsBetaApiFp(this.configuration).postApplicationVersion(applicationKey, createApplicationVersionInput, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -19573,7 +20324,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Get context attribute names.
+         * Get context attribute names. Returns only the first 100 attribute names per context.
          * @summary Get context attribute names
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20081,7 +20832,7 @@ export const ContextsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get context attribute names.
+         * Get context attribute names. Returns only the first 100 attribute names per context.
          * @summary Get context attribute names
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20243,7 +20994,7 @@ export const ContextsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.evaluateContextInstance(projectKey, environmentKey, requestBody, limit, offset, sort, filter, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get context attribute names.
+         * Get context attribute names. Returns only the first 100 attribute names per context.
          * @summary Get context attribute names
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -20401,7 +21152,7 @@ export class ContextsApi extends BaseAPI {
     }
 
     /**
-     * Get context attribute names.
+     * Get context attribute names. Returns only the first 100 attribute names per context.
      * @summary Get context attribute names
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -21463,7 +22214,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.   ### Sorting environments  LaunchDarkly supports two fields for sorting: - `name` sorts by environment name. - `createdOn` sorts by the creation date of the environment.  For example, `sort=name` sorts the response by environment name in ascending order. 
+         * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.  ### Sorting environments  LaunchDarkly supports the following fields for sorting:  - `createdOn` sorts by the creation date of the environment. - `critical` sorts by whether the environments are marked as critical. - `name` sorts by environment name.  For example, `sort=name` sorts the response by environment name in ascending order. 
          * @summary List environments
          * @param {string} projectKey The project key
          * @param {number} [limit] The number of environments to return in the response. Defaults to 20.
@@ -21731,7 +22482,7 @@ export const EnvironmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.   ### Sorting environments  LaunchDarkly supports two fields for sorting: - `name` sorts by environment name. - `createdOn` sorts by the creation date of the environment.  For example, `sort=name` sorts the response by environment name in ascending order. 
+         * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.  ### Sorting environments  LaunchDarkly supports the following fields for sorting:  - `createdOn` sorts by the creation date of the environment. - `critical` sorts by whether the environments are marked as critical. - `name` sorts by environment name.  For example, `sort=name` sorts the response by environment name in ascending order. 
          * @summary List environments
          * @param {string} projectKey The project key
          * @param {number} [limit] The number of environments to return in the response. Defaults to 20.
@@ -21828,7 +22579,7 @@ export const EnvironmentsApiFactory = function (configuration?: Configuration, b
             return localVarFp.getEnvironment(projectKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.   ### Sorting environments  LaunchDarkly supports two fields for sorting: - `name` sorts by environment name. - `createdOn` sorts by the creation date of the environment.  For example, `sort=name` sorts the response by environment name in ascending order. 
+         * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.  ### Sorting environments  LaunchDarkly supports the following fields for sorting:  - `createdOn` sorts by the creation date of the environment. - `critical` sorts by whether the environments are marked as critical. - `name` sorts by environment name.  For example, `sort=name` sorts the response by environment name in ascending order. 
          * @summary List environments
          * @param {string} projectKey The project key
          * @param {number} [limit] The number of environments to return in the response. Defaults to 20.
@@ -21924,7 +22675,7 @@ export class EnvironmentsApi extends BaseAPI {
     }
 
     /**
-     * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.   ### Sorting environments  LaunchDarkly supports two fields for sorting: - `name` sorts by environment name. - `createdOn` sorts by the creation date of the environment.  For example, `sort=name` sorts the response by environment name in ascending order. 
+     * Return a list of environments for the specified project.  By default, this returns the first 20 environments. Page through this list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the `_links` field that returns. If those links do not appear, the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page, because there is no previous page and you cannot return to the first page when you are already on the first page.  ### Filtering environments  LaunchDarkly supports two fields for filters: - `query` is a string that matches against the environments\' names and keys. It is not case sensitive. - `tags` is a `+`-separated list of environment tags. It filters the list of environments that have all of the tags in the list.  For example, the filter `filter=query:abc,tags:tag-1+tag-2` matches environments with the string `abc` in their name or key and also are tagged with `tag-1` and `tag-2`. The filter is not case-sensitive.  The documented values for `filter` query parameters are prior to URL encoding. For example, the `+` in `filter=tags:tag-1+tag-2` must be encoded to `%2B`.  ### Sorting environments  LaunchDarkly supports the following fields for sorting:  - `createdOn` sorts by the creation date of the environment. - `critical` sorts by whether the environments are marked as critical. - `name` sorts by environment name.  For example, `sort=name` sorts the response by environment name in ascending order. 
      * @summary List environments
      * @param {string} projectKey The project key
      * @param {number} [limit] The number of environments to return in the response. Defaults to 20.
@@ -22150,17 +22901,18 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
             };
         },
         /**
-         * Get results from an experiment for a particular metric.
+         * Get results from an experiment for a particular metric.  LaunchDarkly supports one field for expanding the \"Get experiment results\" response. By default, this field is **not** included in the response.  To expand the response, append the `expand` query parameter with the following field: * `traffic` includes the total count of units for each treatment.  For example, `expand=traffic` includes the `traffic` field for the project in the response. 
          * @summary Get experiment results
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} experimentKey The experiment key
          * @param {string} metricKey The metric key
          * @param {string} [iterationId] The iteration ID
+         * @param {string} [expand] A comma-separated list of fields to expand in the response. Supported fields are explained above.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExperimentResults: async (projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getExperimentResults: async (projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getExperimentResults', 'projectKey', projectKey)
             // verify required parameter 'environmentKey' is not null or undefined
@@ -22190,6 +22942,10 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
 
             if (iterationId !== undefined) {
                 localVarQueryParameter['iterationId'] = iterationId;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
             }
 
 
@@ -22475,15 +23231,15 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
          * Update experimentation settings for the given project
          * @summary Update experimentation settings
          * @param {string} projectKey The project key
-         * @param {ExperimentationSettingsPut} experimentationSettingsPut 
+         * @param {RandomizationSettingsPut} randomizationSettingsPut 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putExperimentationSettings: async (projectKey: string, experimentationSettingsPut: ExperimentationSettingsPut, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        putExperimentationSettings: async (projectKey: string, randomizationSettingsPut: RandomizationSettingsPut, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('putExperimentationSettings', 'projectKey', projectKey)
-            // verify required parameter 'experimentationSettingsPut' is not null or undefined
-            assertParamExists('putExperimentationSettings', 'experimentationSettingsPut', experimentationSettingsPut)
+            // verify required parameter 'randomizationSettingsPut' is not null or undefined
+            assertParamExists('putExperimentationSettings', 'randomizationSettingsPut', randomizationSettingsPut)
             const localVarPath = `/api/v2/projects/{projectKey}/experimentation-settings`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -22507,56 +23263,7 @@ export const ExperimentsBetaApiAxiosParamCreator = function (configuration?: Con
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(experimentationSettingsPut, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Reset all experiment results by deleting all existing data for an experiment.
-         * @summary Reset experiment results
-         * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag key
-         * @param {string} environmentKey The environment key
-         * @param {string} metricKey The metric\&#39;s key
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        resetExperiment: async (projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projectKey' is not null or undefined
-            assertParamExists('resetExperiment', 'projectKey', projectKey)
-            // verify required parameter 'featureFlagKey' is not null or undefined
-            assertParamExists('resetExperiment', 'featureFlagKey', featureFlagKey)
-            // verify required parameter 'environmentKey' is not null or undefined
-            assertParamExists('resetExperiment', 'environmentKey', environmentKey)
-            // verify required parameter 'metricKey' is not null or undefined
-            assertParamExists('resetExperiment', 'metricKey', metricKey)
-            const localVarPath = `/api/v2/flags/{projectKey}/{featureFlagKey}/experiments/{environmentKey}/{metricKey}/results`
-                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"featureFlagKey"}}`, encodeURIComponent(String(featureFlagKey)))
-                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
-                .replace(`{${"metricKey"}}`, encodeURIComponent(String(metricKey)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication ApiKey required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(randomizationSettingsPut, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -22615,18 +23322,19 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get results from an experiment for a particular metric.
+         * Get results from an experiment for a particular metric.  LaunchDarkly supports one field for expanding the \"Get experiment results\" response. By default, this field is **not** included in the response.  To expand the response, append the `expand` query parameter with the following field: * `traffic` includes the total count of units for each treatment.  For example, `expand=traffic` includes the `traffic` field for the project in the response. 
          * @summary Get experiment results
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} experimentKey The experiment key
          * @param {string} metricKey The metric key
          * @param {string} [iterationId] The iteration ID
+         * @param {string} [expand] A comma-separated list of fields to expand in the response. Supported fields are explained above.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExperimentResults(projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentBayesianResultsRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getExperimentResults(projectKey, environmentKey, experimentKey, metricKey, iterationId, options);
+        async getExperimentResults(projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentBayesianResultsRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExperimentResults(projectKey, environmentKey, experimentKey, metricKey, iterationId, expand, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -22651,7 +23359,7 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getExperimentationSettings(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentationSettingsRep>> {
+        async getExperimentationSettings(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RandomizationSettingsRep>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getExperimentationSettings(projectKey, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -22707,26 +23415,12 @@ export const ExperimentsBetaApiFp = function(configuration?: Configuration) {
          * Update experimentation settings for the given project
          * @summary Update experimentation settings
          * @param {string} projectKey The project key
-         * @param {ExperimentationSettingsPut} experimentationSettingsPut 
+         * @param {RandomizationSettingsPut} randomizationSettingsPut 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async putExperimentationSettings(projectKey: string, experimentationSettingsPut: ExperimentationSettingsPut, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExperimentationSettingsRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.putExperimentationSettings(projectKey, experimentationSettingsPut, options);
-            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
-        },
-        /**
-         * Reset all experiment results by deleting all existing data for an experiment.
-         * @summary Reset experiment results
-         * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag key
-         * @param {string} environmentKey The environment key
-         * @param {string} metricKey The metric\&#39;s key
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async resetExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.resetExperiment(projectKey, featureFlagKey, environmentKey, metricKey, options);
+        async putExperimentationSettings(projectKey: string, randomizationSettingsPut: RandomizationSettingsPut, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RandomizationSettingsRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.putExperimentationSettings(projectKey, randomizationSettingsPut, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -22778,18 +23472,19 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
             return localVarFp.getExperiment(projectKey, environmentKey, experimentKey, expand, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get results from an experiment for a particular metric.
+         * Get results from an experiment for a particular metric.  LaunchDarkly supports one field for expanding the \"Get experiment results\" response. By default, this field is **not** included in the response.  To expand the response, append the `expand` query parameter with the following field: * `traffic` includes the total count of units for each treatment.  For example, `expand=traffic` includes the `traffic` field for the project in the response. 
          * @summary Get experiment results
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} experimentKey The experiment key
          * @param {string} metricKey The metric key
          * @param {string} [iterationId] The iteration ID
+         * @param {string} [expand] A comma-separated list of fields to expand in the response. Supported fields are explained above.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExperimentResults(projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, options?: any): AxiosPromise<ExperimentBayesianResultsRep> {
-            return localVarFp.getExperimentResults(projectKey, environmentKey, experimentKey, metricKey, iterationId, options).then((request) => request(axios, basePath));
+        getExperimentResults(projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, expand?: string, options?: any): AxiosPromise<ExperimentBayesianResultsRep> {
+            return localVarFp.getExperimentResults(projectKey, environmentKey, experimentKey, metricKey, iterationId, expand, options).then((request) => request(axios, basePath));
         },
         /**
          * Get results from an experiment for a particular metric group.
@@ -22812,7 +23507,7 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getExperimentationSettings(projectKey: string, options?: any): AxiosPromise<ExperimentationSettingsRep> {
+        getExperimentationSettings(projectKey: string, options?: any): AxiosPromise<RandomizationSettingsRep> {
             return localVarFp.getExperimentationSettings(projectKey, options).then((request) => request(axios, basePath));
         },
         /**
@@ -22864,25 +23559,12 @@ export const ExperimentsBetaApiFactory = function (configuration?: Configuration
          * Update experimentation settings for the given project
          * @summary Update experimentation settings
          * @param {string} projectKey The project key
-         * @param {ExperimentationSettingsPut} experimentationSettingsPut 
+         * @param {RandomizationSettingsPut} randomizationSettingsPut 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        putExperimentationSettings(projectKey: string, experimentationSettingsPut: ExperimentationSettingsPut, options?: any): AxiosPromise<ExperimentationSettingsRep> {
-            return localVarFp.putExperimentationSettings(projectKey, experimentationSettingsPut, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Reset all experiment results by deleting all existing data for an experiment.
-         * @summary Reset experiment results
-         * @param {string} projectKey The project key
-         * @param {string} featureFlagKey The feature flag key
-         * @param {string} environmentKey The environment key
-         * @param {string} metricKey The metric\&#39;s key
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        resetExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options?: any): AxiosPromise<void> {
-            return localVarFp.resetExperiment(projectKey, featureFlagKey, environmentKey, metricKey, options).then((request) => request(axios, basePath));
+        putExperimentationSettings(projectKey: string, randomizationSettingsPut: RandomizationSettingsPut, options?: any): AxiosPromise<RandomizationSettingsRep> {
+            return localVarFp.putExperimentationSettings(projectKey, randomizationSettingsPut, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -22939,19 +23621,20 @@ export class ExperimentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Get results from an experiment for a particular metric.
+     * Get results from an experiment for a particular metric.  LaunchDarkly supports one field for expanding the \"Get experiment results\" response. By default, this field is **not** included in the response.  To expand the response, append the `expand` query parameter with the following field: * `traffic` includes the total count of units for each treatment.  For example, `expand=traffic` includes the `traffic` field for the project in the response. 
      * @summary Get experiment results
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} experimentKey The experiment key
      * @param {string} metricKey The metric key
      * @param {string} [iterationId] The iteration ID
+     * @param {string} [expand] A comma-separated list of fields to expand in the response. Supported fields are explained above.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ExperimentsBetaApi
      */
-    public getExperimentResults(projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, options?: AxiosRequestConfig) {
-        return ExperimentsBetaApiFp(this.configuration).getExperimentResults(projectKey, environmentKey, experimentKey, metricKey, iterationId, options).then((request) => request(this.axios, this.basePath));
+    public getExperimentResults(projectKey: string, environmentKey: string, experimentKey: string, metricKey: string, iterationId?: string, expand?: string, options?: AxiosRequestConfig) {
+        return ExperimentsBetaApiFp(this.configuration).getExperimentResults(projectKey, environmentKey, experimentKey, metricKey, iterationId, expand, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23037,28 +23720,13 @@ export class ExperimentsBetaApi extends BaseAPI {
      * Update experimentation settings for the given project
      * @summary Update experimentation settings
      * @param {string} projectKey The project key
-     * @param {ExperimentationSettingsPut} experimentationSettingsPut 
+     * @param {RandomizationSettingsPut} randomizationSettingsPut 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ExperimentsBetaApi
      */
-    public putExperimentationSettings(projectKey: string, experimentationSettingsPut: ExperimentationSettingsPut, options?: AxiosRequestConfig) {
-        return ExperimentsBetaApiFp(this.configuration).putExperimentationSettings(projectKey, experimentationSettingsPut, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Reset all experiment results by deleting all existing data for an experiment.
-     * @summary Reset experiment results
-     * @param {string} projectKey The project key
-     * @param {string} featureFlagKey The feature flag key
-     * @param {string} environmentKey The environment key
-     * @param {string} metricKey The metric\&#39;s key
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ExperimentsBetaApi
-     */
-    public resetExperiment(projectKey: string, featureFlagKey: string, environmentKey: string, metricKey: string, options?: AxiosRequestConfig) {
-        return ExperimentsBetaApiFp(this.configuration).resetExperiment(projectKey, featureFlagKey, environmentKey, metricKey, options).then((request) => request(this.axios, this.basePath));
+    public putExperimentationSettings(projectKey: string, randomizationSettingsPut: RandomizationSettingsPut, options?: AxiosRequestConfig) {
+        return ExperimentsBetaApiFp(this.configuration).putExperimentationSettings(projectKey, randomizationSettingsPut, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -23431,7 +24099,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with optional `before` and `after` fields whose values are Unix time in milliseconds. It filters the list to flags created in the specified range. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary List feature flags
          * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
@@ -23620,7 +24288,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  When you use the update feature flag endpoint to add individual targets to a specific variation, there are two different patch documents, depending on whether there are already individual targets for the variation.  If a flag variation already has individual targets, the path for the JSON patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have individual targets, the path for the JSON patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```   ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the semantic patch header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  In the JSON patch representation, use a JSON pointer in the `path` element to describe what field to change. Use the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) endpoint to find the field you want to update.  There are a few special cases to keep in mind when determining the value of the `path` element:    * To add an individual target to a specific variation if the flag variation already has individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/0/values/-\",       \"value\": \"TestClient10\"     }   ]   ```    * To add an individual target to a specific variation if the flag variation does not already have individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/-\",       \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }     }   ]   ```    * To add a flag to a release pipeline, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/releasePipelineKey\",       \"value\": \"example-release-pipeline-key\"     }   ]   ```  ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary Update feature flag
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
@@ -23828,7 +24496,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with optional `before` and `after` fields whose values are Unix time in milliseconds. It filters the list to flags created in the specified range. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary List feature flags
          * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
@@ -23877,7 +24545,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  When you use the update feature flag endpoint to add individual targets to a specific variation, there are two different patch documents, depending on whether there are already individual targets for the variation.  If a flag variation already has individual targets, the path for the JSON patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have individual targets, the path for the JSON patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```   ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the semantic patch header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  In the JSON patch representation, use a JSON pointer in the `path` element to describe what field to change. Use the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) endpoint to find the field you want to update.  There are a few special cases to keep in mind when determining the value of the `path` element:    * To add an individual target to a specific variation if the flag variation already has individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/0/values/-\",       \"value\": \"TestClient10\"     }   ]   ```    * To add an individual target to a specific variation if the flag variation does not already have individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/-\",       \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }     }   ]   ```    * To add a flag to a release pipeline, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/releasePipelineKey\",       \"value\": \"example-release-pipeline-key\"     }   ]   ```  ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary Update feature flag
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
@@ -24008,7 +24676,7 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
             return localVarFp.getFeatureFlagStatuses(projectKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with optional `before` and `after` fields whose values are Unix time in milliseconds. It filters the list to flags created in the specified range. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary List feature flags
          * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
@@ -24054,7 +24722,7 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
             return localVarFp.patchExpiringUserTargets(projectKey, environmentKey, featureFlagKey, patchFlagsRequest, options).then((request) => request(axios, basePath));
         },
         /**
-         * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  When you use the update feature flag endpoint to add individual targets to a specific variation, there are two different patch documents, depending on whether there are already individual targets for the variation.  If a flag variation already has individual targets, the path for the JSON patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have individual targets, the path for the JSON patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```   ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the semantic patch header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  In the JSON patch representation, use a JSON pointer in the `path` element to describe what field to change. Use the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) endpoint to find the field you want to update.  There are a few special cases to keep in mind when determining the value of the `path` element:    * To add an individual target to a specific variation if the flag variation already has individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/0/values/-\",       \"value\": \"TestClient10\"     }   ]   ```    * To add an individual target to a specific variation if the flag variation does not already have individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/-\",       \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }     }   ]   ```    * To add a flag to a release pipeline, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/releasePipelineKey\",       \"value\": \"example-release-pipeline-key\"     }   ]   ```  ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary Update feature flag
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
@@ -24199,7 +24867,7 @@ export class FeatureFlagsApi extends BaseAPI {
     }
 
     /**
-     * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with optional `before` and `after` fields whose values are Unix time in milliseconds. It filters the list to flags created in the specified range. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+     * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
      * @summary List feature flags
      * @param {string} projectKey The project key
      * @param {string} [env] Filter configurations by environment
@@ -24251,7 +24919,7 @@ export class FeatureFlagsApi extends BaseAPI {
     }
 
     /**
-     * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  When you use the update feature flag endpoint to add individual targets to a specific variation, there are two different patch documents, depending on whether there are already individual targets for the variation.  If a flag variation already has individual targets, the path for the JSON patch operation is:  ```json {   \"op\": \"add\",   \"path\": \"/environments/devint/targets/0/values/-\",   \"value\": \"TestClient10\" } ```  If a flag variation does not already have individual targets, the path for the JSON patch operation is:  ```json [   {     \"op\": \"add\",     \"path\": \"/environments/devint/targets/-\",     \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }   } ] ```   ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+     * Perform a partial update to a feature flag. The request body must be a valid semantic patch, JSON patch, or JSON merge patch. To learn more the different formats, read [Updates](/#section/Overview/Updates).  ### Using semantic patches on a feature flag  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](/reference#updates-using-semantic-patch).  The body of a semantic patch request for updating feature flags takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some instructions only) The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating feature flags.  <details> <summary>Click to expand instructions for <strong>turning flags on and off</strong></summary>  These instructions require the `environmentKey` parameter.  #### turnFlagOff  Sets the flag\'s targeting state to **Off**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOff\" } ] } ```  #### turnFlagOn  Sets the flag\'s targeting state to **On**.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"turnFlagOn\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong></summary>  These instructions require the `environmentKey` parameter.  Several of the instructions for working with targeting and variations require flag rule IDs, variation IDs, or clause IDs as parameters. Each of these are returned as part of the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) response. The flag rule ID is the `_id` field of each element in the `rules` array within each environment listed in the `environments` object. The variation ID is the `_id` field in each element of the `variations` array. The clause ID is the `_id` field of each element of the `clauses` array within the `rules` array within each environment listed in the `environments` object.  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauses\": [{    \"contextKind\": \"user\",    \"attribute\": \"country\",    \"op\": \"in\",    \"negate\": false,    \"values\": [\"USA\", \"Canada\"]   }]  }] } ```  #### addPrerequisite  Adds the flag indicated by `key` with variation `variationId` as a prerequisite to the flag in the path parameter.  ##### Parameters  - `key`: Flag key of the prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addPrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addRule  Adds a new targeting rule to the flag. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a flag rule. - Either   - `variationId`: ID of a variation of the flag.    or    - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000).   - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`.   - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }]   }] } ```  Here\'s an example that uses a percentage rollout:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addRule\",     \"clauses\": [{       \"contextKind\": \"organization\",       \"attribute\": \"located_in\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Sweden\", \"Norway\"]     }],     \"rolloutContextKind\": \"organization\",     \"rolloutWeights\": {       \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation       \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation     }   }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the flag to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addUserTargets  Adds user keys to the individual user targets for the variation that `variationId` specifies. Returns an error if this causes the flag to target the same user key in multiple variations. If you are working with contexts, use `addTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### addVariation  Adds a variation to the flag.  ##### Parameters  - `value`: The variation value. - `name`: (Optional) The variation name. - `description`: (Optional) A description for the variation.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"addVariation\", \"value\": 20, \"name\": \"New variation\" } ] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### clearUserTargets  Removes all individual user targets from the variation that `variationId` specifies. If you are working with contexts, use `clearTargets` instead of this instruction.  ##### Parameters  - `variationId`: ID of a variation on the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"clearUserTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"]  }] } ```  #### removePrerequisite  Removes the prerequisite flag indicated by `key`. Does nothing if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removePrerequisite\", \"key\": \"prereq-flag-key-123abc\" } ] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule in the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeUserTargets  Removes user keys from the individual user targets for the variation that `variationId` specifies. Does nothing if the flag does not target the user keys. If you are working with contexts, use `removeTargets` instead of this instruction.  ##### Parameters  - `values`: List of user keys. - `variationId`: ID of a flag variation.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeUserTargets\",   \"values\": [\"user-key-123abc\", \"user-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"]  }] } ```  #### removeVariation  Removes a variation from the flag.  ##### Parameters  - `variationId`: ID of a variation of the flag to remove.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"removeVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the flag.  ##### Parameters  - `ruleIds`: Array of IDs of all rules in the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"]  }] } ```  #### replacePrerequisites  Removes all existing prerequisites and replaces them with the list you provide.  ##### Parameters  - `prerequisites`: A list of prerequisites. Each item in the list must include a flag `key` and `variationId`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replacePrerequisites\",       \"prerequisites\": [         {           \"key\": \"prereq-flag-key-123abc\",           \"variationId\": \"10a58772-3121-400f-846b-b8a04e8944ed\"         },         {           \"key\": \"another-prereq-flag-key-456def\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\"         }       ]     }   ] } ```  #### replaceRules  Removes all targeting rules for the flag and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceRules\",       \"rules\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"description\": \"My new rule\",           \"clauses\": [             {               \"contextKind\": \"user\",               \"attribute\": \"segmentMatch\",               \"op\": \"segmentMatch\",               \"values\": [\"test\"]             }           ],           \"trackEvents\": true         }       ]     }   ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceTargets\",       \"targets\": [         {           \"contextKind\": \"user\",           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\"]         },         {           \"contextKind\": \"device\",           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"device-key-456def\"]         }       ]     }       ] } ```  #### replaceUserTargets  Removes all existing user targeting and replaces it with the list of targets you provide. In the list of targets, you must include a target for each of the flag\'s variations. If you are working with contexts, use `replaceTargets` instead of this instruction.  ##### Parameters  - `targets`: A list of user targeting. Each item in the list must include a `variationId` and a list of `values`.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [     {       \"kind\": \"replaceUserTargets\",       \"targets\": [         {           \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",           \"values\": [\"user-key-123abc\", \"user-key-456def\"]         },         {           \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",           \"values\": [\"user-key-789ghi\"]         }       ]     }   ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"updateClause\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",     \"clause\": {       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"Mexico\", \"Canada\"]     }   }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the flag.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the flag, which the flag serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation of the flag.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  Here\'s an example that uses a percentage rollout:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {    \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation    \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   }  }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The flag serves the default off variation when the flag\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation of the flag.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updatePrerequisite  Changes the prerequisite flag that `key` indicates to use the variation that `variationId` indicates. Returns an error if this prerequisite does not exist.  ##### Parameters  - `key`: Flag key of an existing prerequisite flag. - `variationId`: ID of a variation of the prerequisite flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updatePrerequisite\",   \"key\": \"example-prereq-flag-key\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateRuleDescription  Updates the description of the feature flag rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\"  }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the flag. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true  }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule in the flag. - `variationId`: ID of a variation of the flag.    or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json {  \"environmentKey\": \"environment-key-123abc\",  \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\"  }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the feature flag, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the feature flag, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ```  #### updateVariation  Updates a variation of the flag.  ##### Parameters  - `variationId`: The ID of the variation to update. - `name`: (Optional) The updated variation name. - `value`: (Optional) The updated variation value. - `description`: (Optional) The updated variation description.  Here\'s an example:  ```json {  \"instructions\": [ { \"kind\": \"updateVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\", \"value\": 20 } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating flag settings</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### addCustomProperties  Adds a new custom property to the feature flag. Custom properties are used to associate feature flags with LaunchDarkly integrations. For example, if you create an integration with an issue tracking service, you may want to associate a flag with a list of issues related to a feature\'s development.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{   \"kind\": \"addCustomProperties\",   \"key\": \"example-custom-property\",   \"name\": \"Example custom property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### addTags  Adds tags to the feature flag.  ##### Parameters  - `values`: A list of tags to add.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"addTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### makeFlagPermanent  Marks the feature flag as permanent. LaunchDarkly does not prompt you to remove permanent flags, even if one variation is rolled out to all your customers.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagPermanent\" } ] } ```  #### makeFlagTemporary  Marks the feature flag as temporary.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"makeFlagTemporary\" } ] } ```  #### removeCustomProperties  Removes the associated values from a custom property. If all the associated values are removed, this instruction also removes the custom property.  ##### Parameters   - `key`: The custom property key.  - `values`: A list of the associated values to remove from the custom property.  ```json {  \"instructions\": [{   \"kind\": \"replaceCustomProperties\",   \"key\": \"example-custom-property\",   \"values\": [\"value1\", \"value2\"]  }] } ```  #### removeMaintainer  Removes the flag\'s maintainer. To set a new maintainer, use the flag\'s **Settings** tab in the LaunchDarkly user interface.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeMaintainer\" } ] } ```  #### removeTags  Removes tags from the feature flag.  ##### Parameters  - `values`: A list of tags to remove.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"removeTags\", \"values\": [\"tag1\", \"tag2\"] } ] } ```  #### replaceCustomProperties  Replaces the existing associated values for a custom property with the new values.  ##### Parameters   - `key`: The custom property key.  - `name`: The custom property name.  - `values`: A list of the new associated values for the custom property.  Here\'s an example:  ```json {  \"instructions\": [{    \"kind\": \"replaceCustomProperties\",    \"key\": \"example-custom-property\",    \"name\": \"Example custom property\",    \"values\": [\"value1\", \"value2\"]  }] } ```  #### turnOffClientSideAvailability  Turns off client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn off availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOffClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### turnOnClientSideAvailability  Turns on client-side SDK availability for the flag. This is equivalent to unchecking the **SDKs using Mobile Key** and/or **SDKs using client-side ID** boxes for the flag. If you\'re using a client-side or mobile SDK, you must expose your feature flags in order for the client-side or mobile SDKs to evaluate them.  ##### Parameters  - `value`: Use \"usingMobileKey\" to turn on availability for mobile SDKs. Use \"usingEnvironmentId\" to turn on availability for client-side SDKs.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"turnOnClientSideAvailability\", \"value\": \"usingMobileKey\" } ] } ```  #### updateDescription  Updates the feature flag description.  ##### Parameters  - `value`: The new description.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateDescription\", \"value\": \"Updated flag description\" } ] } ``` #### updateMaintainerMember  Updates the maintainer of the flag to an existing member and removes the existing maintainer.  ##### Parameters  - `value`: The ID of the member.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerMember\", \"value\": \"61e9b714fd47591727db558a\" } ] } ```  #### updateMaintainerTeam  Updates the maintainer of the flag to an existing team and removes the existing maintainer.  ##### Parameters  - `value`: The key of the team.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateMaintainerTeam\", \"value\": \"example-team-key\" } ] } ```  #### updateName  Updates the feature flag name.  ##### Parameters  - `value`: The new name.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"updateName\", \"value\": \"Updated flag name\" } ] } ```  </details><br />  <details> <summary>Click to expand instructions for <strong>updating the flag lifecycle</strong></summary>  These instructions do not require the `environmentKey` parameter. They make changes that apply to the flag across all environments.  #### archiveFlag  Archives the feature flag. This retires it from LaunchDarkly without deleting it. You cannot archive a flag that is a prerequisite of other flags.  ```json {   \"instructions\": [ { \"kind\": \"archiveFlag\" } ] } ```  #### deleteFlag  Deletes the feature flag and its rules. You cannot restore a deleted flag. If this flag is requested again, the flag value defined in code will be returned for all contexts.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deleteFlag\" } ] } ```  #### deprecateFlag  Deprecates the feature flag. This hides it from the live flags list without archiving or deleting it.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"deprecateFlag\" } ] } ```  #### restoreDeprecatedFlag  Restores the feature flag if it was previously deprecated.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreDeprecatedFlag\" } ] } ```  #### restoreFlag  Restores the feature flag if it was previously archived.  Here\'s an example:  ```json {   \"instructions\": [ { \"kind\": \"restoreFlag\" } ] } ```  </details>  ### Using JSON patches on a feature flag  If you do not include the semantic patch header described above, you can use a [JSON patch](/reference#updates-using-json-patch) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes.  In the JSON patch representation, use a JSON pointer in the `path` element to describe what field to change. Use the [Get feature flag](/tag/Feature-flags#operation/getFeatureFlag) endpoint to find the field you want to update.  There are a few special cases to keep in mind when determining the value of the `path` element:    * To add an individual target to a specific variation if the flag variation already has individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/0/values/-\",       \"value\": \"TestClient10\"     }   ]   ```    * To add an individual target to a specific variation if the flag variation does not already have individual targets, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/environments/devint/targets/-\",       \"value\": { \"variation\": 0, \"values\": [\"TestClient10\"] }     }   ]   ```    * To add a flag to a release pipeline, the path for the JSON patch operation is:    ```json   [     {       \"op\": \"add\",       \"path\": \"/releasePipelineKey\",       \"value\": \"example-release-pipeline-key\"     }   ]   ```  ### Required approvals If a request attempts to alter a flag configuration in an environment where approvals are required for the flag, the request will fail with a 405. Changes to the flag configuration in that environment will require creating an [approval request](/tag/Approvals) or a [workflow](/tag/Workflows).  ### Conflicts If a flag configuration change made through this endpoint would cause a pending scheduled change or approval request to fail, this endpoint will return a 400. You can ignore this check by adding an `ignoreConflicts` query parameter set to `true`.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response. You can update cohorts by updating `rules`. Default cohort information is included in the `fallthrough` property of a flag\'s response. You can update the default cohort by updating `fallthrough`. When you update the rollout for a cohort or the default cohort through the API, provide a rollout instead of a single `variationId`. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
      * @summary Update feature flag
      * @param {string} projectKey The project key
      * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
@@ -25829,6 +26497,2316 @@ export class FollowFlagsApi extends BaseAPI {
 
 
 /**
+ * InsightsChartsBetaApi - axios parameter creator
+ * @export
+ */
+export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Get deployment frequency chart data. Engineering insights displays deployment frequency data in the [deployment frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/deployment).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to deployment frequency  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get deployment frequency chart data
+         * @param {string} [projectKey] The project key
+         * @param {string} [environmentKey] The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;kind&#x60;
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDeploymentFrequencyChart: async (projectKey?: string, environmentKey?: string, applicationKey?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/engineering-insights/charts/deployments/frequency`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = (from as any instanceof Date) ?
+                    (from as any).toISOString() :
+                    from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = (to as any instanceof Date) ?
+                    (to as any).toISOString() :
+                    to;
+            }
+
+            if (bucketType !== undefined) {
+                localVarQueryParameter['bucketType'] = bucketType;
+            }
+
+            if (bucketMs !== undefined) {
+                localVarQueryParameter['bucketMs'] = bucketMs;
+            }
+
+            if (groupBy !== undefined) {
+                localVarQueryParameter['groupBy'] = groupBy;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get flag status chart data. To learn more, read [Using the flag status chart](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health#using-the-flag-status-chart).
+         * @summary Get flag status chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFlagStatusChart: async (projectKey: string, environmentKey: string, applicationKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFlagStatusChart', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getFlagStatusChart', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/engineering-insights/charts/flags/status`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get lead time chart data. The engineering insights UI displays lead time data in the [lead time metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/lead-time).
+         * @summary Get lead time chart data
+         * @param {string} projectKey The project key
+         * @param {string} [environmentKey] The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;stage&#x60;. Default: &#x60;stage&#x60;.
+         * @param {string} [expand] Options: &#x60;metrics&#x60;, &#x60;percentiles&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getLeadTimeChart: async (projectKey: string, environmentKey?: string, applicationKey?: string, from?: number, to?: number, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getLeadTimeChart', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/engineering-insights/charts/lead-time`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
+            }
+
+            if (bucketType !== undefined) {
+                localVarQueryParameter['bucketType'] = bucketType;
+            }
+
+            if (bucketMs !== undefined) {
+                localVarQueryParameter['bucketMs'] = bucketMs;
+            }
+
+            if (groupBy !== undefined) {
+                localVarQueryParameter['groupBy'] = groupBy;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
+         * @summary Get replease frequency chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+         * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getReleaseFrequencyChart: async (projectKey: string, environmentKey: string, applicationKey?: string, hasExperiments?: boolean, global?: string, groupBy?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getReleaseFrequencyChart', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getReleaseFrequencyChart', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/engineering-insights/charts/releases/frequency`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+            if (hasExperiments !== undefined) {
+                localVarQueryParameter['hasExperiments'] = hasExperiments;
+            }
+
+            if (global !== undefined) {
+                localVarQueryParameter['global'] = global;
+            }
+
+            if (groupBy !== undefined) {
+                localVarQueryParameter['groupBy'] = groupBy;
+            }
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = (from as any instanceof Date) ?
+                    (from as any).toISOString() :
+                    from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = (to as any instanceof Date) ?
+                    (to as any).toISOString() :
+                    to;
+            }
+
+            if (bucketType !== undefined) {
+                localVarQueryParameter['bucketType'] = bucketType;
+            }
+
+            if (bucketMs !== undefined) {
+                localVarQueryParameter['bucketMs'] = bucketMs;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get stale flags chart data. Engineering insights displays stale flags data in the [flag health metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to stale flags  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get stale flags chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [groupBy] Property to group results by. Options: &#x60;maintainer&#x60;
+         * @param {string} [maintainerId] Comma-separated list of individual maintainers to filter results.
+         * @param {string} [maintainerTeamKey] Comma-separated list of team maintainer keys to filter results.
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getStaleFlagsChart: async (projectKey: string, environmentKey: string, applicationKey?: string, groupBy?: string, maintainerId?: string, maintainerTeamKey?: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getStaleFlagsChart', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getStaleFlagsChart', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/engineering-insights/charts/flags/stale`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+            if (groupBy !== undefined) {
+                localVarQueryParameter['groupBy'] = groupBy;
+            }
+
+            if (maintainerId !== undefined) {
+                localVarQueryParameter['maintainerId'] = maintainerId;
+            }
+
+            if (maintainerTeamKey !== undefined) {
+                localVarQueryParameter['maintainerTeamKey'] = maintainerTeamKey;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * InsightsChartsBetaApi - functional programming interface
+ * @export
+ */
+export const InsightsChartsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = InsightsChartsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Get deployment frequency chart data. Engineering insights displays deployment frequency data in the [deployment frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/deployment).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to deployment frequency  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get deployment frequency chart data
+         * @param {string} [projectKey] The project key
+         * @param {string} [environmentKey] The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;kind&#x60;
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getDeploymentFrequencyChart(projectKey?: string, environmentKey?: string, applicationKey?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightsChart>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDeploymentFrequencyChart(projectKey, environmentKey, applicationKey, from, to, bucketType, bucketMs, groupBy, expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get flag status chart data. To learn more, read [Using the flag status chart](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health#using-the-flag-status-chart).
+         * @summary Get flag status chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getFlagStatusChart(projectKey: string, environmentKey: string, applicationKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightsChart>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFlagStatusChart(projectKey, environmentKey, applicationKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get lead time chart data. The engineering insights UI displays lead time data in the [lead time metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/lead-time).
+         * @summary Get lead time chart data
+         * @param {string} projectKey The project key
+         * @param {string} [environmentKey] The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;stage&#x60;. Default: &#x60;stage&#x60;.
+         * @param {string} [expand] Options: &#x60;metrics&#x60;, &#x60;percentiles&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getLeadTimeChart(projectKey: string, environmentKey?: string, applicationKey?: string, from?: number, to?: number, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightsChart>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getLeadTimeChart(projectKey, environmentKey, applicationKey, from, to, bucketType, bucketMs, groupBy, expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
+         * @summary Get replease frequency chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+         * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getReleaseFrequencyChart(projectKey: string, environmentKey: string, applicationKey?: string, hasExperiments?: boolean, global?: string, groupBy?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightsChart>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getReleaseFrequencyChart(projectKey, environmentKey, applicationKey, hasExperiments, global, groupBy, from, to, bucketType, bucketMs, expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get stale flags chart data. Engineering insights displays stale flags data in the [flag health metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to stale flags  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get stale flags chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [groupBy] Property to group results by. Options: &#x60;maintainer&#x60;
+         * @param {string} [maintainerId] Comma-separated list of individual maintainers to filter results.
+         * @param {string} [maintainerTeamKey] Comma-separated list of team maintainer keys to filter results.
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getStaleFlagsChart(projectKey: string, environmentKey: string, applicationKey?: string, groupBy?: string, maintainerId?: string, maintainerTeamKey?: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightsChart>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getStaleFlagsChart(projectKey, environmentKey, applicationKey, groupBy, maintainerId, maintainerTeamKey, expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * InsightsChartsBetaApi - factory interface
+ * @export
+ */
+export const InsightsChartsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = InsightsChartsBetaApiFp(configuration)
+    return {
+        /**
+         * Get deployment frequency chart data. Engineering insights displays deployment frequency data in the [deployment frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/deployment).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to deployment frequency  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get deployment frequency chart data
+         * @param {string} [projectKey] The project key
+         * @param {string} [environmentKey] The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;kind&#x60;
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDeploymentFrequencyChart(projectKey?: string, environmentKey?: string, applicationKey?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options?: any): AxiosPromise<InsightsChart> {
+            return localVarFp.getDeploymentFrequencyChart(projectKey, environmentKey, applicationKey, from, to, bucketType, bucketMs, groupBy, expand, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get flag status chart data. To learn more, read [Using the flag status chart](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health#using-the-flag-status-chart).
+         * @summary Get flag status chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFlagStatusChart(projectKey: string, environmentKey: string, applicationKey?: string, options?: any): AxiosPromise<InsightsChart> {
+            return localVarFp.getFlagStatusChart(projectKey, environmentKey, applicationKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get lead time chart data. The engineering insights UI displays lead time data in the [lead time metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/lead-time).
+         * @summary Get lead time chart data
+         * @param {string} projectKey The project key
+         * @param {string} [environmentKey] The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;stage&#x60;. Default: &#x60;stage&#x60;.
+         * @param {string} [expand] Options: &#x60;metrics&#x60;, &#x60;percentiles&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getLeadTimeChart(projectKey: string, environmentKey?: string, applicationKey?: string, from?: number, to?: number, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options?: any): AxiosPromise<InsightsChart> {
+            return localVarFp.getLeadTimeChart(projectKey, environmentKey, applicationKey, from, to, bucketType, bucketMs, groupBy, expand, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
+         * @summary Get replease frequency chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+         * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+         * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getReleaseFrequencyChart(projectKey: string, environmentKey: string, applicationKey?: string, hasExperiments?: boolean, global?: string, groupBy?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, expand?: string, options?: any): AxiosPromise<InsightsChart> {
+            return localVarFp.getReleaseFrequencyChart(projectKey, environmentKey, applicationKey, hasExperiments, global, groupBy, from, to, bucketType, bucketMs, expand, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get stale flags chart data. Engineering insights displays stale flags data in the [flag health metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to stale flags  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get stale flags chart data
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [groupBy] Property to group results by. Options: &#x60;maintainer&#x60;
+         * @param {string} [maintainerId] Comma-separated list of individual maintainers to filter results.
+         * @param {string} [maintainerTeamKey] Comma-separated list of team maintainer keys to filter results.
+         * @param {string} [expand] Options: &#x60;metrics&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getStaleFlagsChart(projectKey: string, environmentKey: string, applicationKey?: string, groupBy?: string, maintainerId?: string, maintainerTeamKey?: string, expand?: string, options?: any): AxiosPromise<InsightsChart> {
+            return localVarFp.getStaleFlagsChart(projectKey, environmentKey, applicationKey, groupBy, maintainerId, maintainerTeamKey, expand, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * InsightsChartsBetaApi - object-oriented interface
+ * @export
+ * @class InsightsChartsBetaApi
+ * @extends {BaseAPI}
+ */
+export class InsightsChartsBetaApi extends BaseAPI {
+    /**
+     * Get deployment frequency chart data. Engineering insights displays deployment frequency data in the [deployment frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/deployment).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to deployment frequency  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+     * @summary Get deployment frequency chart data
+     * @param {string} [projectKey] The project key
+     * @param {string} [environmentKey] The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+     * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+     * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+     * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+     * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;kind&#x60;
+     * @param {string} [expand] Options: &#x60;metrics&#x60;
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsChartsBetaApi
+     */
+    public getDeploymentFrequencyChart(projectKey?: string, environmentKey?: string, applicationKey?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options?: AxiosRequestConfig) {
+        return InsightsChartsBetaApiFp(this.configuration).getDeploymentFrequencyChart(projectKey, environmentKey, applicationKey, from, to, bucketType, bucketMs, groupBy, expand, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get flag status chart data. To learn more, read [Using the flag status chart](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health#using-the-flag-status-chart).
+     * @summary Get flag status chart data
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsChartsBetaApi
+     */
+    public getFlagStatusChart(projectKey: string, environmentKey: string, applicationKey?: string, options?: AxiosRequestConfig) {
+        return InsightsChartsBetaApiFp(this.configuration).getFlagStatusChart(projectKey, environmentKey, applicationKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get lead time chart data. The engineering insights UI displays lead time data in the [lead time metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/lead-time).
+     * @summary Get lead time chart data
+     * @param {string} projectKey The project key
+     * @param {string} [environmentKey] The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+     * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+     * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+     * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+     * @param {string} [groupBy] Options: &#x60;application&#x60;, &#x60;stage&#x60;. Default: &#x60;stage&#x60;.
+     * @param {string} [expand] Options: &#x60;metrics&#x60;, &#x60;percentiles&#x60;.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsChartsBetaApi
+     */
+    public getLeadTimeChart(projectKey: string, environmentKey?: string, applicationKey?: string, from?: number, to?: number, bucketType?: string, bucketMs?: number, groupBy?: string, expand?: string, options?: AxiosRequestConfig) {
+        return InsightsChartsBetaApiFp(this.configuration).getLeadTimeChart(projectKey, environmentKey, applicationKey, from, to, bucketType, bucketMs, groupBy, expand, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
+     * @summary Get replease frequency chart data
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+     * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+     * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
+     * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+     * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+     * @param {string} [bucketType] Specify type of bucket. Options: &#x60;rolling&#x60;, &#x60;hour&#x60;, &#x60;day&#x60;. Default: &#x60;rolling&#x60;.
+     * @param {number} [bucketMs] Duration of intervals for x-axis in milliseconds. Default value is one day (&#x60;86400000&#x60; milliseconds).
+     * @param {string} [expand] Options: &#x60;metrics&#x60;
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsChartsBetaApi
+     */
+    public getReleaseFrequencyChart(projectKey: string, environmentKey: string, applicationKey?: string, hasExperiments?: boolean, global?: string, groupBy?: string, from?: string, to?: string, bucketType?: string, bucketMs?: number, expand?: string, options?: AxiosRequestConfig) {
+        return InsightsChartsBetaApiFp(this.configuration).getReleaseFrequencyChart(projectKey, environmentKey, applicationKey, hasExperiments, global, groupBy, from, to, bucketType, bucketMs, expand, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get stale flags chart data. Engineering insights displays stale flags data in the [flag health metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/flag-health).  ### Expanding the chart response  LaunchDarkly supports expanding the chart response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `metrics` includes details on the metrics related to stale flags  For example, use `?expand=metrics` to include the `metrics` field in the response. By default, this field is **not** included in the response. 
+     * @summary Get stale flags chart data
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {string} [groupBy] Property to group results by. Options: &#x60;maintainer&#x60;
+     * @param {string} [maintainerId] Comma-separated list of individual maintainers to filter results.
+     * @param {string} [maintainerTeamKey] Comma-separated list of team maintainer keys to filter results.
+     * @param {string} [expand] Options: &#x60;metrics&#x60;
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsChartsBetaApi
+     */
+    public getStaleFlagsChart(projectKey: string, environmentKey: string, applicationKey?: string, groupBy?: string, maintainerId?: string, maintainerTeamKey?: string, expand?: string, options?: AxiosRequestConfig) {
+        return InsightsChartsBetaApiFp(this.configuration).getStaleFlagsChart(projectKey, environmentKey, applicationKey, groupBy, maintainerId, maintainerTeamKey, expand, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * InsightsDeploymentsBetaApi - axios parameter creator
+ * @export
+ */
+export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create deployment event
+         * @summary Create deployment event
+         * @param {PostDeploymentEventInput} postDeploymentEventInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createDeploymentEvent: async (postDeploymentEventInput: PostDeploymentEventInput, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'postDeploymentEventInput' is not null or undefined
+            assertParamExists('createDeploymentEvent', 'postDeploymentEventInput', postDeploymentEventInput)
+            const localVarPath = `/api/v2/engineering-insights/deployment-events`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(postDeploymentEventInput, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a deployment by ID.  The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.  ### Expanding the deployment response  LaunchDarkly supports expanding the deployment response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get deployment
+         * @param {string} deploymentID The deployment ID
+         * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDeployment: async (deploymentID: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'deploymentID' is not null or undefined
+            assertParamExists('getDeployment', 'deploymentID', deploymentID)
+            const localVarPath = `/api/v2/engineering-insights/deployments/{deploymentID}`
+                .replace(`{${"deploymentID"}}`, encodeURIComponent(String(deploymentID)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a list of deployments  ### Expanding the deployment collection response  LaunchDarkly supports expanding the deployment collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+         * @summary List deployments
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+         * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {string} [kind] The deployment kind
+         * @param {string} [status] The deployment status
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDeployments: async (projectKey: string, environmentKey: string, applicationKey?: string, limit?: number, expand?: string, from?: number, to?: number, after?: string, before?: string, kind?: string, status?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getDeployments', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getDeployments', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/engineering-insights/deployments`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
+            }
+
+            if (after !== undefined) {
+                localVarQueryParameter['after'] = after;
+            }
+
+            if (before !== undefined) {
+                localVarQueryParameter['before'] = before;
+            }
+
+            if (kind !== undefined) {
+                localVarQueryParameter['kind'] = kind;
+            }
+
+            if (status !== undefined) {
+                localVarQueryParameter['status'] = status;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update a deployment by ID. Updating a deployment uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).<br/><br/>The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.
+         * @summary Update deployment
+         * @param {string} deploymentID The deployment ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateDeployment: async (deploymentID: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'deploymentID' is not null or undefined
+            assertParamExists('updateDeployment', 'deploymentID', deploymentID)
+            // verify required parameter 'patchOperation' is not null or undefined
+            assertParamExists('updateDeployment', 'patchOperation', patchOperation)
+            const localVarPath = `/api/v2/engineering-insights/deployments/{deploymentID}`
+                .replace(`{${"deploymentID"}}`, encodeURIComponent(String(deploymentID)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * InsightsDeploymentsBetaApi - functional programming interface
+ * @export
+ */
+export const InsightsDeploymentsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = InsightsDeploymentsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create deployment event
+         * @summary Create deployment event
+         * @param {PostDeploymentEventInput} postDeploymentEventInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createDeploymentEvent(postDeploymentEventInput: PostDeploymentEventInput, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createDeploymentEvent(postDeploymentEventInput, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a deployment by ID.  The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.  ### Expanding the deployment response  LaunchDarkly supports expanding the deployment response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get deployment
+         * @param {string} deploymentID The deployment ID
+         * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getDeployment(deploymentID: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDeployment(deploymentID, expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a list of deployments  ### Expanding the deployment collection response  LaunchDarkly supports expanding the deployment collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+         * @summary List deployments
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+         * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {string} [kind] The deployment kind
+         * @param {string} [status] The deployment status
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getDeployments(projectKey: string, environmentKey: string, applicationKey?: string, limit?: number, expand?: string, from?: number, to?: number, after?: string, before?: string, kind?: string, status?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDeployments(projectKey, environmentKey, applicationKey, limit, expand, from, to, after, before, kind, status, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Update a deployment by ID. Updating a deployment uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).<br/><br/>The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.
+         * @summary Update deployment
+         * @param {string} deploymentID The deployment ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateDeployment(deploymentID: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateDeployment(deploymentID, patchOperation, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * InsightsDeploymentsBetaApi - factory interface
+ * @export
+ */
+export const InsightsDeploymentsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = InsightsDeploymentsBetaApiFp(configuration)
+    return {
+        /**
+         * Create deployment event
+         * @summary Create deployment event
+         * @param {PostDeploymentEventInput} postDeploymentEventInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createDeploymentEvent(postDeploymentEventInput: PostDeploymentEventInput, options?: any): AxiosPromise<void> {
+            return localVarFp.createDeploymentEvent(postDeploymentEventInput, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a deployment by ID.  The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.  ### Expanding the deployment response  LaunchDarkly supports expanding the deployment response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get deployment
+         * @param {string} deploymentID The deployment ID
+         * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDeployment(deploymentID: string, expand?: string, options?: any): AxiosPromise<DeploymentRep> {
+            return localVarFp.getDeployment(deploymentID, expand, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a list of deployments  ### Expanding the deployment collection response  LaunchDarkly supports expanding the deployment collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+         * @summary List deployments
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+         * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {string} [kind] The deployment kind
+         * @param {string} [status] The deployment status
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDeployments(projectKey: string, environmentKey: string, applicationKey?: string, limit?: number, expand?: string, from?: number, to?: number, after?: string, before?: string, kind?: string, status?: string, options?: any): AxiosPromise<DeploymentCollectionRep> {
+            return localVarFp.getDeployments(projectKey, environmentKey, applicationKey, limit, expand, from, to, after, before, kind, status, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update a deployment by ID. Updating a deployment uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).<br/><br/>The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.
+         * @summary Update deployment
+         * @param {string} deploymentID The deployment ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateDeployment(deploymentID: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<DeploymentRep> {
+            return localVarFp.updateDeployment(deploymentID, patchOperation, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * InsightsDeploymentsBetaApi - object-oriented interface
+ * @export
+ * @class InsightsDeploymentsBetaApi
+ * @extends {BaseAPI}
+ */
+export class InsightsDeploymentsBetaApi extends BaseAPI {
+    /**
+     * Create deployment event
+     * @summary Create deployment event
+     * @param {PostDeploymentEventInput} postDeploymentEventInput 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsDeploymentsBetaApi
+     */
+    public createDeploymentEvent(postDeploymentEventInput: PostDeploymentEventInput, options?: AxiosRequestConfig) {
+        return InsightsDeploymentsBetaApiFp(this.configuration).createDeploymentEvent(postDeploymentEventInput, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a deployment by ID.  The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.  ### Expanding the deployment response  LaunchDarkly supports expanding the deployment response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+     * @summary Get deployment
+     * @param {string} deploymentID The deployment ID
+     * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsDeploymentsBetaApi
+     */
+    public getDeployment(deploymentID: string, expand?: string, options?: AxiosRequestConfig) {
+        return InsightsDeploymentsBetaApiFp(this.configuration).getDeployment(deploymentID, expand, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a list of deployments  ### Expanding the deployment collection response  LaunchDarkly supports expanding the deployment collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `pullRequests` includes details on all of the pull requests associated with each deployment * `flagReferences` includes details on all of the references to flags in each deployment  For example, use `?expand=pullRequests` to include the `pullRequests` field in the response. By default, this field is **not** included in the response. 
+     * @summary List deployments
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+     * @param {string} [expand] Expand properties in response. Options: &#x60;pullRequests&#x60;, &#x60;flagReferences&#x60;
+     * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+     * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+     * @param {string} [after] Identifier used for pagination
+     * @param {string} [before] Identifier used for pagination
+     * @param {string} [kind] The deployment kind
+     * @param {string} [status] The deployment status
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsDeploymentsBetaApi
+     */
+    public getDeployments(projectKey: string, environmentKey: string, applicationKey?: string, limit?: number, expand?: string, from?: number, to?: number, after?: string, before?: string, kind?: string, status?: string, options?: AxiosRequestConfig) {
+        return InsightsDeploymentsBetaApiFp(this.configuration).getDeployments(projectKey, environmentKey, applicationKey, limit, expand, from, to, after, before, kind, status, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update a deployment by ID. Updating a deployment uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).<br/><br/>The deployment ID is returned as part of the [List deployments](#operation/getDeployments) response. It is the `id` field of each element in the `items` array.
+     * @summary Update deployment
+     * @param {string} deploymentID The deployment ID
+     * @param {Array<PatchOperation>} patchOperation 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsDeploymentsBetaApi
+     */
+    public updateDeployment(deploymentID: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return InsightsDeploymentsBetaApiFp(this.configuration).updateDeployment(deploymentID, patchOperation, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * InsightsFlagEventsBetaApi - axios parameter creator
+ * @export
+ */
+export const InsightsFlagEventsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Get a list of flag events  ### Expanding the flag event collection response  LaunchDarkly supports expanding the flag event collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `experiments` includes details on all of the experiments run on each flag  For example, use `?expand=experiments` to include the `experiments` field in the response. By default, this field is **not** included in the response. 
+         * @summary List flag events
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [query] Filter events by flag key
+         * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+         * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
+         * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFlagEvents: async (projectKey: string, environmentKey: string, applicationKey?: string, query?: string, impactSize?: string, hasExperiments?: boolean, global?: string, expand?: string, limit?: number, from?: number, to?: number, after?: string, before?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getFlagEvents', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getFlagEvents', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/engineering-insights/flag-events`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+            if (query !== undefined) {
+                localVarQueryParameter['query'] = query;
+            }
+
+            if (impactSize !== undefined) {
+                localVarQueryParameter['impactSize'] = impactSize;
+            }
+
+            if (hasExperiments !== undefined) {
+                localVarQueryParameter['hasExperiments'] = hasExperiments;
+            }
+
+            if (global !== undefined) {
+                localVarQueryParameter['global'] = global;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
+            }
+
+            if (after !== undefined) {
+                localVarQueryParameter['after'] = after;
+            }
+
+            if (before !== undefined) {
+                localVarQueryParameter['before'] = before;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * InsightsFlagEventsBetaApi - functional programming interface
+ * @export
+ */
+export const InsightsFlagEventsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = InsightsFlagEventsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Get a list of flag events  ### Expanding the flag event collection response  LaunchDarkly supports expanding the flag event collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `experiments` includes details on all of the experiments run on each flag  For example, use `?expand=experiments` to include the `experiments` field in the response. By default, this field is **not** included in the response. 
+         * @summary List flag events
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [query] Filter events by flag key
+         * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+         * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
+         * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getFlagEvents(projectKey: string, environmentKey: string, applicationKey?: string, query?: string, impactSize?: string, hasExperiments?: boolean, global?: string, expand?: string, limit?: number, from?: number, to?: number, after?: string, before?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagEventCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFlagEvents(projectKey, environmentKey, applicationKey, query, impactSize, hasExperiments, global, expand, limit, from, to, after, before, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * InsightsFlagEventsBetaApi - factory interface
+ * @export
+ */
+export const InsightsFlagEventsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = InsightsFlagEventsBetaApiFp(configuration)
+    return {
+        /**
+         * Get a list of flag events  ### Expanding the flag event collection response  LaunchDarkly supports expanding the flag event collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `experiments` includes details on all of the experiments run on each flag  For example, use `?expand=experiments` to include the `experiments` field in the response. By default, this field is **not** included in the response. 
+         * @summary List flag events
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {string} [query] Filter events by flag key
+         * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+         * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
+         * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+         * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFlagEvents(projectKey: string, environmentKey: string, applicationKey?: string, query?: string, impactSize?: string, hasExperiments?: boolean, global?: string, expand?: string, limit?: number, from?: number, to?: number, after?: string, before?: string, options?: any): AxiosPromise<FlagEventCollectionRep> {
+            return localVarFp.getFlagEvents(projectKey, environmentKey, applicationKey, query, impactSize, hasExperiments, global, expand, limit, from, to, after, before, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * InsightsFlagEventsBetaApi - object-oriented interface
+ * @export
+ * @class InsightsFlagEventsBetaApi
+ * @extends {BaseAPI}
+ */
+export class InsightsFlagEventsBetaApi extends BaseAPI {
+    /**
+     * Get a list of flag events  ### Expanding the flag event collection response  LaunchDarkly supports expanding the flag event collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `experiments` includes details on all of the experiments run on each flag  For example, use `?expand=experiments` to include the `experiments` field in the response. By default, this field is **not** included in the response. 
+     * @summary List flag events
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {string} [query] Filter events by flag key
+     * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
+     * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+     * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
+     * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
+     * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
+     * @param {number} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+     * @param {number} [to] Unix timestamp in milliseconds. Default value is now.
+     * @param {string} [after] Identifier used for pagination
+     * @param {string} [before] Identifier used for pagination
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsFlagEventsBetaApi
+     */
+    public getFlagEvents(projectKey: string, environmentKey: string, applicationKey?: string, query?: string, impactSize?: string, hasExperiments?: boolean, global?: string, expand?: string, limit?: number, from?: number, to?: number, after?: string, before?: string, options?: AxiosRequestConfig) {
+        return InsightsFlagEventsBetaApiFp(this.configuration).getFlagEvents(projectKey, environmentKey, applicationKey, query, impactSize, hasExperiments, global, expand, limit, from, to, after, before, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * InsightsPullRequestsBetaApi - axios parameter creator
+ * @export
+ */
+export const InsightsPullRequestsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Get a list of pull requests  ### Expanding the pull request collection response  LaunchDarkly supports expanding the pull request collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `deployments` includes details on all of the deployments associated with each pull request * `flagReferences` includes details on all of the references to flags in each pull request * `leadTime` includes details about the lead time of the pull request for each stage  For example, use `?expand=deployments` to include the `deployments` field in the response. By default, this field is **not** included in the response. 
+         * @summary List pull requests
+         * @param {string} projectKey The project key
+         * @param {string} [environmentKey] Required if you are using the &lt;code&gt;sort&lt;/code&gt; parameter\&#39;s &lt;code&gt;leadTime&lt;/code&gt; option to sort pull requests.
+         * @param {string} [applicationKey] Filter the results to pull requests deployed to a comma separated list of applications
+         * @param {string} [status] Filter results to pull requests with the given status. Options: &#x60;open&#x60;, &#x60;merged&#x60;, &#x60;closed&#x60;, &#x60;deployed&#x60;.
+         * @param {string} [query] Filter list of pull requests by title or author
+         * @param {number} [limit] The number of pull requests to return. Default is 20. Maximum allowed is 100.
+         * @param {string} [expand] Expand properties in response. Options: &#x60;deployments&#x60;, &#x60;flagReferences&#x60;, &#x60;leadTime&#x60;.
+         * @param {string} [sort] Sort results. Requires the &#x60;environmentKey&#x60; to be set. Options: &#x60;leadTime&#x60; (asc) and &#x60;-leadTime&#x60; (desc). When query option is excluded, default sort is by created or merged date.
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getPullRequests: async (projectKey: string, environmentKey?: string, applicationKey?: string, status?: string, query?: string, limit?: number, expand?: string, sort?: string, from?: string, to?: string, after?: string, before?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getPullRequests', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/engineering-insights/pull-requests`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+            if (status !== undefined) {
+                localVarQueryParameter['status'] = status;
+            }
+
+            if (query !== undefined) {
+                localVarQueryParameter['query'] = query;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = (from as any instanceof Date) ?
+                    (from as any).toISOString() :
+                    from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = (to as any instanceof Date) ?
+                    (to as any).toISOString() :
+                    to;
+            }
+
+            if (after !== undefined) {
+                localVarQueryParameter['after'] = after;
+            }
+
+            if (before !== undefined) {
+                localVarQueryParameter['before'] = before;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * InsightsPullRequestsBetaApi - functional programming interface
+ * @export
+ */
+export const InsightsPullRequestsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = InsightsPullRequestsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Get a list of pull requests  ### Expanding the pull request collection response  LaunchDarkly supports expanding the pull request collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `deployments` includes details on all of the deployments associated with each pull request * `flagReferences` includes details on all of the references to flags in each pull request * `leadTime` includes details about the lead time of the pull request for each stage  For example, use `?expand=deployments` to include the `deployments` field in the response. By default, this field is **not** included in the response. 
+         * @summary List pull requests
+         * @param {string} projectKey The project key
+         * @param {string} [environmentKey] Required if you are using the &lt;code&gt;sort&lt;/code&gt; parameter\&#39;s &lt;code&gt;leadTime&lt;/code&gt; option to sort pull requests.
+         * @param {string} [applicationKey] Filter the results to pull requests deployed to a comma separated list of applications
+         * @param {string} [status] Filter results to pull requests with the given status. Options: &#x60;open&#x60;, &#x60;merged&#x60;, &#x60;closed&#x60;, &#x60;deployed&#x60;.
+         * @param {string} [query] Filter list of pull requests by title or author
+         * @param {number} [limit] The number of pull requests to return. Default is 20. Maximum allowed is 100.
+         * @param {string} [expand] Expand properties in response. Options: &#x60;deployments&#x60;, &#x60;flagReferences&#x60;, &#x60;leadTime&#x60;.
+         * @param {string} [sort] Sort results. Requires the &#x60;environmentKey&#x60; to be set. Options: &#x60;leadTime&#x60; (asc) and &#x60;-leadTime&#x60; (desc). When query option is excluded, default sort is by created or merged date.
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getPullRequests(projectKey: string, environmentKey?: string, applicationKey?: string, status?: string, query?: string, limit?: number, expand?: string, sort?: string, from?: string, to?: string, after?: string, before?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullRequestCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getPullRequests(projectKey, environmentKey, applicationKey, status, query, limit, expand, sort, from, to, after, before, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * InsightsPullRequestsBetaApi - factory interface
+ * @export
+ */
+export const InsightsPullRequestsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = InsightsPullRequestsBetaApiFp(configuration)
+    return {
+        /**
+         * Get a list of pull requests  ### Expanding the pull request collection response  LaunchDarkly supports expanding the pull request collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `deployments` includes details on all of the deployments associated with each pull request * `flagReferences` includes details on all of the references to flags in each pull request * `leadTime` includes details about the lead time of the pull request for each stage  For example, use `?expand=deployments` to include the `deployments` field in the response. By default, this field is **not** included in the response. 
+         * @summary List pull requests
+         * @param {string} projectKey The project key
+         * @param {string} [environmentKey] Required if you are using the &lt;code&gt;sort&lt;/code&gt; parameter\&#39;s &lt;code&gt;leadTime&lt;/code&gt; option to sort pull requests.
+         * @param {string} [applicationKey] Filter the results to pull requests deployed to a comma separated list of applications
+         * @param {string} [status] Filter results to pull requests with the given status. Options: &#x60;open&#x60;, &#x60;merged&#x60;, &#x60;closed&#x60;, &#x60;deployed&#x60;.
+         * @param {string} [query] Filter list of pull requests by title or author
+         * @param {number} [limit] The number of pull requests to return. Default is 20. Maximum allowed is 100.
+         * @param {string} [expand] Expand properties in response. Options: &#x60;deployments&#x60;, &#x60;flagReferences&#x60;, &#x60;leadTime&#x60;.
+         * @param {string} [sort] Sort results. Requires the &#x60;environmentKey&#x60; to be set. Options: &#x60;leadTime&#x60; (asc) and &#x60;-leadTime&#x60; (desc). When query option is excluded, default sort is by created or merged date.
+         * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+         * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+         * @param {string} [after] Identifier used for pagination
+         * @param {string} [before] Identifier used for pagination
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getPullRequests(projectKey: string, environmentKey?: string, applicationKey?: string, status?: string, query?: string, limit?: number, expand?: string, sort?: string, from?: string, to?: string, after?: string, before?: string, options?: any): AxiosPromise<PullRequestCollectionRep> {
+            return localVarFp.getPullRequests(projectKey, environmentKey, applicationKey, status, query, limit, expand, sort, from, to, after, before, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * InsightsPullRequestsBetaApi - object-oriented interface
+ * @export
+ * @class InsightsPullRequestsBetaApi
+ * @extends {BaseAPI}
+ */
+export class InsightsPullRequestsBetaApi extends BaseAPI {
+    /**
+     * Get a list of pull requests  ### Expanding the pull request collection response  LaunchDarkly supports expanding the pull request collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `deployments` includes details on all of the deployments associated with each pull request * `flagReferences` includes details on all of the references to flags in each pull request * `leadTime` includes details about the lead time of the pull request for each stage  For example, use `?expand=deployments` to include the `deployments` field in the response. By default, this field is **not** included in the response. 
+     * @summary List pull requests
+     * @param {string} projectKey The project key
+     * @param {string} [environmentKey] Required if you are using the &lt;code&gt;sort&lt;/code&gt; parameter\&#39;s &lt;code&gt;leadTime&lt;/code&gt; option to sort pull requests.
+     * @param {string} [applicationKey] Filter the results to pull requests deployed to a comma separated list of applications
+     * @param {string} [status] Filter results to pull requests with the given status. Options: &#x60;open&#x60;, &#x60;merged&#x60;, &#x60;closed&#x60;, &#x60;deployed&#x60;.
+     * @param {string} [query] Filter list of pull requests by title or author
+     * @param {number} [limit] The number of pull requests to return. Default is 20. Maximum allowed is 100.
+     * @param {string} [expand] Expand properties in response. Options: &#x60;deployments&#x60;, &#x60;flagReferences&#x60;, &#x60;leadTime&#x60;.
+     * @param {string} [sort] Sort results. Requires the &#x60;environmentKey&#x60; to be set. Options: &#x60;leadTime&#x60; (asc) and &#x60;-leadTime&#x60; (desc). When query option is excluded, default sort is by created or merged date.
+     * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
+     * @param {string} [to] Unix timestamp in milliseconds. Default value is now.
+     * @param {string} [after] Identifier used for pagination
+     * @param {string} [before] Identifier used for pagination
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsPullRequestsBetaApi
+     */
+    public getPullRequests(projectKey: string, environmentKey?: string, applicationKey?: string, status?: string, query?: string, limit?: number, expand?: string, sort?: string, from?: string, to?: string, after?: string, before?: string, options?: AxiosRequestConfig) {
+        return InsightsPullRequestsBetaApiFp(this.configuration).getPullRequests(projectKey, environmentKey, applicationKey, status, query, limit, expand, sort, from, to, after, before, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * InsightsRepositoriesBetaApi - axios parameter creator
+ * @export
+ */
+export const InsightsRepositoriesBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Associate repositories with projects
+         * @summary Associate repositories with projects
+         * @param {InsightsRepositoryProjectMappings} insightsRepositoryProjectMappings 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        associateRepositoriesAndProjects: async (insightsRepositoryProjectMappings: InsightsRepositoryProjectMappings, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'insightsRepositoryProjectMappings' is not null or undefined
+            assertParamExists('associateRepositoriesAndProjects', 'insightsRepositoryProjectMappings', insightsRepositoryProjectMappings)
+            const localVarPath = `/api/v2/engineering-insights/repositories/projects`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(insightsRepositoryProjectMappings, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Remove repository project association
+         * @summary Remove repository project association
+         * @param {string} repositoryKey The repository key
+         * @param {string} projectKey The project key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryProject: async (repositoryKey: string, projectKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'repositoryKey' is not null or undefined
+            assertParamExists('deleteRepositoryProject', 'repositoryKey', repositoryKey)
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteRepositoryProject', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/engineering-insights/repositories/{repositoryKey}/projects/{projectKey}`
+                .replace(`{${"repositoryKey"}}`, encodeURIComponent(String(repositoryKey)))
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a list of repositories  ### Expanding the repository collection response  LaunchDarkly supports expanding the repository collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `projects` includes details on all of the LaunchDarkly projects associated with each repository  For example, use `?expand=projects` to include the `projects` field in the response. By default, this field is **not** included in the response. 
+         * @summary List repositories
+         * @param {string} [expand] Expand properties in response. Options: &#x60;projects&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightsRepositories: async (expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/engineering-insights/repositories`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * InsightsRepositoriesBetaApi - functional programming interface
+ * @export
+ */
+export const InsightsRepositoriesBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = InsightsRepositoriesBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Associate repositories with projects
+         * @summary Associate repositories with projects
+         * @param {InsightsRepositoryProjectMappings} insightsRepositoryProjectMappings 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async associateRepositoriesAndProjects(insightsRepositoryProjectMappings: InsightsRepositoryProjectMappings, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightsRepositoryProjectCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.associateRepositoriesAndProjects(insightsRepositoryProjectMappings, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Remove repository project association
+         * @summary Remove repository project association
+         * @param {string} repositoryKey The repository key
+         * @param {string} projectKey The project key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteRepositoryProject(repositoryKey: string, projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRepositoryProject(repositoryKey, projectKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a list of repositories  ### Expanding the repository collection response  LaunchDarkly supports expanding the repository collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `projects` includes details on all of the LaunchDarkly projects associated with each repository  For example, use `?expand=projects` to include the `projects` field in the response. By default, this field is **not** included in the response. 
+         * @summary List repositories
+         * @param {string} [expand] Expand properties in response. Options: &#x60;projects&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getInsightsRepositories(expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightsRepositoryCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getInsightsRepositories(expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * InsightsRepositoriesBetaApi - factory interface
+ * @export
+ */
+export const InsightsRepositoriesBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = InsightsRepositoriesBetaApiFp(configuration)
+    return {
+        /**
+         * Associate repositories with projects
+         * @summary Associate repositories with projects
+         * @param {InsightsRepositoryProjectMappings} insightsRepositoryProjectMappings 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        associateRepositoriesAndProjects(insightsRepositoryProjectMappings: InsightsRepositoryProjectMappings, options?: any): AxiosPromise<InsightsRepositoryProjectCollection> {
+            return localVarFp.associateRepositoriesAndProjects(insightsRepositoryProjectMappings, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Remove repository project association
+         * @summary Remove repository project association
+         * @param {string} repositoryKey The repository key
+         * @param {string} projectKey The project key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryProject(repositoryKey: string, projectKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteRepositoryProject(repositoryKey, projectKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a list of repositories  ### Expanding the repository collection response  LaunchDarkly supports expanding the repository collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `projects` includes details on all of the LaunchDarkly projects associated with each repository  For example, use `?expand=projects` to include the `projects` field in the response. By default, this field is **not** included in the response. 
+         * @summary List repositories
+         * @param {string} [expand] Expand properties in response. Options: &#x60;projects&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightsRepositories(expand?: string, options?: any): AxiosPromise<InsightsRepositoryCollection> {
+            return localVarFp.getInsightsRepositories(expand, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * InsightsRepositoriesBetaApi - object-oriented interface
+ * @export
+ * @class InsightsRepositoriesBetaApi
+ * @extends {BaseAPI}
+ */
+export class InsightsRepositoriesBetaApi extends BaseAPI {
+    /**
+     * Associate repositories with projects
+     * @summary Associate repositories with projects
+     * @param {InsightsRepositoryProjectMappings} insightsRepositoryProjectMappings 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsRepositoriesBetaApi
+     */
+    public associateRepositoriesAndProjects(insightsRepositoryProjectMappings: InsightsRepositoryProjectMappings, options?: AxiosRequestConfig) {
+        return InsightsRepositoriesBetaApiFp(this.configuration).associateRepositoriesAndProjects(insightsRepositoryProjectMappings, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Remove repository project association
+     * @summary Remove repository project association
+     * @param {string} repositoryKey The repository key
+     * @param {string} projectKey The project key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsRepositoriesBetaApi
+     */
+    public deleteRepositoryProject(repositoryKey: string, projectKey: string, options?: AxiosRequestConfig) {
+        return InsightsRepositoriesBetaApiFp(this.configuration).deleteRepositoryProject(repositoryKey, projectKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a list of repositories  ### Expanding the repository collection response  LaunchDarkly supports expanding the repository collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `projects` includes details on all of the LaunchDarkly projects associated with each repository  For example, use `?expand=projects` to include the `projects` field in the response. By default, this field is **not** included in the response. 
+     * @summary List repositories
+     * @param {string} [expand] Expand properties in response. Options: &#x60;projects&#x60;
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsRepositoriesBetaApi
+     */
+    public getInsightsRepositories(expand?: string, options?: AxiosRequestConfig) {
+        return InsightsRepositoriesBetaApiFp(this.configuration).getInsightsRepositories(expand, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * InsightsScoresBetaApi - axios parameter creator
+ * @export
+ */
+export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Create insight group
+         * @summary Create insight group
+         * @param {PostInsightGroupParams} postInsightGroupParams 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createInsightGroup: async (postInsightGroupParams: PostInsightGroupParams, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'postInsightGroupParams' is not null or undefined
+            assertParamExists('createInsightGroup', 'postInsightGroupParams', postInsightGroupParams)
+            const localVarPath = `/api/v2/engineering-insights/insights/group`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(postInsightGroupParams, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete insight group
+         * @summary Delete insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteInsightGroup: async (insightGroupKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'insightGroupKey' is not null or undefined
+            assertParamExists('deleteInsightGroup', 'insightGroupKey', insightGroupKey)
+            const localVarPath = `/api/v2/engineering-insights/insights/groups/{insightGroupKey}`
+                .replace(`{${"insightGroupKey"}}`, encodeURIComponent(String(insightGroupKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get insight group  ### Expanding the insight group response  LaunchDarkly supports expanding the insight group response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for this group * `environment` includes details on each environment associated with this group  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightGroup: async (insightGroupKey: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'insightGroupKey' is not null or undefined
+            assertParamExists('getInsightGroup', 'insightGroupKey', insightGroupKey)
+            const localVarPath = `/api/v2/engineering-insights/insights/groups/{insightGroupKey}`
+                .replace(`{${"insightGroupKey"}}`, encodeURIComponent(String(insightGroupKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List groups for which you are collecting insights  ### Expanding the insight groups collection response  LaunchDarkly supports expanding the insight groups collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for each group * `environment` includes details on each environment associated with each group * `metadata` includes counts of the number of insight groups with particular indicators, such as \"execellent,\" \"good,\" \"fair,\" and so on.  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+         * @summary List insight groups
+         * @param {number} [limit] The number of insight groups to return. Default is 20. Must be between 1 and 20 inclusive.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {string} [sort] Sort flag list by field. Prefix field with &lt;code&gt;-&lt;/code&gt; to sort in descending order. Allowed fields: name
+         * @param {string} [query] Filter list of insights groups by name.
+         * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;, &#x60;metadata&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightGroups: async (limit?: number, offset?: number, sort?: string, query?: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/engineering-insights/insights/groups`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
+            if (query !== undefined) {
+                localVarQueryParameter['query'] = query;
+            }
+
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Return insights scores, based on the given parameters. This data is also used in engineering insights metrics views.
+         * @summary Get insight scores
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightsScores: async (projectKey: string, environmentKey: string, applicationKey?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getInsightsScores', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getInsightsScores', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/engineering-insights/insights/scores`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (applicationKey !== undefined) {
+                localVarQueryParameter['applicationKey'] = applicationKey;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update an insight group. Updating an insight group uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Patch insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchInsightGroup: async (insightGroupKey: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'insightGroupKey' is not null or undefined
+            assertParamExists('patchInsightGroup', 'insightGroupKey', insightGroupKey)
+            // verify required parameter 'patchOperation' is not null or undefined
+            assertParamExists('patchInsightGroup', 'patchOperation', patchOperation)
+            const localVarPath = `/api/v2/engineering-insights/insights/groups/{insightGroupKey}`
+                .replace(`{${"insightGroupKey"}}`, encodeURIComponent(String(insightGroupKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * InsightsScoresBetaApi - functional programming interface
+ * @export
+ */
+export const InsightsScoresBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = InsightsScoresBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Create insight group
+         * @summary Create insight group
+         * @param {PostInsightGroupParams} postInsightGroupParams 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createInsightGroup(postInsightGroupParams: PostInsightGroupParams, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightGroup>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createInsightGroup(postInsightGroupParams, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Delete insight group
+         * @summary Delete insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteInsightGroup(insightGroupKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteInsightGroup(insightGroupKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get insight group  ### Expanding the insight group response  LaunchDarkly supports expanding the insight group response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for this group * `environment` includes details on each environment associated with this group  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getInsightGroup(insightGroupKey: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightGroup>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getInsightGroup(insightGroupKey, expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * List groups for which you are collecting insights  ### Expanding the insight groups collection response  LaunchDarkly supports expanding the insight groups collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for each group * `environment` includes details on each environment associated with each group * `metadata` includes counts of the number of insight groups with particular indicators, such as \"execellent,\" \"good,\" \"fair,\" and so on.  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+         * @summary List insight groups
+         * @param {number} [limit] The number of insight groups to return. Default is 20. Must be between 1 and 20 inclusive.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {string} [sort] Sort flag list by field. Prefix field with &lt;code&gt;-&lt;/code&gt; to sort in descending order. Allowed fields: name
+         * @param {string} [query] Filter list of insights groups by name.
+         * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;, &#x60;metadata&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getInsightGroups(limit?: number, offset?: number, sort?: string, query?: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightGroupCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getInsightGroups(limit, offset, sort, query, expand, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Return insights scores, based on the given parameters. This data is also used in engineering insights metrics views.
+         * @summary Get insight scores
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getInsightsScores(projectKey: string, environmentKey: string, applicationKey?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightScores>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getInsightsScores(projectKey, environmentKey, applicationKey, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Update an insight group. Updating an insight group uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Patch insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchInsightGroup(insightGroupKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<InsightGroup>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchInsightGroup(insightGroupKey, patchOperation, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * InsightsScoresBetaApi - factory interface
+ * @export
+ */
+export const InsightsScoresBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = InsightsScoresBetaApiFp(configuration)
+    return {
+        /**
+         * Create insight group
+         * @summary Create insight group
+         * @param {PostInsightGroupParams} postInsightGroupParams 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createInsightGroup(postInsightGroupParams: PostInsightGroupParams, options?: any): AxiosPromise<InsightGroup> {
+            return localVarFp.createInsightGroup(postInsightGroupParams, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete insight group
+         * @summary Delete insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteInsightGroup(insightGroupKey: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteInsightGroup(insightGroupKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get insight group  ### Expanding the insight group response  LaunchDarkly supports expanding the insight group response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for this group * `environment` includes details on each environment associated with this group  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+         * @summary Get insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightGroup(insightGroupKey: string, expand?: string, options?: any): AxiosPromise<InsightGroup> {
+            return localVarFp.getInsightGroup(insightGroupKey, expand, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List groups for which you are collecting insights  ### Expanding the insight groups collection response  LaunchDarkly supports expanding the insight groups collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for each group * `environment` includes details on each environment associated with each group * `metadata` includes counts of the number of insight groups with particular indicators, such as \"execellent,\" \"good,\" \"fair,\" and so on.  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+         * @summary List insight groups
+         * @param {number} [limit] The number of insight groups to return. Default is 20. Must be between 1 and 20 inclusive.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {string} [sort] Sort flag list by field. Prefix field with &lt;code&gt;-&lt;/code&gt; to sort in descending order. Allowed fields: name
+         * @param {string} [query] Filter list of insights groups by name.
+         * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;, &#x60;metadata&#x60;
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightGroups(limit?: number, offset?: number, sort?: string, query?: string, expand?: string, options?: any): AxiosPromise<InsightGroupCollection> {
+            return localVarFp.getInsightGroups(limit, offset, sort, query, expand, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Return insights scores, based on the given parameters. This data is also used in engineering insights metrics views.
+         * @summary Get insight scores
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} [applicationKey] Comma separated list of application keys
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getInsightsScores(projectKey: string, environmentKey: string, applicationKey?: string, options?: any): AxiosPromise<InsightScores> {
+            return localVarFp.getInsightsScores(projectKey, environmentKey, applicationKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update an insight group. Updating an insight group uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Patch insight group
+         * @param {string} insightGroupKey The insight group key
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchInsightGroup(insightGroupKey: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<InsightGroup> {
+            return localVarFp.patchInsightGroup(insightGroupKey, patchOperation, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * InsightsScoresBetaApi - object-oriented interface
+ * @export
+ * @class InsightsScoresBetaApi
+ * @extends {BaseAPI}
+ */
+export class InsightsScoresBetaApi extends BaseAPI {
+    /**
+     * Create insight group
+     * @summary Create insight group
+     * @param {PostInsightGroupParams} postInsightGroupParams 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsScoresBetaApi
+     */
+    public createInsightGroup(postInsightGroupParams: PostInsightGroupParams, options?: AxiosRequestConfig) {
+        return InsightsScoresBetaApiFp(this.configuration).createInsightGroup(postInsightGroupParams, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete insight group
+     * @summary Delete insight group
+     * @param {string} insightGroupKey The insight group key
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsScoresBetaApi
+     */
+    public deleteInsightGroup(insightGroupKey: string, options?: AxiosRequestConfig) {
+        return InsightsScoresBetaApiFp(this.configuration).deleteInsightGroup(insightGroupKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get insight group  ### Expanding the insight group response  LaunchDarkly supports expanding the insight group response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for this group * `environment` includes details on each environment associated with this group  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+     * @summary Get insight group
+     * @param {string} insightGroupKey The insight group key
+     * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsScoresBetaApi
+     */
+    public getInsightGroup(insightGroupKey: string, expand?: string, options?: AxiosRequestConfig) {
+        return InsightsScoresBetaApiFp(this.configuration).getInsightGroup(insightGroupKey, expand, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List groups for which you are collecting insights  ### Expanding the insight groups collection response  LaunchDarkly supports expanding the insight groups collection response to include additional fields.  To expand the response, append the `expand` query parameter and include the following:  * `scores` includes details on all of the scores used in the engineering insights metrics views for each group * `environment` includes details on each environment associated with each group * `metadata` includes counts of the number of insight groups with particular indicators, such as \"execellent,\" \"good,\" \"fair,\" and so on.  For example, use `?expand=scores` to include the `scores` field in the response. By default, this field is **not** included in the response. 
+     * @summary List insight groups
+     * @param {number} [limit] The number of insight groups to return. Default is 20. Must be between 1 and 20 inclusive.
+     * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+     * @param {string} [sort] Sort flag list by field. Prefix field with &lt;code&gt;-&lt;/code&gt; to sort in descending order. Allowed fields: name
+     * @param {string} [query] Filter list of insights groups by name.
+     * @param {string} [expand] Options: &#x60;scores&#x60;, &#x60;environment&#x60;, &#x60;metadata&#x60;
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsScoresBetaApi
+     */
+    public getInsightGroups(limit?: number, offset?: number, sort?: string, query?: string, expand?: string, options?: AxiosRequestConfig) {
+        return InsightsScoresBetaApiFp(this.configuration).getInsightGroups(limit, offset, sort, query, expand, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Return insights scores, based on the given parameters. This data is also used in engineering insights metrics views.
+     * @summary Get insight scores
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} [applicationKey] Comma separated list of application keys
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsScoresBetaApi
+     */
+    public getInsightsScores(projectKey: string, environmentKey: string, applicationKey?: string, options?: AxiosRequestConfig) {
+        return InsightsScoresBetaApiFp(this.configuration).getInsightsScores(projectKey, environmentKey, applicationKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update an insight group. Updating an insight group uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+     * @summary Patch insight group
+     * @param {string} insightGroupKey The insight group key
+     * @param {Array<PatchOperation>} patchOperation 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof InsightsScoresBetaApi
+     */
+    public patchInsightGroup(insightGroupKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return InsightsScoresBetaApiFp(this.configuration).patchInsightGroup(insightGroupKey, patchOperation, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
  * IntegrationAuditLogSubscriptionsApi - axios parameter creator
  * @export
  */
@@ -26900,6 +29878,482 @@ export class IntegrationDeliveryConfigurationsBetaApi extends BaseAPI {
 
 
 /**
+ * IntegrationsBetaApi - axios parameter creator
+ * @export
+ */
+export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         *  Create a persistent store integration.  If you are using server-side SDKs, segments synced from external tools and larger list-based segments require a persistent store within your infrastructure. LaunchDarkly keeps the persistent store up to date and consults it during flag evaluation.  You can use either Redis or DynamoDB as your persistent store. When you create a persistent store integration, the fields in the `config` object in the request vary depending on which persistent store you use.  If you are using Redis to create your persistent store integration, you will need to know:  * Your Redis host * Your Redis port * Your Redis username * Your Redis password * Whether or not LaunchDarkly should connect using TLS  If you are using DynamoDB to create your persistent store integration, you will need to know:  * Your DynamoDB table name. The table must have the following schema:   * Partition key: `namespace` (string)   * Sort key: `key` (string) * Your DynamoDB Amazon Web Services (AWS) region. * Your AWS role Amazon Resource Name (ARN). This is the role that LaunchDarkly will assume to manage your DynamoDB table. * The External ID you specified when creating your Amazon Resource Name (ARN).  To learn more, read [Segment configuration](https://docs.launchdarkly.com/home/segments/big-segment-configuration). 
+         * @summary Create big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBigSegmentStoreIntegration: async (projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('createBigSegmentStoreIntegration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('createBigSegmentStoreIntegration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('createBigSegmentStoreIntegration', 'integrationKey', integrationKey)
+            // verify required parameter 'integrationDeliveryConfigurationPost' is not null or undefined
+            assertParamExists('createBigSegmentStoreIntegration', 'integrationDeliveryConfigurationPost', integrationDeliveryConfigurationPost)
+            const localVarPath = `/api/v2/integration-capabilities/big-segment-store/{projectKey}/{environmentKey}/{integrationKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(integrationDeliveryConfigurationPost, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete a persistent store integration. Each integration uses either Redis or DynamoDB.
+         * @summary Delete big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteBigSegmentStoreIntegration: async (projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteBigSegmentStoreIntegration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('deleteBigSegmentStoreIntegration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('deleteBigSegmentStoreIntegration', 'integrationKey', integrationKey)
+            // verify required parameter 'integrationId' is not null or undefined
+            assertParamExists('deleteBigSegmentStoreIntegration', 'integrationId', integrationId)
+            const localVarPath = `/api/v2/integration-capabilities/big-segment-store/{projectKey}/{environmentKey}/{integrationKey}/{integrationId}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"integrationId"}}`, encodeURIComponent(String(integrationId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a big segment store integration by ID.
+         * @summary Get big segment store integration by ID
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentStoreIntegration: async (projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getBigSegmentStoreIntegration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getBigSegmentStoreIntegration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('getBigSegmentStoreIntegration', 'integrationKey', integrationKey)
+            // verify required parameter 'integrationId' is not null or undefined
+            assertParamExists('getBigSegmentStoreIntegration', 'integrationId', integrationId)
+            const localVarPath = `/api/v2/integration-capabilities/big-segment-store/{projectKey}/{environmentKey}/{integrationKey}/{integrationId}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"integrationId"}}`, encodeURIComponent(String(integrationId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * List all big segment store integrations.
+         * @summary List all big segment store integrations
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentStoreIntegrations: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/integration-capabilities/big-segment-store`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update a big segment store integration. Updating a big segment store requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchBigSegmentStoreIntegration: async (projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, patchOperation: Array<PatchOperation>, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchBigSegmentStoreIntegration', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('patchBigSegmentStoreIntegration', 'environmentKey', environmentKey)
+            // verify required parameter 'integrationKey' is not null or undefined
+            assertParamExists('patchBigSegmentStoreIntegration', 'integrationKey', integrationKey)
+            // verify required parameter 'integrationId' is not null or undefined
+            assertParamExists('patchBigSegmentStoreIntegration', 'integrationId', integrationId)
+            // verify required parameter 'patchOperation' is not null or undefined
+            assertParamExists('patchBigSegmentStoreIntegration', 'patchOperation', patchOperation)
+            const localVarPath = `/api/v2/integration-capabilities/big-segment-store/{projectKey}/{environmentKey}/{integrationKey}/{integrationId}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
+                .replace(`{${"integrationKey"}}`, encodeURIComponent(String(integrationKey)))
+                .replace(`{${"integrationId"}}`, encodeURIComponent(String(integrationId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchOperation, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * IntegrationsBetaApi - functional programming interface
+ * @export
+ */
+export const IntegrationsBetaApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = IntegrationsBetaApiAxiosParamCreator(configuration)
+    return {
+        /**
+         *  Create a persistent store integration.  If you are using server-side SDKs, segments synced from external tools and larger list-based segments require a persistent store within your infrastructure. LaunchDarkly keeps the persistent store up to date and consults it during flag evaluation.  You can use either Redis or DynamoDB as your persistent store. When you create a persistent store integration, the fields in the `config` object in the request vary depending on which persistent store you use.  If you are using Redis to create your persistent store integration, you will need to know:  * Your Redis host * Your Redis port * Your Redis username * Your Redis password * Whether or not LaunchDarkly should connect using TLS  If you are using DynamoDB to create your persistent store integration, you will need to know:  * Your DynamoDB table name. The table must have the following schema:   * Partition key: `namespace` (string)   * Sort key: `key` (string) * Your DynamoDB Amazon Web Services (AWS) region. * Your AWS role Amazon Resource Name (ARN). This is the role that LaunchDarkly will assume to manage your DynamoDB table. * The External ID you specified when creating your Amazon Resource Name (ARN).  To learn more, read [Segment configuration](https://docs.launchdarkly.com/home/segments/big-segment-configuration). 
+         * @summary Create big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentStoreIntegration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationDeliveryConfigurationPost, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Delete a persistent store integration. Each integration uses either Redis or DynamoDB.
+         * @summary Delete big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Get a big segment store integration by ID.
+         * @summary Get big segment store integration by ID
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentStoreIntegration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * List all big segment store integrations.
+         * @summary List all big segment store integrations
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getBigSegmentStoreIntegrations(options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentStoreIntegrationCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getBigSegmentStoreIntegrations(options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * Update a big segment store integration. Updating a big segment store requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BigSegmentStoreIntegration>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, patchOperation, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * IntegrationsBetaApi - factory interface
+ * @export
+ */
+export const IntegrationsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = IntegrationsBetaApiFp(configuration)
+    return {
+        /**
+         *  Create a persistent store integration.  If you are using server-side SDKs, segments synced from external tools and larger list-based segments require a persistent store within your infrastructure. LaunchDarkly keeps the persistent store up to date and consults it during flag evaluation.  You can use either Redis or DynamoDB as your persistent store. When you create a persistent store integration, the fields in the `config` object in the request vary depending on which persistent store you use.  If you are using Redis to create your persistent store integration, you will need to know:  * Your Redis host * Your Redis port * Your Redis username * Your Redis password * Whether or not LaunchDarkly should connect using TLS  If you are using DynamoDB to create your persistent store integration, you will need to know:  * Your DynamoDB table name. The table must have the following schema:   * Partition key: `namespace` (string)   * Sort key: `key` (string) * Your DynamoDB Amazon Web Services (AWS) region. * Your AWS role Amazon Resource Name (ARN). This is the role that LaunchDarkly will assume to manage your DynamoDB table. * The External ID you specified when creating your Amazon Resource Name (ARN).  To learn more, read [Segment configuration](https://docs.launchdarkly.com/home/segments/big-segment-configuration). 
+         * @summary Create big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options?: any): AxiosPromise<BigSegmentStoreIntegration> {
+            return localVarFp.createBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationDeliveryConfigurationPost, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete a persistent store integration. Each integration uses either Redis or DynamoDB.
+         * @summary Delete big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options?: any): AxiosPromise<void> {
+            return localVarFp.deleteBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a big segment store integration by ID.
+         * @summary Get big segment store integration by ID
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options?: any): AxiosPromise<BigSegmentStoreIntegration> {
+            return localVarFp.getBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * List all big segment store integrations.
+         * @summary List all big segment store integrations
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getBigSegmentStoreIntegrations(options?: any): AxiosPromise<BigSegmentStoreIntegrationCollection> {
+            return localVarFp.getBigSegmentStoreIntegrations(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update a big segment store integration. Updating a big segment store requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+         * @summary Update big segment store integration
+         * @param {string} projectKey The project key
+         * @param {string} environmentKey The environment key
+         * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+         * @param {string} integrationId The integration ID
+         * @param {Array<PatchOperation>} patchOperation 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<BigSegmentStoreIntegration> {
+            return localVarFp.patchBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, patchOperation, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * IntegrationsBetaApi - object-oriented interface
+ * @export
+ * @class IntegrationsBetaApi
+ * @extends {BaseAPI}
+ */
+export class IntegrationsBetaApi extends BaseAPI {
+    /**
+     *  Create a persistent store integration.  If you are using server-side SDKs, segments synced from external tools and larger list-based segments require a persistent store within your infrastructure. LaunchDarkly keeps the persistent store up to date and consults it during flag evaluation.  You can use either Redis or DynamoDB as your persistent store. When you create a persistent store integration, the fields in the `config` object in the request vary depending on which persistent store you use.  If you are using Redis to create your persistent store integration, you will need to know:  * Your Redis host * Your Redis port * Your Redis username * Your Redis password * Whether or not LaunchDarkly should connect using TLS  If you are using DynamoDB to create your persistent store integration, you will need to know:  * Your DynamoDB table name. The table must have the following schema:   * Partition key: `namespace` (string)   * Sort key: `key` (string) * Your DynamoDB Amazon Web Services (AWS) region. * Your AWS role Amazon Resource Name (ARN). This is the role that LaunchDarkly will assume to manage your DynamoDB table. * The External ID you specified when creating your Amazon Resource Name (ARN).  To learn more, read [Segment configuration](https://docs.launchdarkly.com/home/segments/big-segment-configuration). 
+     * @summary Create big segment store integration
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+     * @param {IntegrationDeliveryConfigurationPost} integrationDeliveryConfigurationPost 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationsBetaApi
+     */
+    public createBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationDeliveryConfigurationPost: IntegrationDeliveryConfigurationPost, options?: AxiosRequestConfig) {
+        return IntegrationsBetaApiFp(this.configuration).createBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationDeliveryConfigurationPost, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete a persistent store integration. Each integration uses either Redis or DynamoDB.
+     * @summary Delete big segment store integration
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+     * @param {string} integrationId The integration ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationsBetaApi
+     */
+    public deleteBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options?: AxiosRequestConfig) {
+        return IntegrationsBetaApiFp(this.configuration).deleteBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a big segment store integration by ID.
+     * @summary Get big segment store integration by ID
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+     * @param {string} integrationId The integration ID
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationsBetaApi
+     */
+    public getBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, options?: AxiosRequestConfig) {
+        return IntegrationsBetaApiFp(this.configuration).getBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * List all big segment store integrations.
+     * @summary List all big segment store integrations
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationsBetaApi
+     */
+    public getBigSegmentStoreIntegrations(options?: AxiosRequestConfig) {
+        return IntegrationsBetaApiFp(this.configuration).getBigSegmentStoreIntegrations(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update a big segment store integration. Updating a big segment store requires a [JSON Patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](/#section/Overview/Updates).
+     * @summary Update big segment store integration
+     * @param {string} projectKey The project key
+     * @param {string} environmentKey The environment key
+     * @param {string} integrationKey The integration key, either &#x60;redis&#x60; or &#x60;dynamodb&#x60;
+     * @param {string} integrationId The integration ID
+     * @param {Array<PatchOperation>} patchOperation 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof IntegrationsBetaApi
+     */
+    public patchBigSegmentStoreIntegration(projectKey: string, environmentKey: string, integrationKey: string, integrationId: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig) {
+        return IntegrationsBetaApiFp(this.configuration).patchBigSegmentStoreIntegration(projectKey, environmentKey, integrationKey, integrationId, patchOperation, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
  * MetricsApi - axios parameter creator
  * @export
  */
@@ -26947,15 +30401,16 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
-         * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports two fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
+         * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports four fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric - `metricGroups` includes all metric groups from the specific project that use the metric - `metricGroupCount` includes the number of metric groups from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
          * @summary Get metric
          * @param {string} projectKey The project key
          * @param {string} metricKey The metric key
          * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response.
+         * @param {string} [versionId] The specific version ID of the metric
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMetric: async (projectKey: string, metricKey: string, expand?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getMetric: async (projectKey: string, metricKey: string, expand?: string, versionId?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getMetric', 'projectKey', projectKey)
             // verify required parameter 'metricKey' is not null or undefined
@@ -26979,6 +30434,10 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
 
             if (expand !== undefined) {
                 localVarQueryParameter['expand'] = expand;
+            }
+
+            if (versionId !== undefined) {
+                localVarQueryParameter['versionId'] = versionId;
             }
 
 
@@ -27147,16 +30606,17 @@ export const MetricsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports two fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
+         * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports four fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric - `metricGroups` includes all metric groups from the specific project that use the metric - `metricGroupCount` includes the number of metric groups from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
          * @summary Get metric
          * @param {string} projectKey The project key
          * @param {string} metricKey The metric key
          * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response.
+         * @param {string} [versionId] The specific version ID of the metric
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getMetric(projectKey: string, metricKey: string, expand?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getMetric(projectKey, metricKey, expand, options);
+        async getMetric(projectKey: string, metricKey: string, expand?: string, versionId?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MetricRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMetric(projectKey, metricKey, expand, versionId, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -27218,16 +30678,17 @@ export const MetricsApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.deleteMetric(projectKey, metricKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports two fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
+         * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports four fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric - `metricGroups` includes all metric groups from the specific project that use the metric - `metricGroupCount` includes the number of metric groups from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
          * @summary Get metric
          * @param {string} projectKey The project key
          * @param {string} metricKey The metric key
          * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response.
+         * @param {string} [versionId] The specific version ID of the metric
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getMetric(projectKey: string, metricKey: string, expand?: string, options?: any): AxiosPromise<MetricRep> {
-            return localVarFp.getMetric(projectKey, metricKey, expand, options).then((request) => request(axios, basePath));
+        getMetric(projectKey: string, metricKey: string, expand?: string, versionId?: string, options?: any): AxiosPromise<MetricRep> {
+            return localVarFp.getMetric(projectKey, metricKey, expand, versionId, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all metrics for the specified project.  ### Expanding the metric list response LaunchDarkly supports expanding the \"List metrics\" response. By default, the expandable field is **not** included in the response.  To expand the response, append the `expand` query parameter and add the following supported field:  - `experimentCount` includes the number of experiments from the specific project that use the metric  For example, `expand=experimentCount` includes the `experimentCount` field for each metric in the response. 
@@ -27287,17 +30748,18 @@ export class MetricsApi extends BaseAPI {
     }
 
     /**
-     * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports two fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
+     * Get information for a single metric from the specific project.  ### Expanding the metric response LaunchDarkly supports four fields for expanding the \"Get metric\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  - `experiments` includes all experiments from the specific project that use the metric - `experimentCount` includes the number of experiments from the specific project that use the metric - `metricGroups` includes all metric groups from the specific project that use the metric - `metricGroupCount` includes the number of metric groups from the specific project that use the metric  For example, `expand=experiments` includes the `experiments` field in the response. 
      * @summary Get metric
      * @param {string} projectKey The project key
      * @param {string} metricKey The metric key
      * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response.
+     * @param {string} [versionId] The specific version ID of the metric
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof MetricsApi
      */
-    public getMetric(projectKey: string, metricKey: string, expand?: string, options?: AxiosRequestConfig) {
-        return MetricsApiFp(this.configuration).getMetric(projectKey, metricKey, expand, options).then((request) => request(this.axios, this.basePath));
+    public getMetric(projectKey: string, metricKey: string, expand?: string, versionId?: string, options?: AxiosRequestConfig) {
+        return MetricsApiFp(this.configuration).getMetric(projectKey, metricKey, expand, versionId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -29612,7 +33074,7 @@ export class RelayProxyConfigurationsApi extends BaseAPI {
 export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Delete a release pipeline
+         * Deletes a release pipeline.  You cannot delete the default release pipeline.  If you want to delete a release pipeline that is currently the default, create a second release pipeline and set it as the default. Then delete the first release pipeline. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`. 
          * @summary Delete release pipeline
          * @param {string} projectKey The project key
          * @param {string} pipelineKey The release pipeline key
@@ -29653,13 +33115,16 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             };
         },
         /**
-         * Get all release pipelines for a project
+         * Get all release pipelines for a project.  ### Filtering release pipelines  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the release pipeline `key`, `name`, and `description`. It is not case sensitive. For example: `?filter=query:examplePipeline`. 
          * @summary Get all release pipelines
          * @param {string} projectKey The project key
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value. Read the endpoint description for a full list of available filter fields.
+         * @param {number} [limit] The maximum number of items to return. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. Defaults to 0. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAllReleasePipelines: async (projectKey: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getAllReleasePipelines: async (projectKey: string, filter?: string, limit?: number, offset?: number, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAllReleasePipelines', 'projectKey', projectKey)
             const localVarPath = `/api/v2/projects/{projectKey}/release-pipelines`
@@ -29677,6 +33142,18 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
 
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
 
 
     
@@ -29772,7 +33249,7 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             };
         },
         /**
-         * Creates a new release pipeline
+         * Creates a new release pipeline.  The first release pipeline you create is automatically set as the default release pipeline for your project. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`.  You can create up to 20 release pipelines per project. 
          * @summary Create a release pipeline
          * @param {string} projectKey The project key
          * @param {CreateReleasePipelineInput} createReleasePipelineInput 
@@ -29825,7 +33302,7 @@ export const ReleasePipelinesBetaApiFp = function(configuration?: Configuration)
     const localVarAxiosParamCreator = ReleasePipelinesBetaApiAxiosParamCreator(configuration)
     return {
         /**
-         * Delete a release pipeline
+         * Deletes a release pipeline.  You cannot delete the default release pipeline.  If you want to delete a release pipeline that is currently the default, create a second release pipeline and set it as the default. Then delete the first release pipeline. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`. 
          * @summary Delete release pipeline
          * @param {string} projectKey The project key
          * @param {string} pipelineKey The release pipeline key
@@ -29837,14 +33314,17 @@ export const ReleasePipelinesBetaApiFp = function(configuration?: Configuration)
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get all release pipelines for a project
+         * Get all release pipelines for a project.  ### Filtering release pipelines  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the release pipeline `key`, `name`, and `description`. It is not case sensitive. For example: `?filter=query:examplePipeline`. 
          * @summary Get all release pipelines
          * @param {string} projectKey The project key
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value. Read the endpoint description for a full list of available filter fields.
+         * @param {number} [limit] The maximum number of items to return. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. Defaults to 0. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAllReleasePipelines(projectKey: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ReleasePipelineCollection>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAllReleasePipelines(projectKey, options);
+        async getAllReleasePipelines(projectKey: string, filter?: string, limit?: number, offset?: number, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ReleasePipelineCollection>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAllReleasePipelines(projectKey, filter, limit, offset, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -29872,7 +33352,7 @@ export const ReleasePipelinesBetaApiFp = function(configuration?: Configuration)
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Creates a new release pipeline
+         * Creates a new release pipeline.  The first release pipeline you create is automatically set as the default release pipeline for your project. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`.  You can create up to 20 release pipelines per project. 
          * @summary Create a release pipeline
          * @param {string} projectKey The project key
          * @param {CreateReleasePipelineInput} createReleasePipelineInput 
@@ -29894,7 +33374,7 @@ export const ReleasePipelinesBetaApiFactory = function (configuration?: Configur
     const localVarFp = ReleasePipelinesBetaApiFp(configuration)
     return {
         /**
-         * Delete a release pipeline
+         * Deletes a release pipeline.  You cannot delete the default release pipeline.  If you want to delete a release pipeline that is currently the default, create a second release pipeline and set it as the default. Then delete the first release pipeline. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`. 
          * @summary Delete release pipeline
          * @param {string} projectKey The project key
          * @param {string} pipelineKey The release pipeline key
@@ -29905,14 +33385,17 @@ export const ReleasePipelinesBetaApiFactory = function (configuration?: Configur
             return localVarFp.deleteReleasePipeline(projectKey, pipelineKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get all release pipelines for a project
+         * Get all release pipelines for a project.  ### Filtering release pipelines  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the release pipeline `key`, `name`, and `description`. It is not case sensitive. For example: `?filter=query:examplePipeline`. 
          * @summary Get all release pipelines
          * @param {string} projectKey The project key
+         * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value. Read the endpoint description for a full list of available filter fields.
+         * @param {number} [limit] The maximum number of items to return. Defaults to 20.
+         * @param {number} [offset] Where to start in the list. Defaults to 0. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAllReleasePipelines(projectKey: string, options?: any): AxiosPromise<ReleasePipelineCollection> {
-            return localVarFp.getAllReleasePipelines(projectKey, options).then((request) => request(axios, basePath));
+        getAllReleasePipelines(projectKey: string, filter?: string, limit?: number, offset?: number, options?: any): AxiosPromise<ReleasePipelineCollection> {
+            return localVarFp.getAllReleasePipelines(projectKey, filter, limit, offset, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a release pipeline by key
@@ -29937,7 +33420,7 @@ export const ReleasePipelinesBetaApiFactory = function (configuration?: Configur
             return localVarFp.patchReleasePipeline(projectKey, pipelineKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Creates a new release pipeline
+         * Creates a new release pipeline.  The first release pipeline you create is automatically set as the default release pipeline for your project. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`.  You can create up to 20 release pipelines per project. 
          * @summary Create a release pipeline
          * @param {string} projectKey The project key
          * @param {CreateReleasePipelineInput} createReleasePipelineInput 
@@ -29958,7 +33441,7 @@ export const ReleasePipelinesBetaApiFactory = function (configuration?: Configur
  */
 export class ReleasePipelinesBetaApi extends BaseAPI {
     /**
-     * Delete a release pipeline
+     * Deletes a release pipeline.  You cannot delete the default release pipeline.  If you want to delete a release pipeline that is currently the default, create a second release pipeline and set it as the default. Then delete the first release pipeline. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`. 
      * @summary Delete release pipeline
      * @param {string} projectKey The project key
      * @param {string} pipelineKey The release pipeline key
@@ -29971,15 +33454,18 @@ export class ReleasePipelinesBetaApi extends BaseAPI {
     }
 
     /**
-     * Get all release pipelines for a project
+     * Get all release pipelines for a project.  ### Filtering release pipelines  LaunchDarkly supports the following fields for filters:  - `query` is a string that matches against the release pipeline `key`, `name`, and `description`. It is not case sensitive. For example: `?filter=query:examplePipeline`. 
      * @summary Get all release pipelines
      * @param {string} projectKey The project key
+     * @param {string} [filter] A comma-separated list of filters. Each filter is of the form field:value. Read the endpoint description for a full list of available filter fields.
+     * @param {number} [limit] The maximum number of items to return. Defaults to 20.
+     * @param {number} [offset] Where to start in the list. Defaults to 0. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ReleasePipelinesBetaApi
      */
-    public getAllReleasePipelines(projectKey: string, options?: AxiosRequestConfig) {
-        return ReleasePipelinesBetaApiFp(this.configuration).getAllReleasePipelines(projectKey, options).then((request) => request(this.axios, this.basePath));
+    public getAllReleasePipelines(projectKey: string, filter?: string, limit?: number, offset?: number, options?: AxiosRequestConfig) {
+        return ReleasePipelinesBetaApiFp(this.configuration).getAllReleasePipelines(projectKey, filter, limit, offset, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -30009,7 +33495,7 @@ export class ReleasePipelinesBetaApi extends BaseAPI {
     }
 
     /**
-     * Creates a new release pipeline
+     * Creates a new release pipeline.  The first release pipeline you create is automatically set as the default release pipeline for your project. To change the default release pipeline, use the [Update project](/tag/Projects#operation/patchProject) API to set the `defaultReleasePipelineKey`.  You can create up to 20 release pipelines per project. 
      * @summary Create a release pipeline
      * @param {string} projectKey The project key
      * @param {CreateReleasePipelineInput} createReleasePipelineInput 
@@ -30148,7 +33634,7 @@ export const ReleasesBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchReleaseByFlagKey(projectKey: string, flagKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async patchReleaseByFlagKey(projectKey: string, flagKey: string, patchOperation: Array<PatchOperation>, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Release>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchReleaseByFlagKey(projectKey, flagKey, patchOperation, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
@@ -30182,7 +33668,7 @@ export const ReleasesBetaApiFactory = function (configuration?: Configuration, b
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchReleaseByFlagKey(projectKey: string, flagKey: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<void> {
+        patchReleaseByFlagKey(projectKey: string, flagKey: string, patchOperation: Array<PatchOperation>, options?: any): AxiosPromise<Release> {
             return localVarFp.patchReleaseByFlagKey(projectKey, flagKey, patchOperation, options).then((request) => request(axios, basePath));
         },
     };
@@ -30789,7 +34275,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * For a given context instance with attributes, get membership details for all segments
+         * For a given context instance with attributes, get membership details for all segments. In the request body, pass in the context instance.
          * @summary List segment memberships for context instance
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -30926,7 +34412,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+         * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
          * @summary Get segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -30971,8 +34457,8 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Get the membership status (included/excluded) for a given context in this Big Segment. Big Segments include larger list-based segments and synced segments. This operation does not support standard segments.
-         * @summary Get Big Segment membership for context
+         * Get the membership status (included/excluded) for a given context in this big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Get big segment membership for context
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31020,8 +34506,8 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this Big Segment. This operation does not support standard segments. 
-         * @summary Get Big Segment membership for user
+         * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this big segment. This operation does not support standard segments. 
+         * @summary Get big segment membership for user
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31069,14 +34555,14 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+         * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
          * @summary List segments
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {number} [limit] The number of segments to return. Defaults to 50.
          * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {string} [sort] Accepts sorting order and fields. Fields can be comma separated. Possible fields are \&#39;creationDate\&#39;, \&#39;name\&#39;, \&#39;lastModified\&#39;. Example: &#x60;sort&#x3D;name&#x60; sort by names ascending or &#x60;sort&#x3D;-name,creationDate&#x60; sort by names descending and creationDate ascending.
-         * @param {string} [filter] Accepts filter by kind, query, or tags. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag.
+         * @param {string} [filter] Accepts filter by kind, query, tags, unbounded, or external. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag. To filter by unbounded, use the &#x60;equals&#x60; operator. Example: &#x60;filter&#x3D;unbounded equals true&#x60;. To filter by external, use the &#x60;exists&#x60; operator. Example: &#x60;filter&#x3D;external exists true&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -31330,8 +34816,8 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Update context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-         * @summary Update context targets on a Big Segment
+         * Update context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Update context targets on a big segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31381,8 +34867,8 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Update user context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-         * @summary Update user context targets on a Big Segment
+         * Update user context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Update user context targets on a big segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31455,7 +34941,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * For a given context instance with attributes, get membership details for all segments
+         * For a given context instance with attributes, get membership details for all segments. In the request body, pass in the context instance.
          * @summary List segment memberships for context instance
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -31494,7 +34980,7 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+         * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
          * @summary Get segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -31507,8 +34993,8 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get the membership status (included/excluded) for a given context in this Big Segment. Big Segments include larger list-based segments and synced segments. This operation does not support standard segments.
-         * @summary Get Big Segment membership for context
+         * Get the membership status (included/excluded) for a given context in this big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Get big segment membership for context
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31521,8 +35007,8 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this Big Segment. This operation does not support standard segments. 
-         * @summary Get Big Segment membership for user
+         * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this big segment. This operation does not support standard segments. 
+         * @summary Get big segment membership for user
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31535,14 +35021,14 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+         * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
          * @summary List segments
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {number} [limit] The number of segments to return. Defaults to 50.
          * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {string} [sort] Accepts sorting order and fields. Fields can be comma separated. Possible fields are \&#39;creationDate\&#39;, \&#39;name\&#39;, \&#39;lastModified\&#39;. Example: &#x60;sort&#x3D;name&#x60; sort by names ascending or &#x60;sort&#x3D;-name,creationDate&#x60; sort by names descending and creationDate ascending.
-         * @param {string} [filter] Accepts filter by kind, query, or tags. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag.
+         * @param {string} [filter] Accepts filter by kind, query, tags, unbounded, or external. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag. To filter by unbounded, use the &#x60;equals&#x60; operator. Example: &#x60;filter&#x3D;unbounded equals true&#x60;. To filter by external, use the &#x60;exists&#x60; operator. Example: &#x60;filter&#x3D;external exists true&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -31606,8 +35092,8 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-         * @summary Update context targets on a Big Segment
+         * Update context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Update context targets on a big segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31620,8 +35106,8 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Update user context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-         * @summary Update user context targets on a Big Segment
+         * Update user context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Update user context targets on a big segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31656,7 +35142,7 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.deleteSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * For a given context instance with attributes, get membership details for all segments
+         * For a given context instance with attributes, get membership details for all segments. In the request body, pass in the context instance.
          * @summary List segment memberships for context instance
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -31692,7 +35178,7 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.getExpiringUserTargetsForSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+         * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
          * @summary Get segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
@@ -31704,8 +35190,8 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.getSegment(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get the membership status (included/excluded) for a given context in this Big Segment. Big Segments include larger list-based segments and synced segments. This operation does not support standard segments.
-         * @summary Get Big Segment membership for context
+         * Get the membership status (included/excluded) for a given context in this big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Get big segment membership for context
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31717,8 +35203,8 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.getSegmentMembershipForContext(projectKey, environmentKey, segmentKey, contextKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this Big Segment. This operation does not support standard segments. 
-         * @summary Get Big Segment membership for user
+         * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this big segment. This operation does not support standard segments. 
+         * @summary Get big segment membership for user
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31730,14 +35216,14 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.getSegmentMembershipForUser(projectKey, environmentKey, segmentKey, userKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+         * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
          * @summary List segments
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {number} [limit] The number of segments to return. Defaults to 50.
          * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
          * @param {string} [sort] Accepts sorting order and fields. Fields can be comma separated. Possible fields are \&#39;creationDate\&#39;, \&#39;name\&#39;, \&#39;lastModified\&#39;. Example: &#x60;sort&#x3D;name&#x60; sort by names ascending or &#x60;sort&#x3D;-name,creationDate&#x60; sort by names descending and creationDate ascending.
-         * @param {string} [filter] Accepts filter by kind, query, or tags. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag.
+         * @param {string} [filter] Accepts filter by kind, query, tags, unbounded, or external. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag. To filter by unbounded, use the &#x60;equals&#x60; operator. Example: &#x60;filter&#x3D;unbounded equals true&#x60;. To filter by external, use the &#x60;exists&#x60; operator. Example: &#x60;filter&#x3D;external exists true&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -31796,8 +35282,8 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.postSegment(projectKey, environmentKey, segmentBody, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-         * @summary Update context targets on a Big Segment
+         * Update context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Update context targets on a big segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31809,8 +35295,8 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
             return localVarFp.updateBigSegmentContextTargets(projectKey, environmentKey, segmentKey, segmentUserState, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update user context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-         * @summary Update user context targets on a Big Segment
+         * Update user context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+         * @summary Update user context targets on a big segment
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -31846,7 +35332,7 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * For a given context instance with attributes, get membership details for all segments
+     * For a given context instance with attributes, get membership details for all segments. In the request body, pass in the context instance.
      * @summary List segment memberships for context instance
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -31888,7 +35374,7 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+     * Get a single segment by key.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
      * @summary Get segment
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
@@ -31902,8 +35388,8 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * Get the membership status (included/excluded) for a given context in this Big Segment. Big Segments include larger list-based segments and synced segments. This operation does not support standard segments.
-     * @summary Get Big Segment membership for context
+     * Get the membership status (included/excluded) for a given context in this big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+     * @summary Get big segment membership for context
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
@@ -31917,8 +35403,8 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this Big Segment. This operation does not support standard segments. 
-     * @summary Get Big Segment membership for user
+     * > ### Contexts are now available > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Get expiring targets for segment](/tag/Segments#operation/getExpiringTargetsForSegment) instead of this endpoint. To learn more, read [Contexts](https://docs.launchdarkly.com/home/contexts).  Get the membership status (included/excluded) for a given user in this big segment. This operation does not support standard segments. 
+     * @summary Get big segment membership for user
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
@@ -31932,14 +35418,14 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big Segments include larger list-based segments and synced segments. Some fields in the response only apply to Big Segments.
+     * Get a list of all segments in the given project.<br/><br/>Segments can be rule-based, list-based, or synced. Big segments include larger list-based segments and synced segments. Some fields in the response only apply to big segments.
      * @summary List segments
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {number} [limit] The number of segments to return. Defaults to 50.
      * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
      * @param {string} [sort] Accepts sorting order and fields. Fields can be comma separated. Possible fields are \&#39;creationDate\&#39;, \&#39;name\&#39;, \&#39;lastModified\&#39;. Example: &#x60;sort&#x3D;name&#x60; sort by names ascending or &#x60;sort&#x3D;-name,creationDate&#x60; sort by names descending and creationDate ascending.
-     * @param {string} [filter] Accepts filter by kind, query, or tags. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag.
+     * @param {string} [filter] Accepts filter by kind, query, tags, unbounded, or external. To filter by kind or query, use the &#x60;equals&#x60; operator. To filter by tags, use the &#x60;anyOf&#x60; operator. Query is a \&#39;fuzzy\&#39; search across segment key, name, and description. Example: &#x60;filter&#x3D;tags anyOf [\&#39;enterprise\&#39;, \&#39;beta\&#39;],query equals \&#39;toggle\&#39;&#x60; returns segments with \&#39;toggle\&#39; in their key, name, or description that also have \&#39;enterprise\&#39; or \&#39;beta\&#39; as a tag. To filter by unbounded, use the &#x60;equals&#x60; operator. Example: &#x60;filter&#x3D;unbounded equals true&#x60;. To filter by external, use the &#x60;exists&#x60; operator. Example: &#x60;filter&#x3D;external exists true&#x60;.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof SegmentsApi
@@ -32008,8 +35494,8 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * Update context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-     * @summary Update context targets on a Big Segment
+     * Update context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+     * @summary Update context targets on a big segment
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
@@ -32023,8 +35509,8 @@ export class SegmentsApi extends BaseAPI {
     }
 
     /**
-     * Update user context targets included or excluded in a Big Segment. Big Segments include larger list-based segments and synced segments.
-     * @summary Update user context targets on a Big Segment
+     * Update user context targets included or excluded in a big segment. Big segments include larger list-based segments and synced segments. This operation does not support standard segments.
+     * @summary Update user context targets on a big segment
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
@@ -32046,8 +35532,8 @@ export class SegmentsApi extends BaseAPI {
 export const SegmentsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Starts a new export process for a Big Segment. This is an export for a list-based segment that can include more than 15,000 entries.
-         * @summary Create Big Segment export
+         * Starts a new export process for a big segment. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+         * @summary Create big segment export
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32091,8 +35577,8 @@ export const SegmentsBetaApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Start a new import process for a Big Segment. This is an import for a list-based segment that can include more than 15,000 entries.
-         * @summary Create Big Segment import
+         * Start a new import process for a big segment. This is an import for a list-based segment that can include more than 15,000 entries.
+         * @summary Create big segment import
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32150,8 +35636,8 @@ export const SegmentsBetaApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Returns information about a Big Segment export process. This is the export of a list-based segment that can include more than 15,000 entries.
-         * @summary Get Big Segment export
+         * Returns information about a big segment export process. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+         * @summary Get big segment export
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32199,8 +35685,8 @@ export const SegmentsBetaApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Returns information about a Big Segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
-         * @summary Get Big Segment import
+         * Returns information about a big segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
+         * @summary Get big segment import
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32258,8 +35744,8 @@ export const SegmentsBetaApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = SegmentsBetaApiAxiosParamCreator(configuration)
     return {
         /**
-         * Starts a new export process for a Big Segment. This is an export for a list-based segment that can include more than 15,000 entries.
-         * @summary Create Big Segment export
+         * Starts a new export process for a big segment. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+         * @summary Create big segment export
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32271,8 +35757,8 @@ export const SegmentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Start a new import process for a Big Segment. This is an import for a list-based segment that can include more than 15,000 entries.
-         * @summary Create Big Segment import
+         * Start a new import process for a big segment. This is an import for a list-based segment that can include more than 15,000 entries.
+         * @summary Create big segment import
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32286,8 +35772,8 @@ export const SegmentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Returns information about a Big Segment export process. This is the export of a list-based segment that can include more than 15,000 entries.
-         * @summary Get Big Segment export
+         * Returns information about a big segment export process. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+         * @summary Get big segment export
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32300,8 +35786,8 @@ export const SegmentsBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Returns information about a Big Segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
-         * @summary Get Big Segment import
+         * Returns information about a big segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
+         * @summary Get big segment import
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32324,8 +35810,8 @@ export const SegmentsBetaApiFactory = function (configuration?: Configuration, b
     const localVarFp = SegmentsBetaApiFp(configuration)
     return {
         /**
-         * Starts a new export process for a Big Segment. This is an export for a list-based segment that can include more than 15,000 entries.
-         * @summary Create Big Segment export
+         * Starts a new export process for a big segment. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+         * @summary Create big segment export
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32336,8 +35822,8 @@ export const SegmentsBetaApiFactory = function (configuration?: Configuration, b
             return localVarFp.createBigSegmentExport(projectKey, environmentKey, segmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Start a new import process for a Big Segment. This is an import for a list-based segment that can include more than 15,000 entries.
-         * @summary Create Big Segment import
+         * Start a new import process for a big segment. This is an import for a list-based segment that can include more than 15,000 entries.
+         * @summary Create big segment import
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32350,8 +35836,8 @@ export const SegmentsBetaApiFactory = function (configuration?: Configuration, b
             return localVarFp.createBigSegmentImport(projectKey, environmentKey, segmentKey, file, mode, options).then((request) => request(axios, basePath));
         },
         /**
-         * Returns information about a Big Segment export process. This is the export of a list-based segment that can include more than 15,000 entries.
-         * @summary Get Big Segment export
+         * Returns information about a big segment export process. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+         * @summary Get big segment export
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32363,8 +35849,8 @@ export const SegmentsBetaApiFactory = function (configuration?: Configuration, b
             return localVarFp.getBigSegmentExport(projectKey, environmentKey, segmentKey, exportID, options).then((request) => request(axios, basePath));
         },
         /**
-         * Returns information about a Big Segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
-         * @summary Get Big Segment import
+         * Returns information about a big segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
+         * @summary Get big segment import
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
@@ -32386,8 +35872,8 @@ export const SegmentsBetaApiFactory = function (configuration?: Configuration, b
  */
 export class SegmentsBetaApi extends BaseAPI {
     /**
-     * Starts a new export process for a Big Segment. This is an export for a list-based segment that can include more than 15,000 entries.
-     * @summary Create Big Segment export
+     * Starts a new export process for a big segment. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+     * @summary Create big segment export
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
@@ -32400,8 +35886,8 @@ export class SegmentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Start a new import process for a Big Segment. This is an import for a list-based segment that can include more than 15,000 entries.
-     * @summary Create Big Segment import
+     * Start a new import process for a big segment. This is an import for a list-based segment that can include more than 15,000 entries.
+     * @summary Create big segment import
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
@@ -32416,8 +35902,8 @@ export class SegmentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Returns information about a Big Segment export process. This is the export of a list-based segment that can include more than 15,000 entries.
-     * @summary Get Big Segment export
+     * Returns information about a big segment export process. This is an export for a synced segment or a list-based segment that can include more than 15,000 entries.
+     * @summary Get big segment export
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
@@ -32431,8 +35917,8 @@ export class SegmentsBetaApi extends BaseAPI {
     }
 
     /**
-     * Returns information about a Big Segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
-     * @summary Get Big Segment import
+     * Returns information about a big segment import process. This is the import of a list-based segment that can include more than 15,000 entries.
+     * @summary Get big segment import
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
