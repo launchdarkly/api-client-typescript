@@ -5494,6 +5494,18 @@ export interface FeatureFlagBody {
      * @memberof FeatureFlagBody
      */
     'migrationSettings'?: MigrationSettingsPost;
+    /**
+     * The ID of the member who maintains this feature flag
+     * @type {string}
+     * @memberof FeatureFlagBody
+     */
+    'maintainerId'?: string;
+    /**
+     * The key of the team that maintains this feature flag
+     * @type {string}
+     * @memberof FeatureFlagBody
+     */
+    'maintainerTeamKey'?: string;
 }
 
 export const FeatureFlagBodyPurposeEnum = {
@@ -9463,19 +9475,19 @@ export interface MetricListingRep {
      */
     'randomizationUnits'?: Array<string>;
     /**
-     * The method in which multiple unit event values are aggregated
+     * The method by which multiple unit event values are aggregated
      * @type {string}
      * @memberof MetricListingRep
      */
     'unitAggregationType'?: MetricListingRepUnitAggregationTypeEnum;
     /**
-     * The strategy for analyzing metric events
+     * The method for analyzing metric events
      * @type {string}
      * @memberof MetricListingRep
      */
     'analysisType'?: MetricListingRepAnalysisTypeEnum;
     /**
-     * The percentile, an integer denoting the target percentile between 0 and 100. Only present when <code>analysisType</code> is <code>percentile</code>.
+     * The percentile for the analysis method. An integer denoting the target percentile between 0 and 100. Required when <code>analysisType</code> is <code>percentile</code>.
      * @type {number}
      * @memberof MetricListingRep
      */
@@ -9599,11 +9611,29 @@ export interface MetricPost {
      */
     'randomizationUnits'?: Array<string>;
     /**
-     * The method in which multiple unit event values are aggregated
+     * The method by which multiple unit event values are aggregated
      * @type {string}
      * @memberof MetricPost
      */
     'unitAggregationType'?: MetricPostUnitAggregationTypeEnum;
+    /**
+     * The method for analyzing metric events
+     * @type {string}
+     * @memberof MetricPost
+     */
+    'analysisType'?: string;
+    /**
+     * The percentile for the analysis method. An integer denoting the target percentile between 0 and 100. Required when <code>analysisType</code> is <code>percentile</code>.
+     * @type {number}
+     * @memberof MetricPost
+     */
+    'percentileValue'?: number;
+    /**
+     * 
+     * @type {MetricEventDefaultRep}
+     * @memberof MetricPost
+     */
+    'eventDefault'?: MetricEventDefaultRep;
 }
 
 export const MetricPostKindEnum = {
@@ -9765,19 +9795,19 @@ export interface MetricRep {
      */
     'randomizationUnits'?: Array<string>;
     /**
-     * The method in which multiple unit event values are aggregated
+     * The method by which multiple unit event values are aggregated
      * @type {string}
      * @memberof MetricRep
      */
     'unitAggregationType'?: MetricRepUnitAggregationTypeEnum;
     /**
-     * The strategy for analyzing metric events
+     * The method for analyzing metric events
      * @type {string}
      * @memberof MetricRep
      */
     'analysisType'?: MetricRepAnalysisTypeEnum;
     /**
-     * The percentile, an integer denoting the target percentile between 0 and 100. Only present when <code>analysisType</code> is <code>percentile</code>.
+     * The percentile for the analysis method. An integer denoting the target percentile between 0 and 100. Required when <code>analysisType</code> is <code>percentile</code>.
      * @type {number}
      * @memberof MetricRep
      */
@@ -10775,6 +10805,12 @@ export interface Project {
      */
     'name': string;
     /**
+     * 
+     * @type {Access}
+     * @memberof Project
+     */
+    '_access'?: Access;
+    /**
      * A list of tags for the project
      * @type {Array<string>}
      * @memberof Project
@@ -10878,6 +10914,12 @@ export interface ProjectRep {
      * @memberof ProjectRep
      */
     'name': string;
+    /**
+     * 
+     * @type {Access}
+     * @memberof ProjectRep
+     */
+    '_access'?: Access;
     /**
      * A list of tags for the project
      * @type {Array<string>}
@@ -11561,6 +11603,25 @@ export interface Release {
 /**
  * 
  * @export
+ * @interface ReleaseAudience
+ */
+export interface ReleaseAudience {
+    /**
+     * 
+     * @type {EnvironmentSummary}
+     * @memberof ReleaseAudience
+     */
+    'environment': EnvironmentSummary;
+    /**
+     * The release phase name
+     * @type {string}
+     * @memberof ReleaseAudience
+     */
+    'name': string;
+}
+/**
+ * 
+ * @export
  * @interface ReleasePhase
  */
 export interface ReleasePhase {
@@ -11602,10 +11663,10 @@ export interface ReleasePhase {
     '_completedBy'?: CompletedBy;
     /**
      * A logical grouping of one or more environments that share attributes for rolling out changes
-     * @type {Array<Audience>}
+     * @type {Array<ReleaseAudience>}
      * @memberof ReleasePhase
      */
-    '_audiences': Array<Audience>;
+    '_audiences': Array<ReleaseAudience>;
 }
 /**
  * 
@@ -16013,6 +16074,49 @@ export class AccountMembersBetaApi extends BaseAPI {
 export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
+         * Get a time-series array of the number of monthly data export events from your account. The granularity is always daily, with a maximum of 31 days.
+         * @summary Get data export events usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDataExportEventsUsage: async (from?: string, to?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/usage/data-export-events`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get evaluations usage
          * @param {string} projectKey The project key
@@ -16370,6 +16474,49 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             };
         },
         /**
+         * Get a time-series array of the number of monthly service connections from your account. The granularity is always daily, with a maximum of 31 days.
+         * @summary Get service connection usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getServiceConnectionUsage: async (from?: string, to?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/usage/service-connections`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get a time-series array of the number of streaming connections to LaunchDarkly in each time period. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get stream usage
          * @param {string} source The source of streaming connections to describe. Must be either &#x60;client&#x60; or &#x60;server&#x60;.
@@ -16531,6 +16678,18 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = AccountUsageBetaApiAxiosParamCreator(configuration)
     return {
         /**
+         * Get a time-series array of the number of monthly data export events from your account. The granularity is always daily, with a maximum of 31 days.
+         * @summary Get data export events usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getDataExportEventsUsage(from?: string, to?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesIntervalsRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getDataExportEventsUsage(from, to, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
          * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get evaluations usage
          * @param {string} projectKey The project key
@@ -16627,6 +16786,18 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
+         * Get a time-series array of the number of monthly service connections from your account. The granularity is always daily, with a maximum of 31 days.
+         * @summary Get service connection usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getServiceConnectionUsage(from?: string, to?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesIntervalsRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getServiceConnectionUsage(from, to, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
          * Get a time-series array of the number of streaming connections to LaunchDarkly in each time period. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get stream usage
          * @param {string} source The source of streaming connections to describe. Must be either &#x60;client&#x60; or &#x60;server&#x60;.
@@ -16677,6 +16848,17 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
 export const AccountUsageBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = AccountUsageBetaApiFp(configuration)
     return {
+        /**
+         * Get a time-series array of the number of monthly data export events from your account. The granularity is always daily, with a maximum of 31 days.
+         * @summary Get data export events usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getDataExportEventsUsage(from?: string, to?: string, options?: any): AxiosPromise<SeriesIntervalsRep> {
+            return localVarFp.getDataExportEventsUsage(from, to, options).then((request) => request(axios, basePath));
+        },
         /**
          * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get evaluations usage
@@ -16767,6 +16949,17 @@ export const AccountUsageBetaApiFactory = function (configuration?: Configuratio
             return localVarFp.getMauUsageByCategory(from, to, options).then((request) => request(axios, basePath));
         },
         /**
+         * Get a time-series array of the number of monthly service connections from your account. The granularity is always daily, with a maximum of 31 days.
+         * @summary Get service connection usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getServiceConnectionUsage(from?: string, to?: string, options?: any): AxiosPromise<SeriesIntervalsRep> {
+            return localVarFp.getServiceConnectionUsage(from, to, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get a time-series array of the number of streaming connections to LaunchDarkly in each time period. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
          * @summary Get stream usage
          * @param {string} source The source of streaming connections to describe. Must be either &#x60;client&#x60; or &#x60;server&#x60;.
@@ -16814,6 +17007,19 @@ export const AccountUsageBetaApiFactory = function (configuration?: Configuratio
  * @extends {BaseAPI}
  */
 export class AccountUsageBetaApi extends BaseAPI {
+    /**
+     * Get a time-series array of the number of monthly data export events from your account. The granularity is always daily, with a maximum of 31 days.
+     * @summary Get data export events usage
+     * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+     * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AccountUsageBetaApi
+     */
+    public getDataExportEventsUsage(from?: string, to?: string, options?: AxiosRequestConfig) {
+        return AccountUsageBetaApiFp(this.configuration).getDataExportEventsUsage(from, to, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
      * @summary Get evaluations usage
@@ -16915,6 +17121,19 @@ export class AccountUsageBetaApi extends BaseAPI {
      */
     public getMauUsageByCategory(from?: string, to?: string, options?: AxiosRequestConfig) {
         return AccountUsageBetaApiFp(this.configuration).getMauUsageByCategory(from, to, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a time-series array of the number of monthly service connections from your account. The granularity is always daily, with a maximum of 31 days.
+     * @summary Get service connection usage
+     * @param {string} [from] The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month.
+     * @param {string} [to] The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AccountUsageBetaApi
+     */
+    public getServiceConnectionUsage(from?: string, to?: string, options?: AxiosRequestConfig) {
+        return AccountUsageBetaApiFp(this.configuration).getServiceConnectionUsage(from, to, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24099,7 +24318,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `applicationEvaluated`  | A string. It filters the list to flags that are evaluated in the application with the given key. | `filter=applicationEvaluated:com.launchdarkly.cafe` | | `archived`              | (deprecated) A boolean value. It filters the list to archived flags. | Use `filter=state:archived` instead | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `state`                 | A string, either `live`, `deprecated`, or `archived`. It filters the list to flags in this state. | `filter=state:archived` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary List feature flags
          * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
@@ -24335,7 +24554,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Create a feature flag with the given name, key, and variations.  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration. To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Create a feature flag with the given name, key, and variations.  <details> <summary>Click to expand instructions for <strong>creating a migration flag</strong></summary>  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration.  To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags).  </details> 
          * @summary Create a feature flag
          * @param {string} projectKey The project key
          * @param {FeatureFlagBody} featureFlagBody 
@@ -24496,7 +24715,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `applicationEvaluated`  | A string. It filters the list to flags that are evaluated in the application with the given key. | `filter=applicationEvaluated:com.launchdarkly.cafe` | | `archived`              | (deprecated) A boolean value. It filters the list to archived flags. | Use `filter=state:archived` instead | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `state`                 | A string, either `live`, `deprecated`, or `archived`. It filters the list to flags in this state. | `filter=state:archived` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary List feature flags
          * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
@@ -24558,7 +24777,7 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
-         * Create a feature flag with the given name, key, and variations.  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration. To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Create a feature flag with the given name, key, and variations.  <details> <summary>Click to expand instructions for <strong>creating a migration flag</strong></summary>  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration.  To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags).  </details> 
          * @summary Create a feature flag
          * @param {string} projectKey The project key
          * @param {FeatureFlagBody} featureFlagBody 
@@ -24676,7 +24895,7 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
             return localVarFp.getFeatureFlagStatuses(projectKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `applicationEvaluated`  | A string. It filters the list to flags that are evaluated in the application with the given key. | `filter=applicationEvaluated:com.launchdarkly.cafe` | | `archived`              | (deprecated) A boolean value. It filters the list to archived flags. | Use `filter=state:archived` instead | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `state`                 | A string, either `live`, `deprecated`, or `archived`. It filters the list to flags in this state. | `filter=state:archived` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
          * @summary List feature flags
          * @param {string} projectKey The project key
          * @param {string} [env] Filter configurations by environment
@@ -24734,7 +24953,7 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
             return localVarFp.patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, options).then((request) => request(axios, basePath));
         },
         /**
-         * Create a feature flag with the given name, key, and variations.  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration. To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+         * Create a feature flag with the given name, key, and variations.  <details> <summary>Click to expand instructions for <strong>creating a migration flag</strong></summary>  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration.  To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags).  </details> 
          * @summary Create a feature flag
          * @param {string} projectKey The project key
          * @param {FeatureFlagBody} featureFlagBody 
@@ -24867,7 +25086,7 @@ export class FeatureFlagsApi extends BaseAPI {
     }
 
     /**
-     * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `archived`              | A boolean value. It filters the list to archived flags. Setting the value to `true` returns only archived flags. When this is absent, only unarchived flags are returned. | `filter=archived:true` | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+     * Get a list of all feature flags in the given project. By default, each flag includes configurations for each environment. You can filter environments with the `env` query parameter. For example, setting `env=production` restricts the returned configurations to just your production environment. You can also filter feature flags by tag with the `tag` query parameter.  > #### Recommended use > > This endpoint can return a large amount of information. We recommend using some or all of these query parameters to decrease response time and overall payload size: `limit`, `env`, `query`, and `filter=creationDate`.  ### Filtering flags  You can filter on certain fields using the `filter` query parameter. For example, setting `filter=query:dark-mode,tags:beta+test` matches flags with the string `dark-mode` in their key or name, ignoring case, which also have the tags `beta` and `test`.  The `filter` query parameter supports the following arguments:  | Filter argument       | Description | Example              | |-----------------------|-------------|----------------------| | `applicationEvaluated`  | A string. It filters the list to flags that are evaluated in the application with the given key. | `filter=applicationEvaluated:com.launchdarkly.cafe` | | `archived`              | (deprecated) A boolean value. It filters the list to archived flags. | Use `filter=state:archived` instead | | `contextKindsEvaluated` | A `+`-separated list of context kind keys. It filters the list to flags which have been evaluated in the past 30 days for all of the context kinds in the list. | `filter=contextKindsEvaluated:user+application` | | `contextKindTargeted`   | A string. It filters the list to flags that are targeting the given context kind key. | `filter=contextKindTargeted:user` | | `codeReferences.max`    | An integer value. Use `0` to return flags that do not have code references. | `filter=codeReferences.max:0` | | `codeReferences.min`    | An integer value. Use `1` to return flags that do have code references. | `filter=codeReferences.min:1` | | `creationDate`          | An object with an optional `before` field whose value is Unix time in milliseconds. It filters the list to flags created before the date. | `filter=creationDate:{\"before\":1690527600000}` | | `evaluated`             | An object that contains a key of `after` and a value in Unix time in milliseconds. It filters the list to all flags that have been evaluated since the time you specify, in the environment provided. This filter requires the `filterEnv` filter. | `filter=evaluation:{\"after\":1690527600000}` | | `filterEnv`             | A string with the key of a valid environment. You must use this field for filters that are environment-specific. If there are multiple environment-specific filters, you only need to include this field once. | `filter=evaluated:{\"after\": 1590768455282},filterEnv:production,status:active` | | `followerId`            | A valid member ID. It filters the list to flags that are being followed by this member. |  `filter=followerId:12ab3c45de678910abc12345` | | `hasDataExport`         | A boolean value. It filters the list to flags that are exporting data in the specified environment. This includes flags that are exporting data from Experimentation. This filter requires the `filterEnv` filter. | `filter=hasDataExport:true,filterEnv:production` | | `hasExperiment`         | A boolean value. It filters the list to flags that are used in an experiment. | `filter=hasExperiment:true` | | `maintainerId`          | A valid member ID. It filters the list to flags that are maintained by this member. | `filter=maintainerId:12ab3c45de678910abc12345` | | `maintainerTeamKey`     | A string. It filters the list to flags that are maintained by the team with this key. | `filter=maintainerTeamKey:example-team-key` | | `query`                 | A string. It filters the list to flags that include the specified string in their key or name. It is not case sensitive. | `filter=query:example` | | `state`                 | A string, either `live`, `deprecated`, or `archived`. It filters the list to flags in this state. | `filter=state:archived` | | `sdkAvailability`       | A string, one of `client`, `mobile`, `anyClient`, `server`. Using `client` filters the list to flags whose client-side SDK availability is set to use the client-side ID. Using `mobile` filters to flags set to use the mobile key. Using `anyClient` filters to flags set to use either the client-side ID or the mobile key. Using `server` filters to flags set to use neither, that is, to flags only available in server-side SDKs.  | `filter=sdkAvailability:client` | | `segmentTargeted`       | A string. It filters the list to flags that target the segment with this key. This filter requires the `filterEnv` filter. | `filter=segmentTargeted:example-segment-key,filterEnv:production` | | `status`                | A string, either `new`, `inactive`, `active`, or `launched`. It filters the list to flags with the specified status in the specified environment. This filter requires the `filterEnv` filter. | `filter=status:active,filterEnv:production` | | `tags`                  | A `+`-separated list of tags. It filters the list to flags that have all of the tags in the list. | `filter=tags:beta+test` | | `type`                  | A string, either `temporary` or `permanent`. It filters the list to flags with the specified type. | `filter=type:permanent` |  The documented values for the `filter` query are prior to URL encoding. For example, the `+` in `filter=tags:beta+test` must be encoded to `%2B`.  By default, this endpoint returns all flags. You can page through the list with the `limit` parameter and by following the `first`, `prev`, `next`, and `last` links in the returned `_links` field. These links will not be present if the pages they refer to don\'t exist. For example, the `first` and `prev` links will be missing from the response on the first page.  ### Sorting flags  You can sort flags based on the following fields:  - `creationDate` sorts by the creation date of the flag. - `key` sorts by the key of the flag. - `maintainerId` sorts by the flag maintainer. - `name` sorts by flag name. - `tags` sorts by tags. - `targetingModifiedDate` sorts by the date that the flag\'s targeting rules were last modified in a given environment. It must be used with `env` parameter and it can not be combined with any other sort. If multiple `env` values are provided, it will perform sort using the first one. For example, `sort=-targetingModifiedDate&env=production&env=staging` returns results sorted by `targetingModifiedDate` for the `production` environment. - `type` sorts by flag type  All fields are sorted in ascending order by default. To sort in descending order, prefix the field with a dash ( - ). For example, `sort=-name` sorts the response by flag name in descending order.  ### Expanding response  LaunchDarkly supports the `expand` query param to include additional fields in the response, with the following fields:  - `codeReferences` includes code references for the feature flag - `evaluation` includes evaluation information within returned environments, including which context kinds the flag has been evaluated for in the past 30 days - `migrationSettings` includes migration settings information within the flag and within returned environments. These settings are only included for migration flags, that is, where `purpose` is `migration`.  For example, `expand=evaluation` includes the `evaluation` field in the response.  ### Migration flags For migration flags, the cohort information is included in the `rules` property of a flag\'s response, and default cohort information is included in the `fallthrough` property of a flag\'s response. To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
      * @summary List feature flags
      * @param {string} projectKey The project key
      * @param {string} [env] Filter configurations by environment
@@ -24933,7 +25152,7 @@ export class FeatureFlagsApi extends BaseAPI {
     }
 
     /**
-     * Create a feature flag with the given name, key, and variations.  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration. To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags). 
+     * Create a feature flag with the given name, key, and variations.  <details> <summary>Click to expand instructions for <strong>creating a migration flag</strong></summary>  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration.  To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://docs.launchdarkly.com/home/flag-types/migration-flags).  </details> 
      * @summary Create a feature flag
      * @param {string} projectKey The project key
      * @param {FeatureFlagBody} featureFlagBody 
@@ -26718,11 +26937,11 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
         },
         /**
          * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
-         * @summary Get replease frequency chart data
+         * @summary Get release frequency chart data
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} [applicationKey] Comma separated list of application keys
-         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
          * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
          * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
          * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
@@ -26947,11 +27166,11 @@ export const InsightsChartsBetaApiFp = function(configuration?: Configuration) {
         },
         /**
          * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
-         * @summary Get replease frequency chart data
+         * @summary Get release frequency chart data
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} [applicationKey] Comma separated list of application keys
-         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
          * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
          * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
          * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
@@ -27043,11 +27262,11 @@ export const InsightsChartsBetaApiFactory = function (configuration?: Configurat
         },
         /**
          * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
-         * @summary Get replease frequency chart data
+         * @summary Get release frequency chart data
          * @param {string} projectKey The project key
          * @param {string} environmentKey The environment key
          * @param {string} [applicationKey] Comma separated list of application keys
-         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
          * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
          * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
          * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
@@ -27143,11 +27362,11 @@ export class InsightsChartsBetaApi extends BaseAPI {
 
     /**
      * Get release frequency chart data. Engineering insights displays release frequency data in the [release frequency metric view](https://docs.launchdarkly.com/home/engineering-insights/metrics/release).
-     * @summary Get replease frequency chart data
+     * @summary Get release frequency chart data
      * @param {string} projectKey The project key
      * @param {string} environmentKey The environment key
      * @param {string} [applicationKey] Comma separated list of application keys
-     * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+     * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
      * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
      * @param {string} [groupBy] Property to group results by. Options: &#x60;impact&#x60;
      * @param {string} [from] Unix timestamp in milliseconds. Default value is 7 days ago.
@@ -27619,7 +27838,7 @@ export const InsightsFlagEventsBetaApiAxiosParamCreator = function (configuratio
          * @param {string} [applicationKey] Comma separated list of application keys
          * @param {string} [query] Filter events by flag key
          * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
-         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
          * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
          * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
          * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
@@ -27731,7 +27950,7 @@ export const InsightsFlagEventsBetaApiFp = function(configuration?: Configuratio
          * @param {string} [applicationKey] Comma separated list of application keys
          * @param {string} [query] Filter events by flag key
          * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
-         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
          * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
          * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
          * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
@@ -27764,7 +27983,7 @@ export const InsightsFlagEventsBetaApiFactory = function (configuration?: Config
          * @param {string} [applicationKey] Comma separated list of application keys
          * @param {string} [query] Filter events by flag key
          * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
-         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+         * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
          * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
          * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
          * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
@@ -27796,7 +28015,7 @@ export class InsightsFlagEventsBetaApi extends BaseAPI {
      * @param {string} [applicationKey] Comma separated list of application keys
      * @param {string} [query] Filter events by flag key
      * @param {string} [impactSize] Filter events by impact size. A small impact created a less than 20% change in the proportion of end users receiving one or more flag variations. A medium impact created between a 20%-80% change. A large impact created a more than 80% change. Options: &#x60;none&#x60;, &#x60;small&#x60;, &#x60;medium&#x60;, &#x60;large&#x60;
-     * @param {boolean} [hasExperiments] Filter events to those associated with an experiment
+     * @param {boolean} [hasExperiments] Filter events to those associated with an experiment (&#x60;true&#x60;) or without an experiment (&#x60;false&#x60;)
      * @param {string} [global] Filter to include or exclude global events. Default value is &#x60;include&#x60;. Options: &#x60;include&#x60;, &#x60;exclude&#x60;
      * @param {string} [expand] Expand properties in response. Options: &#x60;experiments&#x60;
      * @param {number} [limit] The number of deployments to return. Default is 20. Maximum allowed is 100.
