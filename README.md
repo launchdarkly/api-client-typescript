@@ -6,7 +6,7 @@ This REST API is for custom integrations, data export, or automating your featur
 This client library is only compatible with the latest version of our REST API, version `20220603`. Previous versions of this client library, prior to version 10.0.0, are only compatible with earlier versions of our REST API. When you create an access token, you can set the REST API version associated with the token. By default, API requests you send using the token will use the specified API version. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).
 View our [sample code](#sample-code) for example usage.
 
-## launchdarkly-api-typescript@16.1.1
+## launchdarkly-api-typescript@17.0.0
 
 # Overview
 
@@ -14,7 +14,7 @@ View our [sample code](#sample-code) for example usage.
 
 LaunchDarkly's REST API uses the HTTPS protocol with a minimum TLS version of 1.2.
 
-All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account/api), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Account settings**](https://app.launchdarkly.com/settings/tokens) page.
+All REST API resources are authenticated with either [personal or service access tokens](https://docs.launchdarkly.com/home/account/api), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page in the LaunchDarkly UI.
 
 LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and JavaScript-based SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations such as fetching feature flag settings.
 
@@ -27,7 +27,7 @@ LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used b
 
 > #### Keep your access tokens and SDK keys private
 >
-> Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Account settings**](https://app.launchdarkly.com/settings/tokens) page.
+> Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page.
 >
 > The client-side ID is safe to embed in untrusted contexts. It's designed for use in client-side JavaScript.
 
@@ -35,7 +35,7 @@ LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used b
 
 The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.
 
-Manage personal access tokens from the [**Account settings**](https://app.launchdarkly.com/settings/tokens) page.
+Manage personal access tokens from the [**Authorization**](https://app.launchdarkly.com/settings/authorization) page.
 
 ### Authentication using session cookie
 
@@ -73,7 +73,7 @@ The best way to find a detailed representation is to follow links. Every summary
 
 Sometimes the detailed representation of a resource does not include all of the attributes of the resource by default. If this is the case, the request method will clearly document this and describe which attributes you can include in an expanded response.
 
-To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,roles` to the [Get team](/tag/Teams#operation/getTeam) endpoint, the expanded response includes both of these attributes.
+To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,maintainers` to the [Get team](/tag/Teams#operation/getTeam) endpoint, the expanded response includes both of these attributes.
 
 ### Links and addressability
 
@@ -432,7 +432,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@16.1.1 --save
+npm install launchdarkly-api-typescript@17.0.0 --save
 ```
 
 _unPublished (not recommended):_
