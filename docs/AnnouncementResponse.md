@@ -1,0 +1,39 @@
+# AnnouncementResponse
+
+Announcement response
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**_id** | **string** | The ID of the announcement | [default to undefined]
+**isDismissible** | **boolean** | true if the announcement is dismissible | [default to undefined]
+**title** | **string** | The title of the announcement | [default to undefined]
+**message** | **string** | The message of the announcement | [default to undefined]
+**startTime** | **number** | The start time of the announcement. This is a Unix timestamp in milliseconds. | [default to undefined]
+**endTime** | **number** | The end time of the announcement. This is a Unix timestamp in milliseconds. | [optional] [default to undefined]
+**severity** | **string** | The severity of the announcement | [default to undefined]
+**_status** | **string** | The status of the announcement | [default to undefined]
+**_access** | [**AnnouncementAccessRep**](AnnouncementAccessRep.md) |  | [optional] [default to undefined]
+**_links** | [**AnnouncementResponseLinks**](AnnouncementResponseLinks.md) |  | [default to undefined]
+
+## Example
+
+```typescript
+import { AnnouncementResponse } from 'launchdarkly-api-typescript';
+
+const instance: AnnouncementResponse = {
+    _id,
+    isDismissible,
+    title,
+    message,
+    startTime,
+    endTime,
+    severity,
+    _status,
+    _access,
+    _links,
+};
+```
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

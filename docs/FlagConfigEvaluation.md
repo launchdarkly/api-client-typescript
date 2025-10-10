@@ -1,0 +1,20 @@
+# FlagConfigEvaluation
+
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**contextKinds** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
+
+## Example
+
+```typescript
+import { FlagConfigEvaluation } from 'launchdarkly-api-typescript';
+
+const instance: FlagConfigEvaluation = {
+    contextKinds,
+};
+```
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
