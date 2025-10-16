@@ -20,6 +20,10 @@ Name | Type | Description | Notes
 **_version** | **number** | The version of this metric group | [default to undefined]
 **experiments** | [**Array&lt;DependentExperimentRep&gt;**](DependentExperimentRep.md) |  | [optional] [default to undefined]
 **experimentCount** | **number** | The number of experiments using this metric group | [optional] [default to undefined]
+**activeExperimentCount** | **number** | The number of active experiments using this metric group | [optional] [default to undefined]
+**activeGuardedRolloutCount** | **number** | The number of active guarded rollouts using this metric group | [optional] [default to undefined]
+**totalConnectionsCount** | **number** | The total number of connections using this metric group | [optional] [default to undefined]
+**totalActiveConnectionsCount** | **number** | The total number of active connections using this metric group | [optional] [default to undefined]
 
 ## Example
 
@@ -42,6 +46,10 @@ const instance: MetricGroupRep = {
     _version,
     experiments,
     experimentCount,
+    activeExperimentCount,
+    activeGuardedRolloutCount,
+    totalConnectionsCount,
+    totalActiveConnectionsCount,
 };
 ```
 

@@ -6328,6 +6328,22 @@ export interface MetricGroupRep {
      * The number of experiments using this metric group
      */
     'experimentCount'?: number;
+    /**
+     * The number of active experiments using this metric group
+     */
+    'activeExperimentCount'?: number;
+    /**
+     * The number of active guarded rollouts using this metric group
+     */
+    'activeGuardedRolloutCount'?: number;
+    /**
+     * The total number of connections using this metric group
+     */
+    'totalConnectionsCount'?: number;
+    /**
+     * The total number of active connections using this metric group
+     */
+    'totalActiveConnectionsCount'?: number;
 }
 
 export const MetricGroupRepKindEnum = {
@@ -31296,7 +31312,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
          * @summary Get metric
          * @param {string} projectKey The project key
          * @param {string} metricKey The metric key
-         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, and &#x60;lastUsedInEntity&#x60;.
+         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, &#x60;lastUsedInExperiment&#x60;, and &#x60;lastUsedInGuardedRollout&#x60;.
          * @param {string} [versionId] The specific version ID of the metric
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -31522,7 +31538,7 @@ export const MetricsApiFp = function(configuration?: Configuration) {
          * @summary Get metric
          * @param {string} projectKey The project key
          * @param {string} metricKey The metric key
-         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, and &#x60;lastUsedInEntity&#x60;.
+         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, &#x60;lastUsedInExperiment&#x60;, and &#x60;lastUsedInGuardedRollout&#x60;.
          * @param {string} [versionId] The specific version ID of the metric
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -31605,7 +31621,7 @@ export const MetricsApiFactory = function (configuration?: Configuration, basePa
          * @summary Get metric
          * @param {string} projectKey The project key
          * @param {string} metricKey The metric key
-         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, and &#x60;lastUsedInEntity&#x60;.
+         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, &#x60;lastUsedInExperiment&#x60;, and &#x60;lastUsedInGuardedRollout&#x60;.
          * @param {string} [versionId] The specific version ID of the metric
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -31675,7 +31691,7 @@ export class MetricsApi extends BaseAPI {
      * @summary Get metric
      * @param {string} projectKey The project key
      * @param {string} metricKey The metric key
-     * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, and &#x60;lastUsedInEntity&#x60;.
+     * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, &#x60;lastUsedInExperiment&#x60;, and &#x60;lastUsedInGuardedRollout&#x60;.
      * @param {string} [versionId] The specific version ID of the metric
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

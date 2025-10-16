@@ -86,7 +86,7 @@ const apiInstance = new MetricsApi(configuration);
 
 let projectKey: string; //The project key (default to undefined)
 let metricKey: string; //The metric key (default to undefined)
-let expand: string; //A comma-separated list of properties that can reveal additional information in the response. Supported fields are `experiments`, `experimentCount`, `metricGroups`, `metricGroupCount`, `eventSources`, `guardedRollouts`, `guardedRolloutCount`, and `lastUsedInEntity`. (optional) (default to undefined)
+let expand: string; //A comma-separated list of properties that can reveal additional information in the response. Supported fields are `experiments`, `experimentCount`, `metricGroups`, `metricGroupCount`, `eventSources`, `guardedRollouts`, `guardedRolloutCount`, `lastUsedInExperiment`, and `lastUsedInGuardedRollout`. (optional) (default to undefined)
 let versionId: string; //The specific version ID of the metric (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getMetric(
@@ -103,7 +103,7 @@ const { status, data } = await apiInstance.getMetric(
 |------------- | ------------- | ------------- | -------------|
 | **projectKey** | [**string**] | The project key | defaults to undefined|
 | **metricKey** | [**string**] | The metric key | defaults to undefined|
-| **expand** | [**string**] | A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, and &#x60;lastUsedInEntity&#x60;. | (optional) defaults to undefined|
+| **expand** | [**string**] | A comma-separated list of properties that can reveal additional information in the response. Supported fields are &#x60;experiments&#x60;, &#x60;experimentCount&#x60;, &#x60;metricGroups&#x60;, &#x60;metricGroupCount&#x60;, &#x60;eventSources&#x60;, &#x60;guardedRollouts&#x60;, &#x60;guardedRolloutCount&#x60;, &#x60;lastUsedInExperiment&#x60;, and &#x60;lastUsedInGuardedRollout&#x60;. | (optional) defaults to undefined|
 | **versionId** | [**string**] | The specific version ID of the metric | (optional) defaults to undefined|
 
 
