@@ -1,6 +1,6 @@
 {
   "name": "launchdarkly-api-typescript",
-  "version": "18.0.1",
+  "version": "18.0.2",
   "description": "OpenAPI client for launchdarkly-api-typescript",
   "author": "OpenAPI-Generator Contributors",
   "repository": {

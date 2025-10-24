@@ -153,7 +153,7 @@ let expand: string; //A comma-separated list of properties that can reveal addit
 let limit: number; //The number of metrics to return in the response. Defaults to 20. Maximum limit is 50. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and returns the next `limit` items. (optional) (default to undefined)
 let sort: string; //A field to sort the items by. Prefix field by a dash ( - ) to sort in descending order. This endpoint supports sorting by `createdAt` or `name`. (optional) (default to undefined)
-let filter: string; //A comma-separated list of filters. This endpoint accepts filtering by `query`, `tags`, \'eventKind\', \'isNumeric\', \'unitAggregationType`, `hasConnections`, `maintainerIds`, `maintainerTeamKey` and `view`. To learn more about the filter syntax, read the \'Filtering metrics\' section above. (optional) (default to undefined)
+let filter: string; //A comma-separated list of filters. This endpoint accepts filtering by `query`, `tags`, \'eventKind\', \'isNumeric\', \'unitAggregationType`, `hasConnections`, `maintainerIds`, `maintainerTeamKey`, `view`, and `dataSourceKeys`. To learn more about the filter syntax, read the \'Filtering metrics\' section above. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getMetrics(
     projectKey,
@@ -174,7 +174,7 @@ const { status, data } = await apiInstance.getMetrics(
 | **limit** | [**number**] | The number of metrics to return in the response. Defaults to 20. Maximum limit is 50. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and returns the next &#x60;limit&#x60; items. | (optional) defaults to undefined|
 | **sort** | [**string**] | A field to sort the items by. Prefix field by a dash ( - ) to sort in descending order. This endpoint supports sorting by &#x60;createdAt&#x60; or &#x60;name&#x60;. | (optional) defaults to undefined|
-| **filter** | [**string**] | A comma-separated list of filters. This endpoint accepts filtering by &#x60;query&#x60;, &#x60;tags&#x60;, \&#39;eventKind\&#39;, \&#39;isNumeric\&#39;, \&#39;unitAggregationType&#x60;, &#x60;hasConnections&#x60;, &#x60;maintainerIds&#x60;, &#x60;maintainerTeamKey&#x60; and &#x60;view&#x60;. To learn more about the filter syntax, read the \&#39;Filtering metrics\&#39; section above. | (optional) defaults to undefined|
+| **filter** | [**string**] | A comma-separated list of filters. This endpoint accepts filtering by &#x60;query&#x60;, &#x60;tags&#x60;, \&#39;eventKind\&#39;, \&#39;isNumeric\&#39;, \&#39;unitAggregationType&#x60;, &#x60;hasConnections&#x60;, &#x60;maintainerIds&#x60;, &#x60;maintainerTeamKey&#x60;, &#x60;view&#x60;, and &#x60;dataSourceKeys&#x60;. To learn more about the filter syntax, read the \&#39;Filtering metrics\&#39; section above. | (optional) defaults to undefined|
 
 
 ### Return type

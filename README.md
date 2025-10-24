@@ -6,7 +6,7 @@ This REST API is for custom integrations, data export, or automating your featur
 This client library is only compatible with the latest version of our REST API. Previous versions of this client library are compatible with earlier versions of our REST API. When you create an access token, you can set the REST API version associated with the token. By default, API requests you send using the token will use the specified API version. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).
 View our [sample code](#sample-code) for example usage.
 
-## launchdarkly-api-typescript@18.0.1
+## launchdarkly-api-typescript@18.0.2
 
 This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
 
@@ -44,7 +44,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@18.0.1 --save
+npm install launchdarkly-api-typescript@18.0.2 --save
 ```
 
 _unPublished (not recommended):_
@@ -94,9 +94,9 @@ Class | Method | HTTP request | Description
 *AccountMembersApi* | [**getMember**](docs/AccountMembersApi.md#getmember) | **GET** /api/v2/members/{id} | Get account member
 *AccountMembersApi* | [**getMembers**](docs/AccountMembersApi.md#getmembers) | **GET** /api/v2/members | List account members
 *AccountMembersApi* | [**patchMember**](docs/AccountMembersApi.md#patchmember) | **PATCH** /api/v2/members/{id} | Modify an account member
+*AccountMembersApi* | [**patchMembers**](docs/AccountMembersApi.md#patchmembers) | **PATCH** /api/v2/members | Modify account members
 *AccountMembersApi* | [**postMemberTeams**](docs/AccountMembersApi.md#postmemberteams) | **POST** /api/v2/members/{id}/teams | Add a member to teams
 *AccountMembersApi* | [**postMembers**](docs/AccountMembersApi.md#postmembers) | **POST** /api/v2/members | Invite new members
-*AccountMembersBetaApi* | [**patchMembers**](docs/AccountMembersBetaApi.md#patchmembers) | **PATCH** /api/v2/members | Modify account members
 *AccountUsageBetaApi* | [**getContextsClientsideUsage**](docs/AccountUsageBetaApi.md#getcontextsclientsideusage) | **GET** /api/v2/usage/clientside-contexts | Get contexts clientside usage
 *AccountUsageBetaApi* | [**getContextsServersideUsage**](docs/AccountUsageBetaApi.md#getcontextsserversideusage) | **GET** /api/v2/usage/serverside-contexts | Get contexts serverside usage
 *AccountUsageBetaApi* | [**getContextsTotalUsage**](docs/AccountUsageBetaApi.md#getcontextstotalusage) | **GET** /api/v2/usage/total-contexts | Get contexts total usage
@@ -531,6 +531,7 @@ Class | Method | HTTP request | Description
  - [Contexts](docs/Contexts.md)
  - [CopiedFromEnv](docs/CopiedFromEnv.md)
  - [CoreLink](docs/CoreLink.md)
+ - [CovarianceInfoRep](docs/CovarianceInfoRep.md)
  - [CreateAnnouncementBody](docs/CreateAnnouncementBody.md)
  - [CreateApprovalRequestRequest](docs/CreateApprovalRequestRequest.md)
  - [CreateCopyFlagConfigApprovalRequestRequest](docs/CreateCopyFlagConfigApprovalRequestRequest.md)

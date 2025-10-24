@@ -9,7 +9,7 @@ Name | Type | Description | Notes
 **description** | **string** | Returns the description for the agent. This is only returned for agent variations. | [optional] [default to undefined]
 **instructions** | **string** | Returns the instructions for the agent. This is only returned for agent variations. | [optional] [default to undefined]
 **key** | **string** |  | [default to undefined]
-**messages** | [**Array&lt;Message&gt;**](Message.md) |  | [default to undefined]
+**messages** | [**Array&lt;Message&gt;**](Message.md) |  | [optional] [default to undefined]
 **model** | **object** |  | [optional] [default to undefined]
 **name** | **string** |  | [default to undefined]
 **modelConfigKey** | **string** |  | [optional] [default to undefined]

@@ -43,7 +43,6 @@ docs/AccessDeniedReason.md
 docs/AccessTokenPost.md
 docs/AccessTokensApi.md
 docs/AccountMembersApi.md
-docs/AccountMembersBetaApi.md
 docs/AccountUsageBetaApi.md
 docs/ActionInput.md
 docs/ActionOutput.md
@@ -150,6 +149,7 @@ docs/Contexts.md
 docs/ContextsApi.md
 docs/CopiedFromEnv.md
 docs/CoreLink.md
+docs/CovarianceInfoRep.md
 docs/CreateAnnouncementBody.md
 docs/CreateApprovalRequestRequest.md
 docs/CreateCopyFlagConfigApprovalRequestRequest.md

@@ -26,6 +26,7 @@ Name | Type | Description | Notes
 **secondaryMetrics** | [**Array&lt;MetricV2Rep&gt;**](MetricV2Rep.md) | Deprecated, use &lt;code&gt;metrics&lt;/code&gt; instead. Details on the secondary metrics for this experiment. | [optional] [default to undefined]
 **metrics** | [**Array&lt;DependentMetricOrMetricGroupRep&gt;**](DependentMetricOrMetricGroupRep.md) | Details on the metrics for this experiment | [optional] [default to undefined]
 **layerSnapshot** | [**LayerSnapshotRep**](LayerSnapshotRep.md) |  | [optional] [default to undefined]
+**covarianceInfo** | [**CovarianceInfoRep**](CovarianceInfoRep.md) |  | [optional] [default to undefined]
 
 ## Example
 
@@ -54,6 +55,7 @@ const instance: IterationRep = {
     secondaryMetrics,
     metrics,
     layerSnapshot,
+    covarianceInfo,
 };
 ```
 
