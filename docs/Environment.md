@@ -14,6 +14,7 @@ Name | Type | Description | Notes
 **color** | **string** | The color used to indicate this environment in the UI | [default to undefined]
 **defaultTtl** | **number** | The default time (in minutes) that the PHP SDK can cache feature flag rules locally | [default to undefined]
 **secureMode** | **boolean** | Ensures that one end user of the client-side SDK cannot inspect the variations for another end user | [default to undefined]
+**_access** | [**Access**](Access.md) |  | [optional] [default to undefined]
 **defaultTrackEvents** | **boolean** | Enables tracking detailed information for new flags by default | [default to undefined]
 **requireComments** | **boolean** | Whether members who modify flags and segments through the LaunchDarkly user interface are required to add a comment | [default to undefined]
 **confirmChanges** | **boolean** | Whether members who modify flags and segments through the LaunchDarkly user interface are required to confirm those changes | [default to undefined]
@@ -37,6 +38,7 @@ const instance: Environment = {
     color,
     defaultTtl,
     secureMode,
+    _access,
     defaultTrackEvents,
     requireComments,
     confirmChanges,

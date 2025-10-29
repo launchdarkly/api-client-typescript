@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **_creationDate** | **number** |  | [default to undefined]
 **environmentKey** | **string** |  | [default to undefined]
 **archivedDate** | **number** |  | [optional] [default to undefined]
+**tags** | **Array&lt;string&gt;** | Tags for the experiment | [optional] [default to undefined]
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
 **holdoutId** | **string** | The holdout ID | [optional] [default to undefined]
 **currentIteration** | [**IterationRep**](IterationRep.md) |  | [optional] [default to undefined]
@@ -33,6 +34,7 @@ const instance: Experiment = {
     _creationDate,
     environmentKey,
     archivedDate,
+    tags,
     _links,
     holdoutId,
     currentIteration,

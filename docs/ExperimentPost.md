@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **key** | **string** | The experiment key | [default to undefined]
 **iteration** | [**IterationInput**](IterationInput.md) |  | [default to undefined]
 **holdoutId** | **string** | The ID of the holdout | [optional] [default to undefined]
+**tags** | **Array&lt;string&gt;** | Tags for the experiment | [optional] [default to undefined]
 
 ## Example
 
@@ -24,6 +25,7 @@ const instance: ExperimentPost = {
     key,
     iteration,
     holdoutId,
+    tags,
 };
 ```
 
