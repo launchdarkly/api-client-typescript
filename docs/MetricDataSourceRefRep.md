@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**key** | **string** |  | [optional] [default to undefined]
+**key** | **string** |  | [default to undefined]
 **environmentKey** | **string** |  | [optional] [default to undefined]
 **_name** | **string** |  | [optional] [default to undefined]
 **_integrationKey** | **string** |  | [optional] [default to undefined]

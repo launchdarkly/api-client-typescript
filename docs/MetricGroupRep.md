@@ -22,8 +22,6 @@ Name | Type | Description | Notes
 **experimentCount** | **number** | The number of experiments using this metric group | [optional] [default to undefined]
 **activeExperimentCount** | **number** | The number of active experiments using this metric group | [optional] [default to undefined]
 **activeGuardedRolloutCount** | **number** | The number of active guarded rollouts using this metric group | [optional] [default to undefined]
-**totalConnectionsCount** | **number** | The total number of connections using this metric group | [optional] [default to undefined]
-**totalActiveConnectionsCount** | **number** | The total number of active connections using this metric group | [optional] [default to undefined]
 
 ## Example
 
@@ -48,8 +46,6 @@ const instance: MetricGroupRep = {
     experimentCount,
     activeExperimentCount,
     activeGuardedRolloutCount,
-    totalConnectionsCount,
-    totalActiveConnectionsCount,
 };
 ```
 

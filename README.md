@@ -6,7 +6,7 @@ This REST API is for custom integrations, data export, or automating your featur
 This client library is only compatible with the latest version of our REST API. Previous versions of this client library are compatible with earlier versions of our REST API. When you create an access token, you can set the REST API version associated with the token. By default, API requests you send using the token will use the specified API version. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).
 View our [sample code](#sample-code) for example usage.
 
-## launchdarkly-api-typescript@18.1.0
+## launchdarkly-api-typescript@19.0.0
 
 This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
 
@@ -44,7 +44,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@18.1.0 --save
+npm install launchdarkly-api-typescript@19.0.0 --save
 ```
 
 _unPublished (not recommended):_
@@ -181,6 +181,7 @@ Class | Method | HTTP request | Description
 *DataExportDestinationsApi* | [**getDestinations**](docs/DataExportDestinationsApi.md#getdestinations) | **GET** /api/v2/destinations | List destinations
 *DataExportDestinationsApi* | [**patchDestination**](docs/DataExportDestinationsApi.md#patchdestination) | **PATCH** /api/v2/destinations/{projectKey}/{environmentKey}/{id} | Update Data Export destination
 *DataExportDestinationsApi* | [**postDestination**](docs/DataExportDestinationsApi.md#postdestination) | **POST** /api/v2/destinations/{projectKey}/{environmentKey} | Create Data Export destination
+*DataExportDestinationsApi* | [**postGenerateTrustPolicy**](docs/DataExportDestinationsApi.md#postgeneratetrustpolicy) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/generate-trust-policy | Generate trust policy
 *DataExportDestinationsApi* | [**postGenerateWarehouseDestinationKeyPair**](docs/DataExportDestinationsApi.md#postgeneratewarehousedestinationkeypair) | **POST** /api/v2/destinations/generate-warehouse-destination-key-pair | Generate Snowflake destination key pair
 *EnvironmentsApi* | [**deleteEnvironment**](docs/EnvironmentsApi.md#deleteenvironment) | **DELETE** /api/v2/projects/{projectKey}/environments/{environmentKey} | Delete environment
 *EnvironmentsApi* | [**getEnvironment**](docs/EnvironmentsApi.md#getenvironment) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey} | Get environment
@@ -672,6 +673,7 @@ Class | Method | HTTP request | Description
  - [FollowersPerFlag](docs/FollowersPerFlag.md)
  - [ForbiddenErrorRep](docs/ForbiddenErrorRep.md)
  - [FormVariable](docs/FormVariable.md)
+ - [GenerateTrustPolicyPostRep](docs/GenerateTrustPolicyPostRep.md)
  - [GenerateWarehouseDestinationKeyPairPostRep](docs/GenerateWarehouseDestinationKeyPairPostRep.md)
  - [GetAnnouncementsPublic200Response](docs/GetAnnouncementsPublic200Response.md)
  - [GuardedReleaseConfig](docs/GuardedReleaseConfig.md)
@@ -922,6 +924,8 @@ Class | Method | HTTP request | Description
  - [TriggerPost](docs/TriggerPost.md)
  - [TriggerWorkflowCollectionRep](docs/TriggerWorkflowCollectionRep.md)
  - [TriggerWorkflowRep](docs/TriggerWorkflowRep.md)
+ - [TrustPolicyDetails](docs/TrustPolicyDetails.md)
+ - [TrustPolicyStatement](docs/TrustPolicyStatement.md)
  - [UnauthorizedErrorRep](docs/UnauthorizedErrorRep.md)
  - [UnlinkResourceSuccessResponse](docs/UnlinkResourceSuccessResponse.md)
  - [UpdatePhaseStatusInput](docs/UpdatePhaseStatusInput.md)

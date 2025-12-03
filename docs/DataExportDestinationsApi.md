@@ -9,6 +9,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getDestinations**](#getdestinations) | **GET** /api/v2/destinations | List destinations|
 |[**patchDestination**](#patchdestination) | **PATCH** /api/v2/destinations/{projectKey}/{environmentKey}/{id} | Update Data Export destination|
 |[**postDestination**](#postdestination) | **POST** /api/v2/destinations/{projectKey}/{environmentKey} | Create Data Export destination|
+|[**postGenerateTrustPolicy**](#postgeneratetrustpolicy) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/generate-trust-policy | Generate trust policy|
 |[**postGenerateWarehouseDestinationKeyPair**](#postgeneratewarehousedestinationkeypair) | **POST** /api/v2/destinations/generate-warehouse-destination-key-pair | Generate Snowflake destination key pair|
 
 # **deleteDestination**
@@ -301,6 +302,65 @@ const { status, data } = await apiInstance.postDestination(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**201** | Destination response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**409** | Status conflict |  -  |
+|**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **postGenerateTrustPolicy**
+> GenerateTrustPolicyPostRep postGenerateTrustPolicy()
+
+Trust policy to allow Data Export to assume the role and perform operations on AWS resources
+
+### Example
+
+```typescript
+import {
+    DataExportDestinationsApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new DataExportDestinationsApi(configuration);
+
+let projKey: string; //The project key (default to undefined)
+let envKey: string; //The environment key (default to undefined)
+
+const { status, data } = await apiInstance.postGenerateTrustPolicy(
+    projKey,
+    envKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projKey** | [**string**] | The project key | defaults to undefined|
+| **envKey** | [**string**] | The environment key | defaults to undefined|
+
+
+### Return type
+
+**GenerateTrustPolicyPostRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**201** | Generate trust policy response |  -  |
 |**400** | Invalid request |  -  |
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |

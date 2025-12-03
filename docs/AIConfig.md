@@ -17,6 +17,7 @@ Name | Type | Description | Notes
 **variations** | [**Array&lt;AIConfigVariation&gt;**](AIConfigVariation.md) |  | [default to undefined]
 **createdAt** | **number** |  | [default to undefined]
 **updatedAt** | **number** |  | [default to undefined]
+**evaluationMetricKeys** | **Array&lt;string&gt;** | List of evaluation metric keys for this AI config | [optional] [default to undefined]
 
 ## Example
 
@@ -36,6 +37,7 @@ const instance: AIConfig = {
     variations,
     createdAt,
     updatedAt,
+    evaluationMetricKeys,
 };
 ```
 

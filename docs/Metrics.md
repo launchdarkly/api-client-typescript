@@ -18,6 +18,9 @@ Name | Type | Description | Notes
 **satisfactionRating** | **number** | A value between 0 and 1 representing satisfaction rating | [optional] [default to undefined]
 **inputCost** | **number** | Cost of input tokens in USD | [optional] [default to undefined]
 **outputCost** | **number** | Cost of output tokens in USD | [optional] [default to undefined]
+**judgeAccuracy** | **number** | Average accuracy judge score (0.0-1.0) | [optional] [default to undefined]
+**judgeRelevance** | **number** | Average relevance judge score (0.0-1.0) | [optional] [default to undefined]
+**judgeToxicity** | **number** | Average toxicity judge score (0.0-1.0) | [optional] [default to undefined]
 
 ## Example
 
@@ -38,6 +41,9 @@ const instance: Metrics = {
     satisfactionRating,
     inputCost,
     outputCost,
+    judgeAccuracy,
+    judgeRelevance,
+    judgeToxicity,
 };
 ```
 

@@ -301,6 +301,7 @@ docs/FollowFlagsApi.md
 docs/FollowersPerFlag.md
 docs/ForbiddenErrorRep.md
 docs/FormVariable.md
+docs/GenerateTrustPolicyPostRep.md
 docs/GenerateWarehouseDestinationKeyPairPostRep.md
 docs/GetAnnouncementsPublic200Response.md
 docs/GuardedReleaseConfig.md
@@ -576,6 +577,8 @@ docs/TreatmentRep.md
 docs/TriggerPost.md
 docs/TriggerWorkflowCollectionRep.md
 docs/TriggerWorkflowRep.md
+docs/TrustPolicyDetails.md
+docs/TrustPolicyStatement.md
 docs/UnauthorizedErrorRep.md
 docs/UnlinkResourceSuccessResponse.md
 docs/UpdatePhaseStatusInput.md
