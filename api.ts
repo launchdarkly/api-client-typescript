@@ -460,6 +460,10 @@ export interface AgentGraph {
  */
 export interface AgentGraphEdge {
     /**
+     * A unique key for this edge within the graph
+     */
+    'key': string;
+    /**
      * The AI Config key that is the source of this edge
      */
     'sourceConfig': string;
@@ -477,6 +481,10 @@ export interface AgentGraphEdge {
  */
 export interface AgentGraphEdgePost {
     /**
+     * A unique key for this edge within the graph
+     */
+    'key': string;
+    /**
      * The AI Config key that is the source of this edge
      */
     'sourceConfig': string;
@@ -488,6 +496,27 @@ export interface AgentGraphEdgePost {
      * The handoff options from the source AI Config to the target AI Config
      */
     'handoff'?: object;
+}
+/**
+ * Request body for updating an agent graph. If rootConfigKey or edges are present, both must be present.
+ */
+export interface AgentGraphPatch {
+    /**
+     * A human-readable name for the agent graph
+     */
+    'name'?: string;
+    /**
+     * A description of the agent graph
+     */
+    'description'?: string;
+    /**
+     * The AI Config key of the root node. If present, edges must also be present.
+     */
+    'rootConfigKey'?: string;
+    /**
+     * The edges in the graph. If present, rootConfigKey must also be present. Replaces all existing edges.
+     */
+    'edges'?: Array<AgentGraphEdge>;
 }
 /**
  * Request body for creating an agent graph
@@ -10471,6 +10500,53 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
+         * Delete an existing agent graph and all of its edges.
+         * @summary Delete agent graph
+         * @param {DeleteAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteAgentGraph: async (lDAPIVersion: DeleteAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'lDAPIVersion' is not null or undefined
+            assertParamExists('deleteAgentGraph', 'lDAPIVersion', lDAPIVersion)
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteAgentGraph', 'projectKey', projectKey)
+            // verify required parameter 'graphKey' is not null or undefined
+            assertParamExists('deleteAgentGraph', 'graphKey', graphKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/agent-graphs/{graphKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"graphKey"}}`, encodeURIComponent(String(graphKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            if (lDAPIVersion != null) {
+                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Delete an AI model config.
          * @summary Delete an AI model config
          * @param {DeleteModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -10929,6 +11005,53 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             const localVarPath = `/api/v2/projects/{projectKey}/ai-tools/{toolKey}`
                 .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
                 .replace(`{${"toolKey"}}`, encodeURIComponent(String(toolKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            if (lDAPIVersion != null) {
+                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Retrieve a specific agent graph by its key, including its edges.
+         * @summary Get agent graph
+         * @param {GetAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getAgentGraph: async (lDAPIVersion: GetAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'lDAPIVersion' is not null or undefined
+            assertParamExists('getAgentGraph', 'lDAPIVersion', lDAPIVersion)
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getAgentGraph', 'projectKey', projectKey)
+            // verify required parameter 'graphKey' is not null or undefined
+            assertParamExists('getAgentGraph', 'graphKey', graphKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/agent-graphs/{graphKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"graphKey"}}`, encodeURIComponent(String(graphKey)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -11439,6 +11562,57 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
+         * Edit an existing agent graph.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  If the update includes `rootConfigKey` or `edges`, both must be present and will be treated as full replacements. 
+         * @summary Update agent graph
+         * @param {PatchAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {AgentGraphPatch} [agentGraphPatch] Agent graph object to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchAgentGraph: async (lDAPIVersion: PatchAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, agentGraphPatch?: AgentGraphPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'lDAPIVersion' is not null or undefined
+            assertParamExists('patchAgentGraph', 'lDAPIVersion', lDAPIVersion)
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchAgentGraph', 'projectKey', projectKey)
+            // verify required parameter 'graphKey' is not null or undefined
+            assertParamExists('patchAgentGraph', 'graphKey', graphKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/agent-graphs/{graphKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"graphKey"}}`, encodeURIComponent(String(graphKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            if (lDAPIVersion != null) {
+                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(agentGraphPatch, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Create a new AI Config within the given project.
          * @summary Create new AI Config
          * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -11792,6 +11966,21 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Delete an existing agent graph and all of its edges.
+         * @summary Delete agent graph
+         * @param {DeleteAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteAgentGraph(lDAPIVersion: DeleteAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAgentGraph(lDAPIVersion, projectKey, graphKey, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.deleteAgentGraph']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Delete an AI model config.
          * @summary Delete an AI model config
          * @param {DeleteModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -11934,6 +12123,21 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getAITool(lDAPIVersion, projectKey, toolKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAITool']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Retrieve a specific agent graph by its key, including its edges.
+         * @summary Get agent graph
+         * @param {GetAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getAgentGraph(lDAPIVersion: GetAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraph>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAgentGraph(lDAPIVersion, projectKey, graphKey, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAgentGraph']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -12084,6 +12288,22 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Edit an existing agent graph.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  If the update includes `rootConfigKey` or `edges`, both must be present and will be treated as full replacements. 
+         * @summary Update agent graph
+         * @param {PatchAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {AgentGraphPatch} [agentGraphPatch] Agent graph object to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchAgentGraph(lDAPIVersion: PatchAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, agentGraphPatch?: AgentGraphPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraph>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAgentGraph(lDAPIVersion, projectKey, graphKey, agentGraphPatch, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.patchAgentGraph']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Create a new AI Config within the given project.
          * @summary Create new AI Config
          * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -12221,6 +12441,18 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
             return localVarFp.deleteAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(axios, basePath));
         },
         /**
+         * Delete an existing agent graph and all of its edges.
+         * @summary Delete agent graph
+         * @param {DeleteAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteAgentGraph(lDAPIVersion: DeleteAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Delete an AI model config.
          * @summary Delete an AI model config
          * @param {DeleteModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -12337,6 +12569,18 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          */
         getAITool(lDAPIVersion: GetAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
             return localVarFp.getAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Retrieve a specific agent graph by its key, including its edges.
+         * @summary Get agent graph
+         * @param {GetAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getAgentGraph(lDAPIVersion: GetAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AgentGraph> {
+            return localVarFp.getAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get an AI model config by key.
@@ -12459,6 +12703,19 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
             return localVarFp.patchAITool(lDAPIVersion, projectKey, toolKey, aIToolPatch, options).then((request) => request(axios, basePath));
         },
         /**
+         * Edit an existing agent graph.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  If the update includes `rootConfigKey` or `edges`, both must be present and will be treated as full replacements. 
+         * @summary Update agent graph
+         * @param {PatchAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} graphKey 
+         * @param {AgentGraphPatch} [agentGraphPatch] Agent graph object to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchAgentGraph(lDAPIVersion: PatchAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, agentGraphPatch?: AgentGraphPatch, options?: RawAxiosRequestConfig): AxiosPromise<AgentGraph> {
+            return localVarFp.patchAgentGraph(lDAPIVersion, projectKey, graphKey, agentGraphPatch, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Create a new AI Config within the given project.
          * @summary Create new AI Config
          * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -12576,6 +12833,19 @@ export class AIConfigsBetaApi extends BaseAPI {
      */
     public deleteAITool(lDAPIVersion: DeleteAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig) {
         return AIConfigsBetaApiFp(this.configuration).deleteAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete an existing agent graph and all of its edges.
+     * @summary Delete agent graph
+     * @param {DeleteAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+     * @param {string} projectKey 
+     * @param {string} graphKey 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteAgentGraph(lDAPIVersion: DeleteAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsBetaApiFp(this.configuration).deleteAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12703,6 +12973,19 @@ export class AIConfigsBetaApi extends BaseAPI {
      */
     public getAITool(lDAPIVersion: GetAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig) {
         return AIConfigsBetaApiFp(this.configuration).getAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Retrieve a specific agent graph by its key, including its edges.
+     * @summary Get agent graph
+     * @param {GetAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+     * @param {string} projectKey 
+     * @param {string} graphKey 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getAgentGraph(lDAPIVersion: GetAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsBetaApiFp(this.configuration).getAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12835,6 +13118,20 @@ export class AIConfigsBetaApi extends BaseAPI {
     }
 
     /**
+     * Edit an existing agent graph.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  If the update includes `rootConfigKey` or `edges`, both must be present and will be treated as full replacements. 
+     * @summary Update agent graph
+     * @param {PatchAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+     * @param {string} projectKey 
+     * @param {string} graphKey 
+     * @param {AgentGraphPatch} [agentGraphPatch] Agent graph object to update
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public patchAgentGraph(lDAPIVersion: PatchAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, agentGraphPatch?: AgentGraphPatch, options?: RawAxiosRequestConfig) {
+        return AIConfigsBetaApiFp(this.configuration).patchAgentGraph(lDAPIVersion, projectKey, graphKey, agentGraphPatch, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Create a new AI Config within the given project.
      * @summary Create new AI Config
      * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -12926,6 +13223,10 @@ export const DeleteAIToolLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type DeleteAIToolLDAPIVersionEnum = typeof DeleteAIToolLDAPIVersionEnum[keyof typeof DeleteAIToolLDAPIVersionEnum];
+export const DeleteAgentGraphLDAPIVersionEnum = {
+    Beta: 'beta'
+} as const;
+export type DeleteAgentGraphLDAPIVersionEnum = typeof DeleteAgentGraphLDAPIVersionEnum[keyof typeof DeleteAgentGraphLDAPIVersionEnum];
 export const DeleteModelConfigLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
@@ -12962,6 +13263,10 @@ export const GetAIToolLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type GetAIToolLDAPIVersionEnum = typeof GetAIToolLDAPIVersionEnum[keyof typeof GetAIToolLDAPIVersionEnum];
+export const GetAgentGraphLDAPIVersionEnum = {
+    Beta: 'beta'
+} as const;
+export type GetAgentGraphLDAPIVersionEnum = typeof GetAgentGraphLDAPIVersionEnum[keyof typeof GetAgentGraphLDAPIVersionEnum];
 export const GetModelConfigLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
@@ -12998,6 +13303,10 @@ export const PatchAIToolLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type PatchAIToolLDAPIVersionEnum = typeof PatchAIToolLDAPIVersionEnum[keyof typeof PatchAIToolLDAPIVersionEnum];
+export const PatchAgentGraphLDAPIVersionEnum = {
+    Beta: 'beta'
+} as const;
+export type PatchAgentGraphLDAPIVersionEnum = typeof PatchAgentGraphLDAPIVersionEnum[keyof typeof PatchAgentGraphLDAPIVersionEnum];
 export const PostAIConfigLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;

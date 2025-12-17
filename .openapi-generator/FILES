@@ -49,6 +49,7 @@ docs/ActionOutput.md
 docs/AgentGraph.md
 docs/AgentGraphEdge.md
 docs/AgentGraphEdgePost.md
+docs/AgentGraphPatch.md
 docs/AgentGraphPost.md
 docs/AgentGraphs.md
 docs/AiConfigsAccess.md

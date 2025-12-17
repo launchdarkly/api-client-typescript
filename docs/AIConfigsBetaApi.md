@@ -7,6 +7,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**deleteAIConfig**](#deleteaiconfig) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/{configKey} | Delete AI Config|
 |[**deleteAIConfigVariation**](#deleteaiconfigvariation) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations/{variationKey} | Delete AI Config variation|
 |[**deleteAITool**](#deleteaitool) | **DELETE** /api/v2/projects/{projectKey}/ai-tools/{toolKey} | Delete AI tool|
+|[**deleteAgentGraph**](#deleteagentgraph) | **DELETE** /api/v2/projects/{projectKey}/agent-graphs/{graphKey} | Delete agent graph|
 |[**deleteModelConfig**](#deletemodelconfig) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Delete an AI model config|
 |[**deleteRestrictedModels**](#deleterestrictedmodels) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/model-configs/restricted | Remove AI models from the restricted list|
 |[**getAIConfig**](#getaiconfig) | **GET** /api/v2/projects/{projectKey}/ai-configs/{configKey} | Get AI Config|
@@ -16,6 +17,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getAIConfigVariation**](#getaiconfigvariation) | **GET** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations/{variationKey} | Get AI Config variation|
 |[**getAIConfigs**](#getaiconfigs) | **GET** /api/v2/projects/{projectKey}/ai-configs | List AI Configs|
 |[**getAITool**](#getaitool) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey} | Get AI tool|
+|[**getAgentGraph**](#getagentgraph) | **GET** /api/v2/projects/{projectKey}/agent-graphs/{graphKey} | Get agent graph|
 |[**getModelConfig**](#getmodelconfig) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Get AI model config|
 |[**listAIToolVersions**](#listaitoolversions) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/versions | List AI tool versions|
 |[**listAITools**](#listaitools) | **GET** /api/v2/projects/{projectKey}/ai-tools | List AI tools|
@@ -25,6 +27,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**patchAIConfigTargeting**](#patchaiconfigtargeting) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/{configKey}/targeting | Update AI Config targeting|
 |[**patchAIConfigVariation**](#patchaiconfigvariation) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations/{variationKey} | Update AI Config variation|
 |[**patchAITool**](#patchaitool) | **PATCH** /api/v2/projects/{projectKey}/ai-tools/{toolKey} | Update AI tool|
+|[**patchAgentGraph**](#patchagentgraph) | **PATCH** /api/v2/projects/{projectKey}/agent-graphs/{graphKey} | Update agent graph|
 |[**postAIConfig**](#postaiconfig) | **POST** /api/v2/projects/{projectKey}/ai-configs | Create new AI Config|
 |[**postAIConfigVariation**](#postaiconfigvariation) | **POST** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations | Create AI Config variation|
 |[**postAITool**](#postaitool) | **POST** /api/v2/projects/{projectKey}/ai-tools | Create an AI tool|
@@ -191,6 +194,67 @@ const { status, data } = await apiInstance.deleteAITool(
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **toolKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**204** | No content |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deleteAgentGraph**
+> deleteAgentGraph()
+
+Delete an existing agent graph and all of its edges.
+
+### Example
+
+```typescript
+import {
+    AIConfigsBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AIConfigsBetaApi(configuration);
+
+let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
+let projectKey: string; // (default to undefined)
+let graphKey: string; // (default to undefined)
+
+const { status, data } = await apiInstance.deleteAgentGraph(
+    lDAPIVersion,
+    projectKey,
+    graphKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **graphKey** | [**string**] |  | defaults to undefined|
 
 
 ### Return type
@@ -797,6 +861,67 @@ const { status, data } = await apiInstance.getAITool(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getAgentGraph**
+> AgentGraph getAgentGraph()
+
+Retrieve a specific agent graph by its key, including its edges.
+
+### Example
+
+```typescript
+import {
+    AIConfigsBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AIConfigsBetaApi(configuration);
+
+let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
+let projectKey: string; // (default to undefined)
+let graphKey: string; // (default to undefined)
+
+const { status, data } = await apiInstance.getAgentGraph(
+    lDAPIVersion,
+    projectKey,
+    graphKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **graphKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**AgentGraph**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Agent graph found |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getModelConfig**
 > ModelConfig getModelConfig()
 
@@ -1376,6 +1501,71 @@ const { status, data } = await apiInstance.patchAITool(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | AI tool updated |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **patchAgentGraph**
+> AgentGraph patchAgentGraph()
+
+Edit an existing agent graph.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  If the update includes `rootConfigKey` or `edges`, both must be present and will be treated as full replacements. 
+
+### Example
+
+```typescript
+import {
+    AIConfigsBetaApi,
+    Configuration,
+    AgentGraphPatch
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AIConfigsBetaApi(configuration);
+
+let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
+let projectKey: string; // (default to undefined)
+let graphKey: string; // (default to undefined)
+let agentGraphPatch: AgentGraphPatch; //Agent graph object to update (optional)
+
+const { status, data } = await apiInstance.patchAgentGraph(
+    lDAPIVersion,
+    projectKey,
+    graphKey,
+    agentGraphPatch
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **agentGraphPatch** | **AgentGraphPatch**| Agent graph object to update | |
+| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **graphKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**AgentGraph**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Agent graph updated |  -  |
 |**400** | Bad request |  -  |
 |**403** | Forbidden |  -  |
 |**404** | Not found |  -  |
