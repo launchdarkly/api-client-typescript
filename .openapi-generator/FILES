@@ -46,6 +46,11 @@ docs/AccountMembersApi.md
 docs/AccountUsageBetaApi.md
 docs/ActionInput.md
 docs/ActionOutput.md
+docs/AgentGraph.md
+docs/AgentGraphEdge.md
+docs/AgentGraphEdgePost.md
+docs/AgentGraphPost.md
+docs/AgentGraphs.md
 docs/AiConfigsAccess.md
 docs/AiConfigsAccessAllowedReason.md
 docs/AiConfigsAccessAllowedRep.md
@@ -149,7 +154,6 @@ docs/Contexts.md
 docs/ContextsApi.md
 docs/CopiedFromEnv.md
 docs/CoreLink.md
-docs/CovarianceInfoRep.md
 docs/CreateAnnouncementBody.md
 docs/CreateApprovalRequestRequest.md
 docs/CreateCopyFlagConfigApprovalRequestRequest.md
@@ -457,6 +461,7 @@ docs/PostFlagScheduledChangesInput.md
 docs/PostInsightGroupParams.md
 docs/PostReleasePolicyRequest.md
 docs/Prerequisite.md
+docs/ProgressiveReleaseConfig.md
 docs/Project.md
 docs/ProjectPost.md
 docs/ProjectRep.md
@@ -500,6 +505,7 @@ docs/ReleasePoliciesBetaApi.md
 docs/ReleasePoliciesResponse.md
 docs/ReleasePolicy.md
 docs/ReleasePolicyScope.md
+docs/ReleasePolicyStage.md
 docs/ReleaseProgression.md
 docs/ReleaseProgressionCollection.md
 docs/ReleaserAudienceConfigInput.md

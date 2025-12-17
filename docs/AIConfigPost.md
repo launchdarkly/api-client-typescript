@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **mode** | **string** |  | [optional] [default to ModeEnum_Completion]
 **name** | **string** |  | [default to undefined]
 **tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
+**defaultVariation** | [**AIConfigVariationPost**](AIConfigVariationPost.md) |  | [optional] [default to undefined]
 
 ## Example
 
@@ -26,6 +27,7 @@ const instance: AIConfigPost = {
     mode,
     name,
     tags,
+    defaultVariation,
 };
 ```
 

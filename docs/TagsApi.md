@@ -22,7 +22,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new TagsApi(configuration);
 
-let kind: Array<string>; //Fetch tags associated with the specified resource type. Options are `flag`, `project`, `environment`, `segment`, `metric`, `aiconfig`, and `view`. Returns all types by default. (optional) (default to undefined)
+let kind: Array<string>; //Fetch tags associated with the specified resource type. Options are `flag`, `project`, `environment`, `segment`, `metric`, `metric-data-source`, `aiconfig`, and `view`. Returns all types by default. (optional) (default to undefined)
 let pre: string; //Return tags with the specified prefix (optional) (default to undefined)
 let archived: boolean; //Whether or not to return archived flags (optional) (default to undefined)
 let limit: number; //The number of tags to return. Maximum is 1000. (optional) (default to undefined)
@@ -43,7 +43,7 @@ const { status, data } = await apiInstance.getTags(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **kind** | **Array&lt;string&gt;** | Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default. | (optional) defaults to undefined|
+| **kind** | **Array&lt;string&gt;** | Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;metric-data-source&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default. | (optional) defaults to undefined|
 | **pre** | [**string**] | Return tags with the specified prefix | (optional) defaults to undefined|
 | **archived** | [**boolean**] | Whether or not to return archived flags | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of tags to return. Maximum is 1000. | (optional) defaults to undefined|

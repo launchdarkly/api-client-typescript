@@ -745,12 +745,14 @@ let projectKey: string; //The project key (default to undefined)
 let featureFlagKey: string; //The feature flag key. The key identifies the flag in your code. (default to undefined)
 let patchWithComment: PatchWithComment; //
 let ignoreConflicts: boolean; //If true, the patch will be applied even if it causes a pending scheduled change or approval request to fail. (optional) (default to undefined)
+let dryRun: boolean; //If true, the patch will be validated but not persisted. Returns a preview of the flag after the patch is applied. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.patchFeatureFlag(
     projectKey,
     featureFlagKey,
     patchWithComment,
-    ignoreConflicts
+    ignoreConflicts,
+    dryRun
 );
 ```
 
@@ -762,6 +764,7 @@ const { status, data } = await apiInstance.patchFeatureFlag(
 | **projectKey** | [**string**] | The project key | defaults to undefined|
 | **featureFlagKey** | [**string**] | The feature flag key. The key identifies the flag in your code. | defaults to undefined|
 | **ignoreConflicts** | [**boolean**] | If true, the patch will be applied even if it causes a pending scheduled change or approval request to fail. | (optional) defaults to undefined|
+| **dryRun** | [**boolean**] | If true, the patch will be validated but not persisted. Returns a preview of the flag after the patch is applied. | (optional) defaults to undefined|
 
 
 ### Return type

@@ -70,6 +70,7 @@ export interface AIConfigPost {
     'mode'?: AIConfigPostModeEnum;
     'name': string;
     'tags'?: Array<string>;
+    'defaultVariation'?: AIConfigVariationPost;
 }
 
 export const AIConfigPostModeEnum = {
@@ -426,6 +427,100 @@ export interface ActionOutput {
      */
     'kind': string;
     'instructions': Array<{ [key: string]: any; }>;
+}
+/**
+ * An agent graph representing a directed graph of AI Configs
+ */
+export interface AgentGraph {
+    /**
+     * A unique key for the agent graph
+     */
+    'key': string;
+    /**
+     * A human-readable name for the agent graph
+     */
+    'name': string;
+    /**
+     * A description of the agent graph
+     */
+    'description'?: string;
+    /**
+     * The AI Config key of the root node
+     */
+    'rootConfigKey'?: string;
+    /**
+     * The edges in the graph
+     */
+    'edges'?: Array<AgentGraphEdge>;
+    'createdAt': number;
+    'updatedAt': number;
+}
+/**
+ * An edge in an agent graph connecting two AI Configs
+ */
+export interface AgentGraphEdge {
+    /**
+     * The AI Config key that is the source of this edge
+     */
+    'sourceConfig': string;
+    /**
+     * The AI Config key that is the target of this edge
+     */
+    'targetConfig': string;
+    /**
+     * The handoff options from the source AI Config to the target AI Config
+     */
+    'handoff'?: object;
+}
+/**
+ * An edge in an agent graph connecting two AI Configs
+ */
+export interface AgentGraphEdgePost {
+    /**
+     * The AI Config key that is the source of this edge
+     */
+    'sourceConfig': string;
+    /**
+     * The AI Config key that is the target of this edge
+     */
+    'targetConfig': string;
+    /**
+     * The handoff options from the source AI Config to the target AI Config
+     */
+    'handoff'?: object;
+}
+/**
+ * Request body for creating an agent graph
+ */
+export interface AgentGraphPost {
+    /**
+     * A unique key for the agent graph
+     */
+    'key': string;
+    /**
+     * A human-readable name for the agent graph
+     */
+    'name': string;
+    /**
+     * A description of the agent graph
+     */
+    'description'?: string;
+    /**
+     * The AI Config key of the root node. A missing root implies a newly created graph with metadata only.
+     */
+    'rootConfigKey'?: string;
+    /**
+     * The edges in the graph. If edges or rootConfigKey is present, both must be present.
+     */
+    'edges'?: Array<AgentGraphEdgePost>;
+}
+/**
+ * A collection of agent graphs
+ */
+export interface AgentGraphs {
+    '_links'?: PaginatedLinks;
+    'items': Array<AgentGraph>;
+    'totalCount': number;
 }
 export interface AiConfigsAccess {
     'denied': Array<AiConfigsAccessDenied>;
@@ -2162,17 +2257,6 @@ export interface CopiedFromEnv {
 export interface CoreLink {
     'href': string;
     'type': string;
-}
-export interface CovarianceInfoRep {
-    /**
-     * The ID of the covariance matrix
-     */
-    'id': string;
-    /**
-     * The file name of the uploaded covariance matrix
-     */
-    'fileName': string;
-    'createdAt': number;
 }
 /**
  * Create announcement request body
@@ -4976,13 +5060,29 @@ export interface GetAnnouncementsPublic200Response {
  */
 export interface GuardedReleaseConfig {
     /**
+     * Context kind key to use as the randomization unit for the rollout
+     */
+    'rolloutContextKindKey'?: string;
+    /**
      * The minimum number of samples required to make a decision
      */
     'minSampleSize'?: number;
     /**
      * Whether to roll back on regression
      */
-    'rollbackOnRegression': boolean;
+    'rollbackOnRegression'?: boolean;
+    /**
+     * List of metric keys
+     */
+    'metricKeys'?: Array<string>;
+    /**
+     * List of metric group keys
+     */
+    'metricGroupKeys'?: Array<string>;
+    /**
+     * List of stages
+     */
+    'stages'?: Array<ReleasePolicyStage>;
 }
 export interface HMACSignature {
     'headerName'?: string;
@@ -5760,10 +5860,6 @@ export interface IterationInput {
      */
     'randomizationUnit'?: string;
     /**
-     * The ID of the covariance CSV
-     */
-    'covarianceId'?: string;
-    /**
      * The attributes that this iteration\'s results can be sliced by
      */
     'attributes'?: Array<string>;
@@ -5833,7 +5929,6 @@ export interface IterationRep {
      */
     'metrics'?: Array<DependentMetricOrMetricGroupRep>;
     'layerSnapshot'?: LayerSnapshotRep;
-    'covarianceInfo'?: CovarianceInfoRep;
 }
 
 export const IterationRepStatusEnum = {
@@ -7541,10 +7636,7 @@ export interface PostReleasePolicyRequest {
     'scope'?: ReleasePolicyScope;
     'releaseMethod': ReleaseMethod;
     'guardedReleaseConfig'?: GuardedReleaseConfig;
-    /**
-     * Configuration for progressive releases
-     */
-    'progressiveReleaseConfig'?: object;
+    'progressiveReleaseConfig'?: ProgressiveReleaseConfig;
     /**
      * The name of the release policy
      */
@@ -7559,6 +7651,19 @@ export interface PostReleasePolicyRequest {
 export interface Prerequisite {
     'key': string;
     'variation': number;
+}
+/**
+ * Configuration for progressive releases
+ */
+export interface ProgressiveReleaseConfig {
+    /**
+     * Context kind key to use as the randomization unit for the rollout
+     */
+    'rolloutContextKindKey'?: string;
+    /**
+     * List of stages
+     */
+    'stages'?: Array<ReleasePolicyStage>;
 }
 export interface Project {
     /**
@@ -7814,10 +7919,7 @@ export interface PutReleasePolicyRequest {
     'scope'?: ReleasePolicyScope;
     'releaseMethod': ReleaseMethod;
     'guardedReleaseConfig'?: GuardedReleaseConfig;
-    /**
-     * Configuration for progressive releases
-     */
-    'progressiveReleaseConfig'?: object;
+    'progressiveReleaseConfig'?: ProgressiveReleaseConfig;
     /**
      * The name of the release policy
      */
@@ -8233,10 +8335,7 @@ export interface ReleasePolicy {
     'rank': number;
     'releaseMethod': ReleaseMethod;
     'guardedReleaseConfig'?: GuardedReleaseConfig;
-    /**
-     * Configuration for progressive releases
-     */
-    'progressiveReleaseConfig'?: object;
+    'progressiveReleaseConfig'?: ProgressiveReleaseConfig;
     /**
      * The name of the release policy
      */
@@ -8253,6 +8352,14 @@ export interface ReleasePolicyScope {
      * List of environment keys this policy applies to
      */
     'environmentKeys'?: Array<string>;
+    /**
+     * List of flag tag keys this policy applies to
+     */
+    'flagTagKeys'?: Array<string>;
+}
+export interface ReleasePolicyStage {
+    'allocation': number;
+    'durationMillis': number;
 }
 export interface ReleaseProgression {
     '_createdAt': number;
@@ -8509,6 +8616,10 @@ export interface Rule {
      * The flag rule ID
      */
     '_id'?: string;
+    /**
+     * Whether the rule is disabled
+     */
+    'disabled'?: boolean;
     /**
      * The index of the variation, from the array of variations for this flag
      */
@@ -11019,6 +11130,59 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
+         * Get a list of all agent graphs in the given project. Returns metadata only, without edge data.
+         * @summary List agent graphs
+         * @param {ListAgentGraphsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {number} [limit] The number of AI Configs to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentGraphs: async (lDAPIVersion: ListAgentGraphsLDAPIVersionEnum, projectKey: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'lDAPIVersion' is not null or undefined
+            assertParamExists('listAgentGraphs', 'lDAPIVersion', lDAPIVersion)
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('listAgentGraphs', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/agent-graphs`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+
+    
+            if (lDAPIVersion != null) {
+                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get all AI model configs for a project.
          * @summary List AI model configs
          * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -11426,6 +11590,55 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
+         * Create a new agent graph within the given project.
+         * @summary Create new agent graph
+         * @param {PostAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {AgentGraphPost} agentGraphPost Agent graph object to create
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postAgentGraph: async (lDAPIVersion: PostAgentGraphLDAPIVersionEnum, projectKey: string, agentGraphPost: AgentGraphPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'lDAPIVersion' is not null or undefined
+            assertParamExists('postAgentGraph', 'lDAPIVersion', lDAPIVersion)
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('postAgentGraph', 'projectKey', projectKey)
+            // verify required parameter 'agentGraphPost' is not null or undefined
+            assertParamExists('postAgentGraph', 'agentGraphPost', agentGraphPost)
+            const localVarPath = `/api/v2/projects/{projectKey}/agent-graphs`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            if (lDAPIVersion != null) {
+                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(agentGraphPost, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Create an AI model config. You can use this in any variation for any AI Config in your project.
          * @summary Create an AI model config
          * @param {PostModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -11775,6 +11988,22 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Get a list of all agent graphs in the given project. Returns metadata only, without edge data.
+         * @summary List agent graphs
+         * @param {ListAgentGraphsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {number} [limit] The number of AI Configs to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listAgentGraphs(lDAPIVersion: ListAgentGraphsLDAPIVersionEnum, projectKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraphs>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listAgentGraphs(lDAPIVersion, projectKey, limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.listAgentGraphs']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get all AI model configs for a project.
          * @summary List AI model configs
          * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -11898,6 +12127,21 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postAITool(lDAPIVersion, projectKey, aIToolPost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postAITool']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Create a new agent graph within the given project.
+         * @summary Create new agent graph
+         * @param {PostAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {AgentGraphPost} agentGraphPost Agent graph object to create
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async postAgentGraph(lDAPIVersion: PostAgentGraphLDAPIVersionEnum, projectKey: string, agentGraphPost: AgentGraphPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraph>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postAgentGraph(lDAPIVersion, projectKey, agentGraphPost, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postAgentGraph']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -12137,6 +12381,19 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
             return localVarFp.listAITools(lDAPIVersion, projectKey, sort, limit, offset, filter, options).then((request) => request(axios, basePath));
         },
         /**
+         * Get a list of all agent graphs in the given project. Returns metadata only, without edge data.
+         * @summary List agent graphs
+         * @param {ListAgentGraphsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {number} [limit] The number of AI Configs to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentGraphs(lDAPIVersion: ListAgentGraphsLDAPIVersionEnum, projectKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<AgentGraphs> {
+            return localVarFp.listAgentGraphs(lDAPIVersion, projectKey, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get all AI model configs for a project.
          * @summary List AI model configs
          * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -12237,6 +12494,18 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          */
         postAITool(lDAPIVersion: PostAIToolLDAPIVersionEnum, projectKey: string, aIToolPost: AIToolPost, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
             return localVarFp.postAITool(lDAPIVersion, projectKey, aIToolPost, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Create a new agent graph within the given project.
+         * @summary Create new agent graph
+         * @param {PostAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {AgentGraphPost} agentGraphPost Agent graph object to create
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postAgentGraph(lDAPIVersion: PostAgentGraphLDAPIVersionEnum, projectKey: string, agentGraphPost: AgentGraphPost, options?: RawAxiosRequestConfig): AxiosPromise<AgentGraph> {
+            return localVarFp.postAgentGraph(lDAPIVersion, projectKey, agentGraphPost, options).then((request) => request(axios, basePath));
         },
         /**
          * Create an AI model config. You can use this in any variation for any AI Config in your project.
@@ -12482,6 +12751,20 @@ export class AIConfigsBetaApi extends BaseAPI {
     }
 
     /**
+     * Get a list of all agent graphs in the given project. Returns metadata only, without edge data.
+     * @summary List agent graphs
+     * @param {ListAgentGraphsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+     * @param {string} projectKey 
+     * @param {number} [limit] The number of AI Configs to return.
+     * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listAgentGraphs(lDAPIVersion: ListAgentGraphsLDAPIVersionEnum, projectKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return AIConfigsBetaApiFp(this.configuration).listAgentGraphs(lDAPIVersion, projectKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Get all AI model configs for a project.
      * @summary List AI model configs
      * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -12592,6 +12875,19 @@ export class AIConfigsBetaApi extends BaseAPI {
     }
 
     /**
+     * Create a new agent graph within the given project.
+     * @summary Create new agent graph
+     * @param {PostAgentGraphLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+     * @param {string} projectKey 
+     * @param {AgentGraphPost} agentGraphPost Agent graph object to create
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public postAgentGraph(lDAPIVersion: PostAgentGraphLDAPIVersionEnum, projectKey: string, agentGraphPost: AgentGraphPost, options?: RawAxiosRequestConfig) {
+        return AIConfigsBetaApiFp(this.configuration).postAgentGraph(lDAPIVersion, projectKey, agentGraphPost, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Create an AI model config. You can use this in any variation for any AI Config in your project.
      * @summary Create an AI model config
      * @param {PostModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -12678,6 +12974,10 @@ export const ListAIToolsLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type ListAIToolsLDAPIVersionEnum = typeof ListAIToolsLDAPIVersionEnum[keyof typeof ListAIToolsLDAPIVersionEnum];
+export const ListAgentGraphsLDAPIVersionEnum = {
+    Beta: 'beta'
+} as const;
+export type ListAgentGraphsLDAPIVersionEnum = typeof ListAgentGraphsLDAPIVersionEnum[keyof typeof ListAgentGraphsLDAPIVersionEnum];
 export const ListModelConfigsLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
@@ -12710,6 +13010,10 @@ export const PostAIToolLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type PostAIToolLDAPIVersionEnum = typeof PostAIToolLDAPIVersionEnum[keyof typeof PostAIToolLDAPIVersionEnum];
+export const PostAgentGraphLDAPIVersionEnum = {
+    Beta: 'beta'
+} as const;
+export type PostAgentGraphLDAPIVersionEnum = typeof PostAgentGraphLDAPIVersionEnum[keyof typeof PostAgentGraphLDAPIVersionEnum];
 export const PostModelConfigLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
@@ -14399,6 +14703,167 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             };
         },
         /**
+         * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only. The counts reflect data reported from client-side SDKs.<br/><br/>For past months, the primary context kind is fixed and reflects the last known primary kind for that month. For the current month, it may vary as new primary context kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+         * @summary Get MAU clientside usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+         * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+         * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+         * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+         * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+         * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+         * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+         * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMAUClientsideUsage: async (from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/usage/clientside-mau`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
+            }
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (sdkName !== undefined) {
+                localVarQueryParameter['sdkName'] = sdkName;
+            }
+
+            if (anonymous !== undefined) {
+                localVarQueryParameter['anonymous'] = anonymous;
+            }
+
+            if (groupBy !== undefined) {
+                localVarQueryParameter['groupBy'] = groupBy;
+            }
+
+            if (aggregationType !== undefined) {
+                localVarQueryParameter['aggregationType'] = aggregationType;
+            }
+
+            if (granularity !== undefined) {
+                localVarQueryParameter['granularity'] = granularity;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only.<br/><br/>For past months, this reflects the context kind that was most recently marked as primary for that month. For the current month, the context kind may vary as new primary kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+         * @summary Get MAU total usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+         * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+         * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+         * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+         * @param {string} [sdkType] An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type.
+         * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+         * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkType&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+         * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+         * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMAUTotalUsage: async (from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, sdkType?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v2/usage/total-mau`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (from !== undefined) {
+                localVarQueryParameter['from'] = from;
+            }
+
+            if (to !== undefined) {
+                localVarQueryParameter['to'] = to;
+            }
+
+            if (projectKey !== undefined) {
+                localVarQueryParameter['projectKey'] = projectKey;
+            }
+
+            if (environmentKey !== undefined) {
+                localVarQueryParameter['environmentKey'] = environmentKey;
+            }
+
+            if (sdkName !== undefined) {
+                localVarQueryParameter['sdkName'] = sdkName;
+            }
+
+            if (sdkType !== undefined) {
+                localVarQueryParameter['sdkType'] = sdkType;
+            }
+
+            if (anonymous !== undefined) {
+                localVarQueryParameter['anonymous'] = anonymous;
+            }
+
+            if (groupBy !== undefined) {
+                localVarQueryParameter['groupBy'] = groupBy;
+            }
+
+            if (aggregationType !== undefined) {
+                localVarQueryParameter['aggregationType'] = aggregationType;
+            }
+
+            if (granularity !== undefined) {
+                localVarQueryParameter['granularity'] = granularity;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get a list of SDKs. These are all of the SDKs that have connected to LaunchDarkly by monthly active users (MAU) in the requested time period.<br/><br/>Endpoints for retrieving monthly active users (MAU) do not return information about active context instances. After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should not rely on this endpoint. To learn more, read [Account usage metrics](https://launchdarkly.com/docs/home/account/metrics).
          * @summary Get MAU SDKs by type
          * @param {string} [from] The data returned starts from this timestamp. Defaults to seven days ago. The timestamp is in Unix milliseconds, for example, 1656694800000.
@@ -14460,6 +14925,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {string} [aggregationType] If specified, queries for rolling 30-day, month-to-date, or daily incremental counts. Default is rolling 30-day. Valid values: rolling_30d, month_to_date, daily_incremental
          * @param {string} [contextKind] Filters results to the specified context kinds. Can be specified multiple times, one query parameter per context kind. If not set, queries for the user context kind.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getMauUsage: async (from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, aggregationType?: string, contextKind?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14535,6 +15001,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
          * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
          * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getMauUsageByCategory: async (from?: string, to?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -15219,6 +15686,49 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only. The counts reflect data reported from client-side SDKs.<br/><br/>For past months, the primary context kind is fixed and reflects the last known primary kind for that month. For the current month, it may vary as new primary context kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+         * @summary Get MAU clientside usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+         * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+         * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+         * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+         * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+         * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+         * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+         * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getMAUClientsideUsage(from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMAUClientsideUsage(from, to, projectKey, environmentKey, sdkName, anonymous, groupBy, aggregationType, granularity, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AccountUsageBetaApi.getMAUClientsideUsage']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only.<br/><br/>For past months, this reflects the context kind that was most recently marked as primary for that month. For the current month, the context kind may vary as new primary kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+         * @summary Get MAU total usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+         * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+         * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+         * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+         * @param {string} [sdkType] An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type.
+         * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+         * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkType&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+         * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+         * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getMAUTotalUsage(from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, sdkType?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMAUTotalUsage(from, to, projectKey, environmentKey, sdkName, sdkType, anonymous, groupBy, aggregationType, granularity, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AccountUsageBetaApi.getMAUTotalUsage']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get a list of SDKs. These are all of the SDKs that have connected to LaunchDarkly by monthly active users (MAU) in the requested time period.<br/><br/>Endpoints for retrieving monthly active users (MAU) do not return information about active context instances. After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should not rely on this endpoint. To learn more, read [Account usage metrics](https://launchdarkly.com/docs/home/account/metrics).
          * @summary Get MAU SDKs by type
          * @param {string} [from] The data returned starts from this timestamp. Defaults to seven days ago. The timestamp is in Unix milliseconds, for example, 1656694800000.
@@ -15247,6 +15757,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {string} [aggregationType] If specified, queries for rolling 30-day, month-to-date, or daily incremental counts. Default is rolling 30-day. Valid values: rolling_30d, month_to_date, daily_incremental
          * @param {string} [contextKind] Filters results to the specified context kinds. Can be specified multiple times, one query parameter per context kind. If not set, queries for the user context kind.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async getMauUsage(from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, aggregationType?: string, contextKind?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
@@ -15261,6 +15772,7 @@ export const AccountUsageBetaApiFp = function(configuration?: Configuration) {
          * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
          * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async getMauUsageByCategory(from?: string, to?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SeriesListRep>> {
@@ -15555,6 +16067,43 @@ export const AccountUsageBetaApiFactory = function (configuration?: Configuratio
             return localVarFp.getExperimentationKeysUsage(from, to, projectKey, environmentKey, experimentId, groupBy, aggregationType, granularity, options).then((request) => request(axios, basePath));
         },
         /**
+         * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only. The counts reflect data reported from client-side SDKs.<br/><br/>For past months, the primary context kind is fixed and reflects the last known primary kind for that month. For the current month, it may vary as new primary context kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+         * @summary Get MAU clientside usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+         * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+         * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+         * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+         * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+         * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+         * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+         * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMAUClientsideUsage(from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options?: RawAxiosRequestConfig): AxiosPromise<SeriesListRep> {
+            return localVarFp.getMAUClientsideUsage(from, to, projectKey, environmentKey, sdkName, anonymous, groupBy, aggregationType, granularity, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only.<br/><br/>For past months, this reflects the context kind that was most recently marked as primary for that month. For the current month, the context kind may vary as new primary kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+         * @summary Get MAU total usage
+         * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+         * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+         * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+         * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+         * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+         * @param {string} [sdkType] An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type.
+         * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+         * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkType&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+         * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+         * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMAUTotalUsage(from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, sdkType?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options?: RawAxiosRequestConfig): AxiosPromise<SeriesListRep> {
+            return localVarFp.getMAUTotalUsage(from, to, projectKey, environmentKey, sdkName, sdkType, anonymous, groupBy, aggregationType, granularity, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get a list of SDKs. These are all of the SDKs that have connected to LaunchDarkly by monthly active users (MAU) in the requested time period.<br/><br/>Endpoints for retrieving monthly active users (MAU) do not return information about active context instances. After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should not rely on this endpoint. To learn more, read [Account usage metrics](https://launchdarkly.com/docs/home/account/metrics).
          * @summary Get MAU SDKs by type
          * @param {string} [from] The data returned starts from this timestamp. Defaults to seven days ago. The timestamp is in Unix milliseconds, for example, 1656694800000.
@@ -15580,6 +16129,7 @@ export const AccountUsageBetaApiFactory = function (configuration?: Configuratio
          * @param {string} [aggregationType] If specified, queries for rolling 30-day, month-to-date, or daily incremental counts. Default is rolling 30-day. Valid values: rolling_30d, month_to_date, daily_incremental
          * @param {string} [contextKind] Filters results to the specified context kinds. Can be specified multiple times, one query parameter per context kind. If not set, queries for the user context kind.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getMauUsage(from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, aggregationType?: string, contextKind?: string, options?: RawAxiosRequestConfig): AxiosPromise<SeriesListRep> {
@@ -15591,6 +16141,7 @@ export const AccountUsageBetaApiFactory = function (configuration?: Configuratio
          * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
          * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getMauUsageByCategory(from?: string, to?: string, options?: RawAxiosRequestConfig): AxiosPromise<SeriesListRep> {
@@ -15864,6 +16415,45 @@ export class AccountUsageBetaApi extends BaseAPI {
     }
 
     /**
+     * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only. The counts reflect data reported from client-side SDKs.<br/><br/>For past months, the primary context kind is fixed and reflects the last known primary kind for that month. For the current month, it may vary as new primary context kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+     * @summary Get MAU clientside usage
+     * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+     * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+     * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+     * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+     * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+     * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+     * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+     * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+     * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getMAUClientsideUsage(from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options?: RawAxiosRequestConfig) {
+        return AccountUsageBetaApiFp(this.configuration).getMAUClientsideUsage(from, to, projectKey, environmentKey, sdkName, anonymous, groupBy, aggregationType, granularity, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only.<br/><br/>For past months, this reflects the context kind that was most recently marked as primary for that month. For the current month, the context kind may vary as new primary kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+     * @summary Get MAU total usage
+     * @param {string} [from] The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month.
+     * @param {string} [to] The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time.
+     * @param {string} [projectKey] A project key to filter results by. Can be specified multiple times, one query parameter per project key.
+     * @param {string} [environmentKey] An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key.
+     * @param {string} [sdkName] An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name.
+     * @param {string} [sdkType] An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type.
+     * @param {string} [anonymous] An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;.
+     * @param {string} [groupBy] If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkType&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;.
+     * @param {string} [aggregationType] Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;.
+     * @param {string} [granularity] Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getMAUTotalUsage(from?: string, to?: string, projectKey?: string, environmentKey?: string, sdkName?: string, sdkType?: string, anonymous?: string, groupBy?: string, aggregationType?: string, granularity?: string, options?: RawAxiosRequestConfig) {
+        return AccountUsageBetaApiFp(this.configuration).getMAUTotalUsage(from, to, projectKey, environmentKey, sdkName, sdkType, anonymous, groupBy, aggregationType, granularity, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Get a list of SDKs. These are all of the SDKs that have connected to LaunchDarkly by monthly active users (MAU) in the requested time period.<br/><br/>Endpoints for retrieving monthly active users (MAU) do not return information about active context instances. After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should not rely on this endpoint. To learn more, read [Account usage metrics](https://launchdarkly.com/docs/home/account/metrics).
      * @summary Get MAU SDKs by type
      * @param {string} [from] The data returned starts from this timestamp. Defaults to seven days ago. The timestamp is in Unix milliseconds, for example, 1656694800000.
@@ -15890,6 +16480,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @param {string} [aggregationType] If specified, queries for rolling 30-day, month-to-date, or daily incremental counts. Default is rolling 30-day. Valid values: rolling_30d, month_to_date, daily_incremental
      * @param {string} [contextKind] Filters results to the specified context kinds. Can be specified multiple times, one query parameter per context kind. If not set, queries for the user context kind.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public getMauUsage(from?: string, to?: string, project?: string, environment?: string, sdktype?: string, sdk?: string, anonymous?: string, groupby?: string, aggregationType?: string, contextKind?: string, options?: RawAxiosRequestConfig) {
@@ -15902,6 +16493,7 @@ export class AccountUsageBetaApi extends BaseAPI {
      * @param {string} [from] The series of data returned starts from this timestamp. Defaults to 30 days ago.
      * @param {string} [to] The series of data returned ends at this timestamp. Defaults to the current time.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public getMauUsageByCategory(from?: string, to?: string, options?: RawAxiosRequestConfig) {
@@ -24090,10 +24682,11 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
          * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {PatchWithComment} patchWithComment 
          * @param {boolean} [ignoreConflicts] If true, the patch will be applied even if it causes a pending scheduled change or approval request to fail.
+         * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the flag after the patch is applied.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchFeatureFlag: async (projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        patchFeatureFlag: async (projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, dryRun?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchFeatureFlag', 'projectKey', projectKey)
             // verify required parameter 'featureFlagKey' is not null or undefined
@@ -24119,6 +24712,10 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
 
             if (ignoreConflicts !== undefined) {
                 localVarQueryParameter['ignoreConflicts'] = ignoreConflicts;
+            }
+
+            if (dryRun !== undefined) {
+                localVarQueryParameter['dryRun'] = dryRun;
             }
 
 
@@ -24424,11 +25021,12 @@ export const FeatureFlagsApiFp = function(configuration?: Configuration) {
          * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {PatchWithComment} patchWithComment 
          * @param {boolean} [ignoreConflicts] If true, the patch will be applied even if it causes a pending scheduled change or approval request to fail.
+         * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the flag after the patch is applied.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, ignoreConflicts, options);
+        async patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, dryRun?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FeatureFlag>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, ignoreConflicts, dryRun, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['FeatureFlagsApi.patchFeatureFlag']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -24621,11 +25219,12 @@ export const FeatureFlagsApiFactory = function (configuration?: Configuration, b
          * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
          * @param {PatchWithComment} patchWithComment 
          * @param {boolean} [ignoreConflicts] If true, the patch will be applied even if it causes a pending scheduled change or approval request to fail.
+         * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the flag after the patch is applied.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<FeatureFlag> {
-            return localVarFp.patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, ignoreConflicts, options).then((request) => request(axios, basePath));
+        patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, dryRun?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<FeatureFlag> {
+            return localVarFp.patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, ignoreConflicts, dryRun, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a feature flag with the given name, key, and variations.  <details> <summary>Click to expand instructions for <strong>creating a migration flag</strong></summary>  ### Creating a migration flag  When you create a migration flag, the variations are pre-determined based on the number of stages in the migration.  To create a migration flag, omit the `variations` and `defaults` information. Instead, provide a `purpose` of `migration`, and `migrationSettings`. If you create a migration flag with six stages, `contextKind` is required. Otherwise, it should be omitted.  Here\'s an example:  ```json {   \"key\": \"flag-key-123\",   \"purpose\": \"migration\",   \"migrationSettings\": {     \"stageCount\": 6,     \"contextKind\": \"account\"   } } ```  To learn more, read [Migration Flags](https://launchdarkly.com/docs/home/flags/migration).  </details> 
@@ -24818,11 +25417,12 @@ export class FeatureFlagsApi extends BaseAPI {
      * @param {string} featureFlagKey The feature flag key. The key identifies the flag in your code.
      * @param {PatchWithComment} patchWithComment 
      * @param {boolean} [ignoreConflicts] If true, the patch will be applied even if it causes a pending scheduled change or approval request to fail.
+     * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the flag after the patch is applied.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, options?: RawAxiosRequestConfig) {
-        return FeatureFlagsApiFp(this.configuration).patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, ignoreConflicts, options).then((request) => request(this.axios, this.basePath));
+    public patchFeatureFlag(projectKey: string, featureFlagKey: string, patchWithComment: PatchWithComment, ignoreConflicts?: boolean, dryRun?: boolean, options?: RawAxiosRequestConfig) {
+        return FeatureFlagsApiFp(this.configuration).patchFeatureFlag(projectKey, featureFlagKey, patchWithComment, ignoreConflicts, dryRun, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -37526,10 +38126,11 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
          * @param {PatchWithComment} patchWithComment 
+         * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the segment after the patch is applied.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchSegment: async (projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        patchSegment: async (projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, dryRun?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchSegment', 'projectKey', projectKey)
             // verify required parameter 'environmentKey' is not null or undefined
@@ -37555,6 +38156,10 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
 
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (dryRun !== undefined) {
+                localVarQueryParameter['dryRun'] = dryRun;
+            }
 
 
     
@@ -37957,11 +38562,12 @@ export const SegmentsApiFp = function(configuration?: Configuration) {
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
          * @param {PatchWithComment} patchWithComment 
+         * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the segment after the patch is applied.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, options);
+        async patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, dryRun?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UserSegment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, dryRun, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SegmentsApi.patchSegment']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -38209,11 +38815,12 @@ export const SegmentsApiFactory = function (configuration?: Configuration, baseP
          * @param {string} environmentKey The environment key
          * @param {string} segmentKey The segment key
          * @param {PatchWithComment} patchWithComment 
+         * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the segment after the patch is applied.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options?: RawAxiosRequestConfig): AxiosPromise<UserSegment> {
-            return localVarFp.patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, options).then((request) => request(axios, basePath));
+        patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, dryRun?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<UserSegment> {
+            return localVarFp.patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, dryRun, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new segment.
@@ -38461,11 +39068,12 @@ export class SegmentsApi extends BaseAPI {
      * @param {string} environmentKey The environment key
      * @param {string} segmentKey The segment key
      * @param {PatchWithComment} patchWithComment 
+     * @param {boolean} [dryRun] If true, the patch will be validated but not persisted. Returns a preview of the segment after the patch is applied.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, options?: RawAxiosRequestConfig) {
-        return SegmentsApiFp(this.configuration).patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, options).then((request) => request(this.axios, this.basePath));
+    public patchSegment(projectKey: string, environmentKey: string, segmentKey: string, patchWithComment: PatchWithComment, dryRun?: boolean, options?: RawAxiosRequestConfig) {
+        return SegmentsApiFp(this.configuration).patchSegment(projectKey, environmentKey, segmentKey, patchWithComment, dryRun, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -38520,7 +39128,7 @@ export const TagsApiAxiosParamCreator = function (configuration?: Configuration)
         /**
          * Get a list of tags.
          * @summary List tags
-         * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
+         * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;metric-data-source&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
          * @param {string} [pre] Return tags with the specified prefix
          * @param {boolean} [archived] Whether or not to return archived flags
          * @param {number} [limit] The number of tags to return. Maximum is 1000.
@@ -38592,7 +39200,7 @@ export const TagsApiFp = function(configuration?: Configuration) {
         /**
          * Get a list of tags.
          * @summary List tags
-         * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
+         * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;metric-data-source&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
          * @param {string} [pre] Return tags with the specified prefix
          * @param {boolean} [archived] Whether or not to return archived flags
          * @param {number} [limit] The number of tags to return. Maximum is 1000.
@@ -38619,7 +39227,7 @@ export const TagsApiFactory = function (configuration?: Configuration, basePath?
         /**
          * Get a list of tags.
          * @summary List tags
-         * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
+         * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;metric-data-source&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
          * @param {string} [pre] Return tags with the specified prefix
          * @param {boolean} [archived] Whether or not to return archived flags
          * @param {number} [limit] The number of tags to return. Maximum is 1000.
@@ -38641,7 +39249,7 @@ export class TagsApi extends BaseAPI {
     /**
      * Get a list of tags.
      * @summary List tags
-     * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
+     * @param {Array<string>} [kind] Fetch tags associated with the specified resource type. Options are &#x60;flag&#x60;, &#x60;project&#x60;, &#x60;environment&#x60;, &#x60;segment&#x60;, &#x60;metric&#x60;, &#x60;metric-data-source&#x60;, &#x60;aiconfig&#x60;, and &#x60;view&#x60;. Returns all types by default.
      * @param {string} [pre] Return tags with the specified prefix
      * @param {boolean} [archived] Whether or not to return archived flags
      * @param {number} [limit] The number of tags to return. Maximum is 1000.

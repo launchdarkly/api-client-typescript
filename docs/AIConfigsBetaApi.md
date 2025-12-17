@@ -19,6 +19,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getModelConfig**](#getmodelconfig) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Get AI model config|
 |[**listAIToolVersions**](#listaitoolversions) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/versions | List AI tool versions|
 |[**listAITools**](#listaitools) | **GET** /api/v2/projects/{projectKey}/ai-tools | List AI tools|
+|[**listAgentGraphs**](#listagentgraphs) | **GET** /api/v2/projects/{projectKey}/agent-graphs | List agent graphs|
 |[**listModelConfigs**](#listmodelconfigs) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs | List AI model configs|
 |[**patchAIConfig**](#patchaiconfig) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/{configKey} | Update AI Config|
 |[**patchAIConfigTargeting**](#patchaiconfigtargeting) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/{configKey}/targeting | Update AI Config targeting|
@@ -27,6 +28,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**postAIConfig**](#postaiconfig) | **POST** /api/v2/projects/{projectKey}/ai-configs | Create new AI Config|
 |[**postAIConfigVariation**](#postaiconfigvariation) | **POST** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations | Create AI Config variation|
 |[**postAITool**](#postaitool) | **POST** /api/v2/projects/{projectKey}/ai-tools | Create an AI tool|
+|[**postAgentGraph**](#postagentgraph) | **POST** /api/v2/projects/{projectKey}/agent-graphs | Create new agent graph|
 |[**postModelConfig**](#postmodelconfig) | **POST** /api/v2/projects/{projectKey}/ai-configs/model-configs | Create an AI model config|
 |[**postRestrictedModels**](#postrestrictedmodels) | **POST** /api/v2/projects/{projectKey}/ai-configs/model-configs/restricted | Add AI models to the restricted list|
 
@@ -994,6 +996,69 @@ const { status, data } = await apiInstance.listAITools(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listAgentGraphs**
+> AgentGraphs listAgentGraphs()
+
+Get a list of all agent graphs in the given project. Returns metadata only, without edge data.
+
+### Example
+
+```typescript
+import {
+    AIConfigsBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AIConfigsBetaApi(configuration);
+
+let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
+let projectKey: string; // (default to undefined)
+let limit: number; //The number of AI Configs to return. (optional) (default to undefined)
+let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.listAgentGraphs(
+    lDAPIVersion,
+    projectKey,
+    limit,
+    offset
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **limit** | [**number**] | The number of AI Configs to return. | (optional) defaults to undefined|
+| **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**AgentGraphs**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Successful response |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listModelConfigs**
 > Array<ModelConfig> listModelConfigs()
 
@@ -1500,6 +1565,68 @@ const { status, data } = await apiInstance.postAITool(
 |**201** | AI tool created |  -  |
 |**400** | Bad request |  -  |
 |**403** | Forbidden |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **postAgentGraph**
+> AgentGraph postAgentGraph(agentGraphPost)
+
+Create a new agent graph within the given project.
+
+### Example
+
+```typescript
+import {
+    AIConfigsBetaApi,
+    Configuration,
+    AgentGraphPost
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AIConfigsBetaApi(configuration);
+
+let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
+let projectKey: string; // (default to undefined)
+let agentGraphPost: AgentGraphPost; //Agent graph object to create
+
+const { status, data } = await apiInstance.postAgentGraph(
+    lDAPIVersion,
+    projectKey,
+    agentGraphPost
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **agentGraphPost** | **AgentGraphPost**| Agent graph object to create | |
+| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
+| **projectKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**AgentGraph**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**201** | Agent graph created |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**413** | Payload too large |  -  |
 |**500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

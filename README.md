@@ -6,7 +6,7 @@ This REST API is for custom integrations, data export, or automating your featur
 This client library is only compatible with the latest version of our REST API. Previous versions of this client library are compatible with earlier versions of our REST API. When you create an access token, you can set the REST API version associated with the token. By default, API requests you send using the token will use the specified API version. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).
 View our [sample code](#sample-code) for example usage.
 
-## launchdarkly-api-typescript@19.0.0
+## launchdarkly-api-typescript@20.0.0
 
 This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
 
@@ -44,7 +44,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@19.0.0 --save
+npm install launchdarkly-api-typescript@20.0.0 --save
 ```
 
 _unPublished (not recommended):_
@@ -74,6 +74,7 @@ Class | Method | HTTP request | Description
 *AIConfigsBetaApi* | [**getModelConfig**](docs/AIConfigsBetaApi.md#getmodelconfig) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Get AI model config
 *AIConfigsBetaApi* | [**listAIToolVersions**](docs/AIConfigsBetaApi.md#listaitoolversions) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/versions | List AI tool versions
 *AIConfigsBetaApi* | [**listAITools**](docs/AIConfigsBetaApi.md#listaitools) | **GET** /api/v2/projects/{projectKey}/ai-tools | List AI tools
+*AIConfigsBetaApi* | [**listAgentGraphs**](docs/AIConfigsBetaApi.md#listagentgraphs) | **GET** /api/v2/projects/{projectKey}/agent-graphs | List agent graphs
 *AIConfigsBetaApi* | [**listModelConfigs**](docs/AIConfigsBetaApi.md#listmodelconfigs) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs | List AI model configs
 *AIConfigsBetaApi* | [**patchAIConfig**](docs/AIConfigsBetaApi.md#patchaiconfig) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/{configKey} | Update AI Config
 *AIConfigsBetaApi* | [**patchAIConfigTargeting**](docs/AIConfigsBetaApi.md#patchaiconfigtargeting) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/{configKey}/targeting | Update AI Config targeting
@@ -82,6 +83,7 @@ Class | Method | HTTP request | Description
 *AIConfigsBetaApi* | [**postAIConfig**](docs/AIConfigsBetaApi.md#postaiconfig) | **POST** /api/v2/projects/{projectKey}/ai-configs | Create new AI Config
 *AIConfigsBetaApi* | [**postAIConfigVariation**](docs/AIConfigsBetaApi.md#postaiconfigvariation) | **POST** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations | Create AI Config variation
 *AIConfigsBetaApi* | [**postAITool**](docs/AIConfigsBetaApi.md#postaitool) | **POST** /api/v2/projects/{projectKey}/ai-tools | Create an AI tool
+*AIConfigsBetaApi* | [**postAgentGraph**](docs/AIConfigsBetaApi.md#postagentgraph) | **POST** /api/v2/projects/{projectKey}/agent-graphs | Create new agent graph
 *AIConfigsBetaApi* | [**postModelConfig**](docs/AIConfigsBetaApi.md#postmodelconfig) | **POST** /api/v2/projects/{projectKey}/ai-configs/model-configs | Create an AI model config
 *AIConfigsBetaApi* | [**postRestrictedModels**](docs/AIConfigsBetaApi.md#postrestrictedmodels) | **POST** /api/v2/projects/{projectKey}/ai-configs/model-configs/restricted | Add AI models to the restricted list
 *AccessTokensApi* | [**deleteToken**](docs/AccessTokensApi.md#deletetoken) | **DELETE** /api/v2/tokens/{id} | Delete access token
@@ -105,6 +107,8 @@ Class | Method | HTTP request | Description
 *AccountUsageBetaApi* | [**getEventsUsage**](docs/AccountUsageBetaApi.md#geteventsusage) | **GET** /api/v2/usage/events/{type} | Get events usage
 *AccountUsageBetaApi* | [**getExperimentationEventsUsage**](docs/AccountUsageBetaApi.md#getexperimentationeventsusage) | **GET** /api/v2/usage/experimentation-events | Get experimentation events usage
 *AccountUsageBetaApi* | [**getExperimentationKeysUsage**](docs/AccountUsageBetaApi.md#getexperimentationkeysusage) | **GET** /api/v2/usage/experimentation-keys | Get experimentation keys usage
+*AccountUsageBetaApi* | [**getMAUClientsideUsage**](docs/AccountUsageBetaApi.md#getmauclientsideusage) | **GET** /api/v2/usage/clientside-mau | Get MAU clientside usage
+*AccountUsageBetaApi* | [**getMAUTotalUsage**](docs/AccountUsageBetaApi.md#getmautotalusage) | **GET** /api/v2/usage/total-mau | Get MAU total usage
 *AccountUsageBetaApi* | [**getMauSdksByType**](docs/AccountUsageBetaApi.md#getmausdksbytype) | **GET** /api/v2/usage/mau/sdks | Get MAU SDKs by type
 *AccountUsageBetaApi* | [**getMauUsage**](docs/AccountUsageBetaApi.md#getmauusage) | **GET** /api/v2/usage/mau | Get MAU usage
 *AccountUsageBetaApi* | [**getMauUsageByCategory**](docs/AccountUsageBetaApi.md#getmauusagebycategory) | **GET** /api/v2/usage/mau/bycategory | Get MAU usage by category
@@ -437,6 +441,11 @@ Class | Method | HTTP request | Description
  - [AccessTokenPost](docs/AccessTokenPost.md)
  - [ActionInput](docs/ActionInput.md)
  - [ActionOutput](docs/ActionOutput.md)
+ - [AgentGraph](docs/AgentGraph.md)
+ - [AgentGraphEdge](docs/AgentGraphEdge.md)
+ - [AgentGraphEdgePost](docs/AgentGraphEdgePost.md)
+ - [AgentGraphPost](docs/AgentGraphPost.md)
+ - [AgentGraphs](docs/AgentGraphs.md)
  - [AiConfigsAccess](docs/AiConfigsAccess.md)
  - [AiConfigsAccessAllowedReason](docs/AiConfigsAccessAllowedReason.md)
  - [AiConfigsAccessAllowedRep](docs/AiConfigsAccessAllowedRep.md)
@@ -532,7 +541,6 @@ Class | Method | HTTP request | Description
  - [Contexts](docs/Contexts.md)
  - [CopiedFromEnv](docs/CopiedFromEnv.md)
  - [CoreLink](docs/CoreLink.md)
- - [CovarianceInfoRep](docs/CovarianceInfoRep.md)
  - [CreateAnnouncementBody](docs/CreateAnnouncementBody.md)
  - [CreateApprovalRequestRequest](docs/CreateApprovalRequestRequest.md)
  - [CreateCopyFlagConfigApprovalRequestRequest](docs/CreateCopyFlagConfigApprovalRequestRequest.md)
@@ -814,6 +822,7 @@ Class | Method | HTTP request | Description
  - [PostInsightGroupParams](docs/PostInsightGroupParams.md)
  - [PostReleasePolicyRequest](docs/PostReleasePolicyRequest.md)
  - [Prerequisite](docs/Prerequisite.md)
+ - [ProgressiveReleaseConfig](docs/ProgressiveReleaseConfig.md)
  - [Project](docs/Project.md)
  - [ProjectPost](docs/ProjectPost.md)
  - [ProjectRep](docs/ProjectRep.md)
@@ -853,6 +862,7 @@ Class | Method | HTTP request | Description
  - [ReleasePoliciesResponse](docs/ReleasePoliciesResponse.md)
  - [ReleasePolicy](docs/ReleasePolicy.md)
  - [ReleasePolicyScope](docs/ReleasePolicyScope.md)
+ - [ReleasePolicyStage](docs/ReleasePolicyStage.md)
  - [ReleaseProgression](docs/ReleaseProgression.md)
  - [ReleaseProgressionCollection](docs/ReleaseProgressionCollection.md)
  - [ReleaserAudienceConfigInput](docs/ReleaserAudienceConfigInput.md)

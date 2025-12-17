@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **scope** | [**ReleasePolicyScope**](ReleasePolicyScope.md) |  | [optional] [default to undefined]
 **releaseMethod** | [**ReleaseMethod**](ReleaseMethod.md) |  | [default to undefined]
 **guardedReleaseConfig** | [**GuardedReleaseConfig**](GuardedReleaseConfig.md) |  | [optional] [default to undefined]
-**progressiveReleaseConfig** | **object** | Configuration for progressive releases | [optional] [default to undefined]
+**progressiveReleaseConfig** | [**ProgressiveReleaseConfig**](ProgressiveReleaseConfig.md) |  | [optional] [default to undefined]
 **name** | **string** | The name of the release policy | [default to undefined]
 
 ## Example

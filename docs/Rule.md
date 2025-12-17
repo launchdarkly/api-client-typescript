@@ -6,6 +6,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **_id** | **string** | The flag rule ID | [optional] [default to undefined]
+**disabled** | **boolean** | Whether the rule is disabled | [optional] [default to undefined]
 **variation** | **number** | The index of the variation, from the array of variations for this flag | [optional] [default to undefined]
 **rollout** | [**Rollout**](Rollout.md) |  | [optional] [default to undefined]
 **clauses** | [**Array&lt;Clause&gt;**](Clause.md) | An array of clauses used for individual targeting based on attributes | [default to undefined]
@@ -20,6 +21,7 @@ import { Rule } from 'launchdarkly-api-typescript';
 
 const instance: Rule = {
     _id,
+    disabled,
     variation,
     rollout,
     clauses,

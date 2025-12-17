@@ -6,6 +6,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **environmentKeys** | **Array&lt;string&gt;** | List of environment keys this policy applies to | [optional] [default to undefined]
+**flagTagKeys** | **Array&lt;string&gt;** | List of flag tag keys this policy applies to | [optional] [default to undefined]
 
 ## Example
 
@@ -14,6 +15,7 @@ import { ReleasePolicyScope } from 'launchdarkly-api-typescript';
 
 const instance: ReleasePolicyScope = {
     environmentKeys,
+    flagTagKeys,
 };
 ```
 

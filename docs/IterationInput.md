@@ -13,7 +13,6 @@ Name | Type | Description | Notes
 **treatments** | [**Array&lt;TreatmentInput&gt;**](TreatmentInput.md) |  | [default to undefined]
 **flags** | [**{ [key: string]: FlagInput; }**](FlagInput.md) |  | [default to undefined]
 **randomizationUnit** | **string** | The unit of randomization for this iteration. Defaults to user. | [optional] [default to undefined]
-**covarianceId** | **string** | The ID of the covariance CSV | [optional] [default to undefined]
 **attributes** | **Array&lt;string&gt;** | The attributes that this iteration\&#39;s results can be sliced by | [optional] [default to undefined]
 
 ## Example
@@ -30,7 +29,6 @@ const instance: IterationInput = {
     treatments,
     flags,
     randomizationUnit,
-    covarianceId,
     attributes,
 };
 ```

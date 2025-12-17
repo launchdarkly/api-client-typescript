@@ -934,12 +934,14 @@ let projectKey: string; //The project key (default to undefined)
 let environmentKey: string; //The environment key (default to undefined)
 let segmentKey: string; //The segment key (default to undefined)
 let patchWithComment: PatchWithComment; //
+let dryRun: boolean; //If true, the patch will be validated but not persisted. Returns a preview of the segment after the patch is applied. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.patchSegment(
     projectKey,
     environmentKey,
     segmentKey,
-    patchWithComment
+    patchWithComment,
+    dryRun
 );
 ```
 
@@ -951,6 +953,7 @@ const { status, data } = await apiInstance.patchSegment(
 | **projectKey** | [**string**] | The project key | defaults to undefined|
 | **environmentKey** | [**string**] | The environment key | defaults to undefined|
 | **segmentKey** | [**string**] | The segment key | defaults to undefined|
+| **dryRun** | [**boolean**] | If true, the patch will be validated but not persisted. Returns a preview of the segment after the patch is applied. | (optional) defaults to undefined|
 
 
 ### Return type

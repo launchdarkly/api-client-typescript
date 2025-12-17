@@ -12,6 +12,8 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getEventsUsage**](#geteventsusage) | **GET** /api/v2/usage/events/{type} | Get events usage|
 |[**getExperimentationEventsUsage**](#getexperimentationeventsusage) | **GET** /api/v2/usage/experimentation-events | Get experimentation events usage|
 |[**getExperimentationKeysUsage**](#getexperimentationkeysusage) | **GET** /api/v2/usage/experimentation-keys | Get experimentation keys usage|
+|[**getMAUClientsideUsage**](#getmauclientsideusage) | **GET** /api/v2/usage/clientside-mau | Get MAU clientside usage|
+|[**getMAUTotalUsage**](#getmautotalusage) | **GET** /api/v2/usage/total-mau | Get MAU total usage|
 |[**getMauSdksByType**](#getmausdksbytype) | **GET** /api/v2/usage/mau/sdks | Get MAU SDKs by type|
 |[**getMauUsage**](#getmauusage) | **GET** /api/v2/usage/mau | Get MAU usage|
 |[**getMauUsageByCategory**](#getmauusagebycategory) | **GET** /api/v2/usage/mau/bycategory | Get MAU usage by category|
@@ -615,6 +617,169 @@ const { status, data } = await apiInstance.getExperimentationKeysUsage(
 | **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;experimentId&#x60;. | (optional) defaults to undefined|
 | **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;. | (optional) defaults to undefined|
 | **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. &#x60;monthly&#x60; granularity is only supported with the **month_to_date** aggregation type.&lt;br/&gt;Valid values: &#x60;daily&#x60;, &#x60;hourly&#x60;, &#x60;monthly&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**SeriesListRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+|**503** | Service unavailable |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getMAUClientsideUsage**
+> SeriesListRep getMAUClientsideUsage()
+
+Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only. The counts reflect data reported from client-side SDKs.<br/><br/>For past months, the primary context kind is fixed and reflects the last known primary kind for that month. For the current month, it may vary as new primary context kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let from: string; //The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. (optional) (default to undefined)
+let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
+let sdkName: string; //An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. (optional) (default to undefined)
+let anonymous: string; //An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.<br/>Valid values: `true`, `false`. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `sdkName`, `sdkAppId`, `anonymousV2`. (optional) (default to undefined)
+let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`, `rolling_30d`. (optional) (default to undefined)
+let granularity: string; //Specifies the data granularity. Defaults to `daily`. Valid values depend on `aggregationType`: **month_to_date** supports `daily` and `monthly`; **incremental** and **rolling_30d** support `daily` only. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getMAUClientsideUsage(
+    from,
+    to,
+    projectKey,
+    environmentKey,
+    sdkName,
+    anonymous,
+    groupBy,
+    aggregationType,
+    granularity
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **from** | [**string**] | The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
+| **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
+| **sdkName** | [**string**] | An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. | (optional) defaults to undefined|
+| **anonymous** | [**string**] | An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;. | (optional) defaults to undefined|
+| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;. | (optional) defaults to undefined|
+| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only. | (optional) defaults to undefined|
+
+
+### Return type
+
+**SeriesListRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+|**503** | Service unavailable |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getMAUTotalUsage**
+> SeriesListRep getMAUTotalUsage()
+
+Get a time series of the number of context key usages observed by LaunchDarkly in your account, for the primary context kind only.<br/><br/>For past months, this reflects the context kind that was most recently marked as primary for that month. For the current month, the context kind may vary as new primary kinds are observed.<br/><br/>The supported granularity varies by aggregation type. The maximum time range is 365 days.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let from: string; //The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. (optional) (default to undefined)
+let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
+let sdkName: string; //An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. (optional) (default to undefined)
+let sdkType: string; //An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. (optional) (default to undefined)
+let anonymous: string; //An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.<br/>Valid values: `true`, `false`. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `sdkName`, `sdkType`, `sdkAppId`, `anonymousV2`. (optional) (default to undefined)
+let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`, `rolling_30d`. (optional) (default to undefined)
+let granularity: string; //Specifies the data granularity. Defaults to `daily`. Valid values depend on `aggregationType`: **month_to_date** supports `daily` and `monthly`; **incremental** and **rolling_30d** support `daily` only. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getMAUTotalUsage(
+    from,
+    to,
+    projectKey,
+    environmentKey,
+    sdkName,
+    sdkType,
+    anonymous,
+    groupBy,
+    aggregationType,
+    granularity
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **from** | [**string**] | The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
+| **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
+| **sdkName** | [**string**] | An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. | (optional) defaults to undefined|
+| **sdkType** | [**string**] | An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. | (optional) defaults to undefined|
+| **anonymous** | [**string**] | An anonymous value to filter results by. Can be specified multiple times, one query parameter per anonymous value.&lt;br/&gt;Valid values: &#x60;true&#x60;, &#x60;false&#x60;. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkType&#x60;, &#x60;sdkAppId&#x60;, &#x60;anonymousV2&#x60;. | (optional) defaults to undefined|
+| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;. | (optional) defaults to undefined|
+| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only. | (optional) defaults to undefined|
 
 
 ### Return type
