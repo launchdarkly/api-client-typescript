@@ -29,7 +29,7 @@ docs/AIConfigVariationPatch.md
 docs/AIConfigVariationPost.md
 docs/AIConfigVariationsResponse.md
 docs/AIConfigs.md
-docs/AIConfigsBetaApi.md
+docs/AIConfigsApi.md
 docs/AIConfigsSummary.md
 docs/AITool.md
 docs/AIToolPatch.md
@@ -87,6 +87,7 @@ docs/ApplicationRep.md
 docs/ApplicationVersionRep.md
 docs/ApplicationVersionsCollectionRep.md
 docs/ApplicationsBetaApi.md
+docs/ApprovalRequestPatchInput.md
 docs/ApprovalRequestResponse.md
 docs/ApprovalRequestSetting.md
 docs/ApprovalRequestSettingWithEnvs.md

@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * LaunchDarkly REST API
- * This documentation describes LaunchDarkly\'s REST API. To access the complete OpenAPI spec directly, use [Get OpenAPI spec](https://launchdarkly.com/docs/api/other/get-openapi-spec).  To learn how to use LaunchDarkly using the user interface (UI) instead, read our [product documentation](https://launchdarkly.com/docs/home).  ## Authentication  LaunchDarkly\'s REST API uses the HTTPS protocol with a minimum TLS version of 1.2.  All REST API resources are authenticated with either [personal or service access tokens](https://launchdarkly.com/docs/home/account/api), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page in the LaunchDarkly UI.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and JavaScript-based SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations such as fetching feature flag settings.  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal or service access tokens](https://launchdarkly.com/docs/home/account/api) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export. | | SDK keys                                                                                        | Can only access read-only resources specific to server-side SDKs. Restricted to a single environment. | Server-side SDKs                     | | Mobile keys                                                                                     | Can only access read-only resources specific to mobile SDKs, and only for flags marked available to mobile keys. Restricted to a single environment.           | Mobile SDKs                                        | | Client-side ID                                                                                  | Can only access read-only resources specific to JavaScript-based client-side SDKs, and only for flags marked available to client-side. Restricted to a single environment.           | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Authentication using request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [**Authorization**](https://app.launchdarkly.com/settings/authorization) page.  ### Authentication using session cookie  For testing purposes, you can make API calls directly from your web browser. If you are logged in to the LaunchDarkly application, the API will use your existing session to authenticate calls.  Depending on the permissions granted as part of your [role](https://launchdarkly.com/docs/home/account/roles), you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses also send a JSON body. To learn more about the error format of the API, read [Errors](https://launchdarkly.com/docs/api#errors).  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PATCH`, `POST`, and `PUT` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource, such as a single feature flag, you receive a _detailed representation_ of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Expanding responses  Sometimes the detailed representation of a resource does not include all of the attributes of the resource by default. If this is the case, the request method will clearly document this and describe which attributes you can include in an expanded response.  To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,maintainers` to the [Get team](https://launchdarkly.com/docs/api/teams/get-team) endpoint, the expanded response includes both of these attributes.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link  Each link has two attributes:  - An `href`, which contains the URL - A `type`, which describes the content type  For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb. Most resources support the [JSON patch](https://launchdarkly.com/docs/api#updates-using-json-patch) format. Some resources also support the [JSON merge patch](https://launchdarkly.com/docs/api#updates-using-json-merge-patch) format, and some resources support the [semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch) format, which is a way to specify the modifications to perform as a set of executable instructions. Each resource supports optional [comments](https://launchdarkly.com/docs/api#updates-with-comments) that you can submit with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  When a resource supports both JSON patch and semantic patch, we document both in the request method. However, the specific request body fields and descriptions included in our documentation only match one type of patch or the other.  ### Updates using JSON patch  [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. JSON patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. JSON patch documents are always arrays, where each element contains an operation, a path to the field to update, and the new value.  For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ``` You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that are not editable, such as a resource\'s `_links`, have names that start with an underscore.  ### Updates using JSON merge patch  [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) is another format for specifying the modifications to perform on a resource. JSON merge patch is less expressive than JSON patch. However, in many cases it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates using semantic patch  Some resources support the semantic patch format. A semantic patch is a way to specify the modifications to perform on a resource as a set of executable instructions.  Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, you can define semantic patch instructions independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header.  Here\'s how:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  The body of a semantic patch request takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some resources only) The environment key. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the instruction requires parameters, you must include those parameters as additional fields in the object. The documentation for each resource that supports semantic patch includes the available instructions and any additional parameters.  For example:  ```json {   \"comment\": \"optional comment\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  Semantic patches are not applied partially; either all of the instructions are applied or none of them are. If **any** instruction is invalid, the endpoint returns an error and will not change the resource. If all instructions are valid, the request succeeds and the resources are updated if necessary, or left unchanged if they are already in the state you request.  ### Updates with comments  You can submit optional comments with `PATCH` changes.  To submit a comment along with a JSON patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON merge patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  To submit a comment along with a semantic patch, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The `code` indicates the general class of error. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly Support to debug a problem with a specific API call.  ### HTTP status error response codes  | Code | Definition        | Description                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Invalid request       | The request cannot be understood.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Invalid access token      | Requestor is unauthorized or does not have permission for this API call.                                                | Ensure your API access token is valid and has the appropriate permissions.                                     | | 403  | Forbidden         | Requestor does not have access to this resource.                                                | Ensure that the account member or access token has proper permissions set. | | 404  | Invalid resource identifier | The requested resource is not valid. | Ensure that the resource is correctly identified by ID or key. | | 405  | Method not allowed | The request method is not allowed on this resource. | Ensure that the HTTP verb is correct. | | 409  | Conflict          | The API request can not be completed because it conflicts with a concurrent API request. | Retry your request.                                              | | 422  | Unprocessable entity | The API request can not be completed because the update description can not be understood. | Ensure that the request body is correct for the type of patch you are using, either JSON patch or semantic patch. | 429  | Too many requests | Read [Rate limiting](https://launchdarkly.com/docs/api#rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise the request returns a wildcard, `Access-Control-Allow-Origin: *`. For more information on CORS, read the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](https://launchdarkly.com/docs/api#authentication). If you are using session authentication, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted entities.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs return a `429` status code. Calls to our APIs include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that your account can make to the API per ten seconds. All service and personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits may return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any service or personal access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](https://launchdarkly.com/docs/api/environments/delete-environment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that an account can make to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger) and client libraries  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit the [collection of client libraries on GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories). You can also use this specification to generate client libraries to interact with our REST API in your language of choice.  Our OpenAPI specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to explore our APIs.  ## Method overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `DELETE`, `PATCH`, and `PUT` verbs are inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `DELETE`, `PATCH`, and `PUT` requests using a `POST` request.  For example, to call a `PATCH` endpoint using a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](https://launchdarkly.com/docs/api#beta-resources). > > Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Federal and EU environments  In addition to the commercial versions, LaunchDarkly offers instances for federal agencies and those based in the European Union (EU).  ### Federal environments  The version of LaunchDarkly that is available on domains controlled by the United States government is different from the version of LaunchDarkly available to the general public. If you are an employee or contractor for a United States federal agency and use LaunchDarkly in your work, you likely use the federal instance of LaunchDarkly.  If you are working in the federal instance of LaunchDarkly, the base URI for each request is `https://app.launchdarkly.us`.  To learn more, read [LaunchDarkly in federal environments](https://launchdarkly.com/docs/home/infrastructure/federal).  ### EU environments  The version of LaunchDarkly that is available in the EU is different from the version of LaunchDarkly available to other regions. If you are based in the EU, you likely use the EU instance of LaunchDarkly. The LaunchDarkly EU instance complies with EU data residency principles, including the protection and confidentiality of EU customer information.  If you are working in the EU instance of LaunchDarkly, the base URI for each request is `https://app.eu.launchdarkly.com`.  To learn more, read [LaunchDarkly in the European Union (EU)](https://launchdarkly.com/docs/home/infrastructure/eu).  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20240415 ```  The header value is the version number of the API version you would like to request. The number for each version corresponds to the date the version was released in `yyyymmdd` format. In the example above the version `20240415` corresponds to April 15, 2024.  ### Setting the API version per access token  When you create an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426`, which is the version of the API that existed before the current versioning scheme, so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing.  ### API version changelog  <table>   <tr>     <th>Version</th>     <th>Changes</th>     <th>End of life (EOL)</th>   </tr>   <tr>     <td>`20240415`</td>     <td>       <ul><li>Changed several endpoints from unpaginated to paginated. Use the `limit` and `offset` query parameters to page through the results.</li> <li>Changed the [list access tokens](https://launchdarkly.com/docs/api/access-tokens/get-tokens) endpoint: <ul><li>Response is now paginated with a default limit of `25`</li></ul></li> <li>Changed the [list account members](https://launchdarkly.com/docs/api/account-members/get-members) endpoint: <ul><li>The `accessCheck` filter is no longer available</li></ul></li> <li>Changed the [list custom roles](https://launchdarkly.com/docs/api/custom-roles/get-custom-roles) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `environments` field is now only returned if the request is filtered by environment, using the `filterEnv` query parameter</li><li>The `followerId`, `hasDataExport`, `status`, `contextKindTargeted`, and `segmentTargeted` filters are no longer available</li><li>The `compare` query parameter is no longer available</li></ul></li> <li>Changed the [list segments](https://launchdarkly.com/docs/api/segments/get-segments) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list teams](https://launchdarkly.com/docs/api/teams/get-teams) endpoint: <ul><li>The `expand` parameter no longer supports including `projects` or `roles`</li><li>In paginated results, the maximum page size is now 100</li></ul></li> <li>Changed the [get workflows](https://launchdarkly.com/docs/api/workflows/get-workflows) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `_conflicts` field in the response is no longer available</li></ul></li> </ul>     </td>     <td>Current</td>   </tr>   <tr>     <td>`20220603`</td>     <td>       <ul><li>Changed the [list projects](https://launchdarkly.com/docs/api/projects/get-projects) return value:<ul><li>Response is now paginated with a default limit of `20`.</li><li>Added support for filter and sort.</li><li>The project `environments` field is now expandable. This field is omitted by default.</li></ul></li><li>Changed the [get project](https://launchdarkly.com/docs/api/projects/get-project) return value:<ul><li>The `environments` field is now expandable. This field is omitted by default.</li></ul></li></ul>     </td>     <td>2025-04-15</td>   </tr>   <tr>     <td>`20210729`</td>     <td>       <ul><li>Changed the [create approval request](https://launchdarkly.com/docs/api/approvals/post-approval-request) return value. It now returns HTTP Status Code `201` instead of `200`.</li><li> Changed the [get user](https://launchdarkly.com/docs/api/users/get-user) return value. It now returns a user record, not a user. </li><li>Added additional optional fields to environment, segments, flags, members, and segments, including the ability to create big segments. </li><li> Added default values for flag variations when new environments are created. </li><li>Added filtering and pagination for getting flags and members, including `limit`, `number`, `filter`, and `sort` query parameters. </li><li>Added endpoints for expiring user targets for flags and segments, scheduled changes, access tokens, Relay Proxy configuration, integrations and subscriptions, and approvals. </li></ul>     </td>     <td>2023-06-03</td>   </tr>   <tr>     <td>`20191212`</td>     <td>       <ul><li>[List feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) now defaults to sending summaries of feature flag configurations, equivalent to setting the query parameter `summary=true`. Summaries omit flag targeting rules and individual user targets from the payload. </li><li> Added endpoints for flags, flag status, projects, environments, audit logs, members, users, custom roles, segments, usage, streams, events, and data export. </li></ul>     </td>     <td>2022-07-29</td>   </tr>   <tr>     <td>`20160426`</td>     <td>       <ul><li>Initial versioning of API. Tokens created before versioning have their version set to this.</li></ul>     </td>     <td>2020-12-12</td>   </tr> </table>  To learn more about how EOL is determined, read LaunchDarkly\'s [End of Life (EOL) Policy](https://launchdarkly.com/policies/end-of-life-policy/). 
+ * This documentation describes LaunchDarkly\'s REST API. To access the complete OpenAPI spec directly, use [Get OpenAPI spec](https://launchdarkly.com/docs/api/other/get-openapi-spec).  To learn how to use LaunchDarkly using the user interface (UI) instead, read our [product documentation](https://launchdarkly.com/docs/home).  ## Authentication  LaunchDarkly\'s REST API uses the HTTPS protocol with a minimum TLS version of 1.2.  All REST API resources are authenticated with either [personal or service access tokens](https://launchdarkly.com/docs/home/account/api), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page in the LaunchDarkly UI.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and JavaScript-based SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations such as fetching feature flag settings.  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal or service access tokens](https://launchdarkly.com/docs/home/account/api) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export. | | SDK keys                                                                                        | Can only access read-only resources specific to server-side SDKs. Restricted to a single environment. | Server-side SDKs                     | | Mobile keys                                                                                     | Can only access read-only resources specific to mobile SDKs, and only for flags marked available to mobile keys. Restricted to a single environment.           | Mobile SDKs                                        | | Client-side ID                                                                                  | Can only access read-only resources specific to JavaScript-based client-side SDKs, and only for flags marked available to client-side. Restricted to a single environment.           | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Authentication using request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [**Authorization**](https://app.launchdarkly.com/settings/authorization) page.  ### Authentication using session cookie  For testing purposes, you can make API calls directly from your web browser. If you are logged in to the LaunchDarkly application, the API will use your existing session to authenticate calls.  Depending on the permissions granted as part of your [role](https://launchdarkly.com/docs/home/account/roles), you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, the `Allow-Control-Allow-Origin: *` Chrome extension changes the Origin header to `http://evil.com` and causes the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses also send a JSON body. To learn more about the error format of the API, read [Errors](https://launchdarkly.com/docs/api#errors).  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PATCH`, `POST`, and `PUT` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource, such as a single feature flag, you receive a _detailed representation_ of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Expanding responses  Sometimes the detailed representation of a resource does not include all of the attributes of the resource by default. If this is the case, the request method will clearly document this and describe which attributes you can include in an expanded response.  To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,maintainers` to the [Get team](https://launchdarkly.com/docs/api/teams/get-team) endpoint, the expanded response includes both of these attributes.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link  Each link has two attributes:  - An `href`, which contains the URL - A `type`, which describes the content type  For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb. Most resources support the [JSON patch](https://launchdarkly.com/docs/api#updates-using-json-patch) format. Some resources also support the [JSON merge patch](https://launchdarkly.com/docs/api#updates-using-json-merge-patch) format, and some resources support the [semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch) format, which is a way to specify the modifications to perform as a set of executable instructions. Each resource supports optional [comments](https://launchdarkly.com/docs/api#updates-with-comments) that you can submit with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  When a resource supports both JSON patch and semantic patch, we document both in the request method. However, the specific request body fields and descriptions included in our documentation only match one type of patch or the other.  ### Updates using JSON patch  [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. JSON patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. JSON patch documents are always arrays, where each element contains an operation, a path to the field to update, and the new value.  For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ``` You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that are not editable, such as a resource\'s `_links`, have names that start with an underscore.  ### Updates using JSON merge patch  [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) is another format for specifying the modifications to perform on a resource. JSON merge patch is less expressive than JSON patch. However, in many cases it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates using semantic patch  Some resources support the semantic patch format. A semantic patch is a way to specify the modifications to perform on a resource as a set of executable instructions.  Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, you can define semantic patch instructions independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header.  Here\'s how:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  The body of a semantic patch request takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some resources only) The environment key. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the instruction requires parameters, you must include those parameters as additional fields in the object. The documentation for each resource that supports semantic patch includes the available instructions and any additional parameters.  For example:  ```json {   \"comment\": \"optional comment\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  Semantic patches are not applied partially; either all of the instructions are applied or none of them are. If **any** instruction is invalid, the endpoint returns an error and will not change the resource. If all instructions are valid, the request succeeds and the resources are updated if necessary, or left unchanged if they are already in the state you request.  ### Updates with comments  You can submit optional comments with `PATCH` changes.  To submit a comment along with a JSON patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON merge patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  To submit a comment along with a semantic patch, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The `code` indicates the general class of error. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly Support to debug a problem with a specific API call.  ### HTTP status error response codes  | Code | Definition        | Description                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Invalid request       | The request cannot be understood.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Invalid access token      | Requestor is unauthorized or does not have permission for this API call.                                                | Ensure your API access token is valid and has the appropriate permissions.                                     | | 403  | Forbidden         | Requestor does not have access to this resource.                                                | Ensure that the account member or access token has proper permissions set. | | 404  | Invalid resource identifier | The requested resource is not valid. | Ensure that the resource is correctly identified by ID or key. | | 405  | Method not allowed | The request method is not allowed on this resource. | Ensure that the HTTP verb is correct. | | 409  | Conflict          | The API request can not be completed because it conflicts with a concurrent API request. | Retry your request.                                              | | 422  | Unprocessable entity | The API request can not be completed because the update description can not be understood. | Ensure that the request body is correct for the type of patch you are using, either JSON patch or semantic patch. | 429  | Too many requests | Read [Rate limiting](https://launchdarkly.com/docs/api#rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise the request returns a wildcard, `Access-Control-Allow-Origin: *`. For more information on CORS, read the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](https://launchdarkly.com/docs/api#authentication). If you are using session authentication, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted entities.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs return a `429` status code. Calls to our APIs include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that your account can make to the API per ten seconds. All service and personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits may return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any service or personal access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](https://launchdarkly.com/docs/api/environments/delete-environment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that an account can make to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger) and client libraries  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit the [collection of client libraries on GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories). Alternatively, you can use the specification to generate client libraries to interact with our REST API in your language of choice. Or, you can refer to our API endpoints\' documentation for guidance on how to make requests with a common HTTP library in your language of choice.  Our OpenAPI specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to explore our APIs.  ## Method overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `DELETE`, `PATCH`, and `PUT` verbs are inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `DELETE`, `PATCH`, and `PUT` requests using a `POST` request.  For example, to call a `PATCH` endpoint using a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](https://launchdarkly.com/docs/api#beta-resources). > > Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Federal and EU environments  In addition to the commercial versions, LaunchDarkly offers instances for federal agencies and those based in the European Union (EU).  ### Federal environments  The version of LaunchDarkly that is available on domains controlled by the United States government is different from the version of LaunchDarkly available to the general public. If you are an employee or contractor for a United States federal agency and use LaunchDarkly in your work, you likely use the federal instance of LaunchDarkly.  If you are working in the federal instance of LaunchDarkly, the base URI for each request is `https://app.launchdarkly.us`.  To learn more, read [LaunchDarkly in federal environments](https://launchdarkly.com/docs/home/infrastructure/federal).  ### EU environments  The version of LaunchDarkly that is available in the EU is different from the version of LaunchDarkly available to other regions. If you are based in the EU, you likely use the EU instance of LaunchDarkly. The LaunchDarkly EU instance complies with EU data residency principles, including the protection and confidentiality of EU customer information.  If you are working in the EU instance of LaunchDarkly, the base URI for each request is `https://app.eu.launchdarkly.com`.  To learn more, read [LaunchDarkly in the European Union (EU)](https://launchdarkly.com/docs/home/infrastructure/eu).  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20240415 ```  The header value is the version number of the API version you would like to request. The number for each version corresponds to the date the version was released in `yyyymmdd` format. In the example above the version `20240415` corresponds to April 15, 2024.  ### Setting the API version per access token  When you create an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426`, which is the version of the API that existed before the current versioning scheme, so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing.  ### API version changelog  <table>   <tr>     <th>Version</th>     <th>Changes</th>     <th>End of life (EOL)</th>   </tr>   <tr>     <td>`20240415`</td>     <td>       <ul><li>Changed several endpoints from unpaginated to paginated. Use the `limit` and `offset` query parameters to page through the results.</li> <li>Changed the [list access tokens](https://launchdarkly.com/docs/api/access-tokens/get-tokens) endpoint: <ul><li>Response is now paginated with a default limit of `25`</li></ul></li> <li>Changed the [list account members](https://launchdarkly.com/docs/api/account-members/get-members) endpoint: <ul><li>The `accessCheck` filter is no longer available</li></ul></li> <li>Changed the [list custom roles](https://launchdarkly.com/docs/api/custom-roles/get-custom-roles) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `environments` field is now only returned if the request is filtered by environment, using the `filterEnv` query parameter</li><li>The `followerId`, `hasDataExport`, `status`, `contextKindTargeted`, and `segmentTargeted` filters are no longer available</li><li>The `compare` query parameter is no longer available</li></ul></li> <li>Changed the [list segments](https://launchdarkly.com/docs/api/segments/get-segments) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list teams](https://launchdarkly.com/docs/api/teams/get-teams) endpoint: <ul><li>The `expand` parameter no longer supports including `projects` or `roles`</li><li>In paginated results, the maximum page size is now 100</li></ul></li> <li>Changed the [get workflows](https://launchdarkly.com/docs/api/workflows/get-workflows) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `_conflicts` field in the response is no longer available</li></ul></li> </ul>     </td>     <td>Current</td>   </tr>   <tr>     <td>`20220603`</td>     <td>       <ul><li>Changed the [list projects](https://launchdarkly.com/docs/api/projects/get-projects) return value:<ul><li>Response is now paginated with a default limit of `20`.</li><li>Added support for filter and sort.</li><li>The project `environments` field is now expandable. This field is omitted by default.</li></ul></li><li>Changed the [get project](https://launchdarkly.com/docs/api/projects/get-project) return value:<ul><li>The `environments` field is now expandable. This field is omitted by default.</li></ul></li></ul>     </td>     <td>2025-04-15</td>   </tr>   <tr>     <td>`20210729`</td>     <td>       <ul><li>Changed the [create approval request](https://launchdarkly.com/docs/api/approvals/post-approval-request) return value. It now returns HTTP Status Code `201` instead of `200`.</li><li> Changed the [get user](https://launchdarkly.com/docs/api/users/get-user) return value. It now returns a user record, not a user. </li><li>Added additional optional fields to environment, segments, flags, members, and segments, including the ability to create big segments. </li><li> Added default values for flag variations when new environments are created. </li><li>Added filtering and pagination for getting flags and members, including `limit`, `number`, `filter`, and `sort` query parameters. </li><li>Added endpoints for expiring user targets for flags and segments, scheduled changes, access tokens, Relay Proxy configuration, integrations and subscriptions, and approvals. </li></ul>     </td>     <td>2023-06-03</td>   </tr>   <tr>     <td>`20191212`</td>     <td>       <ul><li>[List feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) now defaults to sending summaries of feature flag configurations, equivalent to setting the query parameter `summary=true`. Summaries omit flag targeting rules and individual user targets from the payload. </li><li> Added endpoints for flags, flag status, projects, environments, audit logs, members, users, custom roles, segments, usage, streams, events, and data export. </li></ul>     </td>     <td>2022-07-29</td>   </tr>   <tr>     <td>`20160426`</td>     <td>       <ul><li>Initial versioning of API. Tokens created before versioning have their version set to this.</li></ul>     </td>     <td>2020-12-12</td>   </tr> </table>  To learn more about how EOL is determined, read LaunchDarkly\'s [End of Life (EOL) Policy](https://launchdarkly.com/policies/end-of-life-policy/). 
  *
  * The version of the OpenAPI document: 2.0
  * Contact: support@launchdarkly.com
@@ -37,9 +37,18 @@ export interface AIConfig {
     'createdAt': number;
     'updatedAt': number;
     /**
-     * List of evaluation metric keys for this AI config
+     * Evaluation metric key for this AI Config
+     */
+    'evaluationMetricKey'?: string;
+    /**
+     * List of evaluation metric keys for this AI Config
+     * @deprecated
      */
     'evaluationMetricKeys'?: Array<string>;
+    /**
+     * Whether the evaluation metric is inverted, meaning a lower value is better if set as true
+     */
+    'isInverted'?: boolean;
 }
 
 export const AIConfigModeEnum = {
@@ -61,6 +70,14 @@ export interface AIConfigPatch {
     'maintainerTeamKey'?: string;
     'name'?: string;
     'tags'?: Array<string>;
+    /**
+     * Evaluation metric key for this AI Config
+     */
+    'evaluationMetricKey'?: string;
+    /**
+     * Whether the evaluation metric is inverted, meaning a lower value is better if set as true
+     */
+    'isInverted'?: boolean;
 }
 export interface AIConfigPost {
     'description'?: string;
@@ -71,6 +88,14 @@ export interface AIConfigPost {
     'name': string;
     'tags'?: Array<string>;
     'defaultVariation'?: AIConfigVariationPost;
+    /**
+     * Evaluation metric key for this AI Config
+     */
+    'evaluationMetricKey'?: string;
+    /**
+     * Whether the evaluation metric is inverted, meaning a lower value is better if set as true
+     */
+    'isInverted'?: boolean;
 }
 
 export const AIConfigPostModeEnum = {
@@ -1149,6 +1174,13 @@ export interface ApplicationVersionsCollectionRep {
      * The number of versions for this application
      */
     'totalCount'?: number;
+}
+export interface ApprovalRequestPatchInput {
+    /**
+     * Optional comment describing the update
+     */
+    'comment'?: string;
+    'instructions': Array<{ [key: string]: any; }>;
 }
 export interface ApprovalRequestResponse {
     /**
@@ -2766,6 +2798,10 @@ export interface DependentMeasuredRolloutRep {
      * The guarded rollout flag name 
      */
     'flagName': string;
+    /**
+     * The guarded rollout flag purpose
+     */
+    'flagPurpose'?: string;
     /**
      * The guarded rollout environment key
      */
@@ -5970,7 +6006,7 @@ export type IterationRepStatusEnum = typeof IterationRepStatusEnum[keyof typeof 
 
 export interface JudgeAttachment {
     /**
-     * Key of the judge AI config
+     * Key of the judge AI Config
      */
     'judgeConfigKey': string;
     /**
@@ -10350,22 +10386,19 @@ export interface WorkflowTemplatesListingOutputRep {
 }
 
 /**
- * AIConfigsBetaApi - axios parameter creator
+ * AIConfigsApi - axios parameter creator
  */
-export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Configuration) {
+export const AIConfigsApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
          * Delete an existing AI Config.
          * @summary Delete AI Config
-         * @param {DeleteAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteAIConfig: async (lDAPIVersion: DeleteAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('deleteAIConfig', 'lDAPIVersion', lDAPIVersion)
+        deleteAIConfig: async (projectKey: string, configKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteAIConfig', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -10387,11 +10420,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10404,16 +10441,13 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Delete a specific variation of an AI Config by config key and variation key.
          * @summary Delete AI Config variation
-         * @param {DeleteAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteAIConfigVariation: async (lDAPIVersion: DeleteAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('deleteAIConfigVariation', 'lDAPIVersion', lDAPIVersion)
+        deleteAIConfigVariation: async (projectKey: string, configKey: string, variationKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteAIConfigVariation', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -10438,11 +10472,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10455,15 +10493,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Delete an existing AI tool.
          * @summary Delete AI tool
-         * @param {DeleteAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteAITool: async (lDAPIVersion: DeleteAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('deleteAITool', 'lDAPIVersion', lDAPIVersion)
+        deleteAITool: async (projectKey: string, toolKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteAITool', 'projectKey', projectKey)
             // verify required parameter 'toolKey' is not null or undefined
@@ -10485,11 +10520,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10532,8 +10571,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -10549,15 +10595,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Delete an AI model config.
          * @summary Delete an AI model config
-         * @param {DeleteModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} modelConfigKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteModelConfig: async (lDAPIVersion: DeleteModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('deleteModelConfig', 'lDAPIVersion', lDAPIVersion)
+        deleteModelConfig: async (projectKey: string, modelConfigKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteModelConfig', 'projectKey', projectKey)
             // verify required parameter 'modelConfigKey' is not null or undefined
@@ -10579,11 +10622,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10596,15 +10643,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Remove AI models, by key, from the restricted list.
          * @summary Remove AI models from the restricted list
-         * @param {DeleteRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to remove from the restricted list
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteRestrictedModels: async (lDAPIVersion: DeleteRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('deleteRestrictedModels', 'lDAPIVersion', lDAPIVersion)
+        deleteRestrictedModels: async (projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('deleteRestrictedModels', 'projectKey', projectKey)
             // verify required parameter 'restrictedModelsRequest' is not null or undefined
@@ -10625,13 +10669,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10645,15 +10692,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Retrieve a specific AI Config by its key.
          * @summary Get AI Config
-         * @param {GetAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfig: async (lDAPIVersion: GetAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getAIConfig', 'lDAPIVersion', lDAPIVersion)
+        getAIConfig: async (projectKey: string, configKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAIConfig', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -10675,11 +10719,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10692,7 +10740,6 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Retrieve usage metrics for an AI Config by config key.
          * @summary Get AI Config metrics
-         * @param {GetAIConfigMetricsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -10701,9 +10748,7 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigMetrics: async (lDAPIVersion: GetAIConfigMetricsLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getAIConfigMetrics', 'lDAPIVersion', lDAPIVersion)
+        getAIConfigMetrics: async (projectKey: string, configKey: string, from: number, to: number, env: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAIConfigMetrics', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -10743,11 +10788,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['env'] = env;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10760,7 +10809,6 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Retrieve usage metrics for an AI Config by config key, with results split by variation.
          * @summary Get AI Config metrics by variation
-         * @param {GetAIConfigMetricsByVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -10769,9 +10817,7 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigMetricsByVariation: async (lDAPIVersion: GetAIConfigMetricsByVariationLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getAIConfigMetricsByVariation', 'lDAPIVersion', lDAPIVersion)
+        getAIConfigMetricsByVariation: async (projectKey: string, configKey: string, from: number, to: number, env: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAIConfigMetricsByVariation', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -10811,11 +10857,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['env'] = env;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10828,15 +10878,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Retrieves a specific AI Config\'s targeting by its key
          * @summary Show an AI Config\'s targeting
-         * @param {GetAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigTargeting: async (lDAPIVersion: GetAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getAIConfigTargeting', 'lDAPIVersion', lDAPIVersion)
+        getAIConfigTargeting: async (projectKey: string, configKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAIConfigTargeting', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -10858,11 +10905,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10875,16 +10926,13 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Get an AI Config variation by key. The response includes all variation versions for the given variation key.
          * @summary Get AI Config variation
-         * @param {GetAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigVariation: async (lDAPIVersion: GetAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getAIConfigVariation', 'lDAPIVersion', lDAPIVersion)
+        getAIConfigVariation: async (projectKey: string, configKey: string, variationKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAIConfigVariation', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -10909,11 +10957,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10926,7 +10978,6 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Get a list of all AI Configs in the given project.
          * @summary List AI Configs
-         * @param {GetAIConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
          * @param {number} [limit] The number of AI Configs to return.
@@ -10935,9 +10986,7 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigs: async (lDAPIVersion: GetAIConfigsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getAIConfigs', 'lDAPIVersion', lDAPIVersion)
+        getAIConfigs: async (projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAIConfigs', 'projectKey', projectKey)
             const localVarPath = `/api/v2/projects/{projectKey}/ai-configs`
@@ -10972,11 +11021,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['filter'] = filter;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -10989,15 +11042,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Retrieve a specific AI tool by its key.
          * @summary Get AI tool
-         * @param {GetAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAITool: async (lDAPIVersion: GetAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getAITool', 'lDAPIVersion', lDAPIVersion)
+        getAITool: async (projectKey: string, toolKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getAITool', 'projectKey', projectKey)
             // verify required parameter 'toolKey' is not null or undefined
@@ -11019,11 +11069,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11066,8 +11120,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -11083,15 +11144,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Get an AI model config by key.
          * @summary Get AI model config
-         * @param {GetModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} modelConfigKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getModelConfig: async (lDAPIVersion: GetModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('getModelConfig', 'lDAPIVersion', lDAPIVersion)
+        getModelConfig: async (projectKey: string, modelConfigKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getModelConfig', 'projectKey', projectKey)
             // verify required parameter 'modelConfigKey' is not null or undefined
@@ -11113,11 +11171,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11130,7 +11192,6 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Get a list of all versions of an AI tool in the given project.
          * @summary List AI tool versions
-         * @param {ListAIToolVersionsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
@@ -11139,9 +11200,7 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listAIToolVersions: async (lDAPIVersion: ListAIToolVersionsLDAPIVersionEnum, projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('listAIToolVersions', 'lDAPIVersion', lDAPIVersion)
+        listAIToolVersions: async (projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('listAIToolVersions', 'projectKey', projectKey)
             // verify required parameter 'toolKey' is not null or undefined
@@ -11175,11 +11234,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11192,7 +11255,6 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Get a list of all AI tools in the given project.
          * @summary List AI tools
-         * @param {ListAIToolsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
          * @param {number} [limit] The number of AI Configs to return.
@@ -11201,9 +11263,7 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listAITools: async (lDAPIVersion: ListAIToolsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('listAITools', 'lDAPIVersion', lDAPIVersion)
+        listAITools: async (projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('listAITools', 'projectKey', projectKey)
             const localVarPath = `/api/v2/projects/{projectKey}/ai-tools`
@@ -11238,11 +11298,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['filter'] = filter;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11291,8 +11355,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -11308,15 +11379,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Get all AI model configs for a project.
          * @summary List AI model configs
-         * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {boolean} [restricted] Whether to return only restricted models
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listModelConfigs: async (lDAPIVersion: ListModelConfigsLDAPIVersionEnum, projectKey: string, restricted?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('listModelConfigs', 'lDAPIVersion', lDAPIVersion)
+        listModelConfigs: async (projectKey: string, restricted?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('listModelConfigs', 'projectKey', projectKey)
             const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/model-configs`
@@ -11339,11 +11407,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['restricted'] = restricted;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11356,16 +11428,13 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Edit an existing AI Config.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example:   ```     {       \"description\": \"Example updated description\",       \"tags\": [\"new-tag\"]     }   ``` 
          * @summary Update AI Config
-         * @param {PatchAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigPatch} [aIConfigPatch] AI Config object to update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAIConfig: async (lDAPIVersion: PatchAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('patchAIConfig', 'lDAPIVersion', lDAPIVersion)
+        patchAIConfig: async (projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchAIConfig', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -11387,13 +11456,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11407,16 +11479,13 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Perform a partial update to an AI Config\'s targeting. The request body must be a valid semantic patch.  ### Using semantic patches on an AI Config  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  The body of a semantic patch request for updating an AI Config\'s targeting takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating AI Configs.  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong> for AI Configs</summary>  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addClauses\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauses\": [{       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"USA\", \"Canada\"]     }]   }] } ```  #### addRule  Adds a new targeting rule to the AI Config. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a rule. - Either - `variationId`: ID of a variation.  or  - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }] }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }],   \"rolloutContextKind\": \"organization\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the AI Config to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"] }] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the AI Config.  ##### Parameters  - `ruleIds`: Array of IDs of all rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"] }] } ```  #### replaceRules  Removes all targeting rules for the AI Config and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceRules\",     \"rules\": [       {         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"description\": \"My new rule\",         \"clauses\": [           {             \"contextKind\": \"user\",             \"attribute\": \"segmentMatch\",             \"op\": \"segmentMatch\",             \"values\": [\"test\"]           }         ]       }     ]   } ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceTargets\",     \"targets\": [       {         \"contextKind\": \"user\",         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"values\": [\"user-key-123abc\"]       },       {         \"contextKind\": \"device\",         \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",         \"values\": [\"device-key-456def\"]       }     ]   } ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",   \"clause\": {     \"contextKind\": \"user\",     \"attribute\": \"country\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Mexico\", \"Canada\"]   } }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the AI Config.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json { \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the AI Config, which the AI Config serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The AI Config serves the default off variation when the AI Config\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updateRuleDescription  Updates the description of the targeting rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule. - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the AI Config, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ``` </details> 
          * @summary Update AI Config targeting
-         * @param {PatchAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigTargetingPatch} [aIConfigTargetingPatch] AI Config targeting semantic patch instructions
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAIConfigTargeting: async (lDAPIVersion: PatchAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('patchAIConfigTargeting', 'lDAPIVersion', lDAPIVersion)
+        patchAIConfigTargeting: async (projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchAIConfigTargeting', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -11438,13 +11507,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11458,7 +11530,6 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Edit an existing variation of an AI Config. This creates a new version of the variation.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example: ```   {     \"messages\": [       {         \"role\": \"system\",         \"content\": \"The new message\"       }     ]   } ``` 
          * @summary Update AI Config variation
-         * @param {PatchAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
@@ -11466,9 +11537,7 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAIConfigVariation: async (lDAPIVersion: PatchAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('patchAIConfigVariation', 'lDAPIVersion', lDAPIVersion)
+        patchAIConfigVariation: async (projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchAIConfigVariation', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -11493,13 +11562,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11513,16 +11585,13 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Edit an existing AI tool.
          * @summary Update AI tool
-         * @param {PatchAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {AIToolPatch} [aIToolPatch] AI tool object to update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAITool: async (lDAPIVersion: PatchAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('patchAITool', 'lDAPIVersion', lDAPIVersion)
+        patchAITool: async (projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('patchAITool', 'projectKey', projectKey)
             // verify required parameter 'toolKey' is not null or undefined
@@ -11544,13 +11613,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11595,9 +11667,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -11615,15 +11693,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Create a new AI Config within the given project.
          * @summary Create new AI Config
-         * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {AIConfigPost} aIConfigPost AI Config object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postAIConfig: async (lDAPIVersion: PostAIConfigLDAPIVersionEnum, projectKey: string, aIConfigPost: AIConfigPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('postAIConfig', 'lDAPIVersion', lDAPIVersion)
+        postAIConfig: async (projectKey: string, aIConfigPost: AIConfigPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postAIConfig', 'projectKey', projectKey)
             // verify required parameter 'aIConfigPost' is not null or undefined
@@ -11644,13 +11719,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11664,16 +11742,13 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Create a new variation for a given AI Config.  The <code>model</code> in the request body requires a <code>modelName</code> and <code>parameters</code>, for example:  ```   \"model\": {     \"modelName\": \"claude-3-opus-20240229\",     \"parameters\": {       \"max_tokens\": 1024     }   } ``` 
          * @summary Create AI Config variation
-         * @param {PostAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigVariationPost} aIConfigVariationPost AI Config variation object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postAIConfigVariation: async (lDAPIVersion: PostAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('postAIConfigVariation', 'lDAPIVersion', lDAPIVersion)
+        postAIConfigVariation: async (projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postAIConfigVariation', 'projectKey', projectKey)
             // verify required parameter 'configKey' is not null or undefined
@@ -11697,13 +11772,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11717,15 +11795,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Create an AI tool
          * @summary Create an AI tool
-         * @param {PostAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {AIToolPost} aIToolPost AI tool object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postAITool: async (lDAPIVersion: PostAIToolLDAPIVersionEnum, projectKey: string, aIToolPost: AIToolPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('postAITool', 'lDAPIVersion', lDAPIVersion)
+        postAITool: async (projectKey: string, aIToolPost: AIToolPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postAITool', 'projectKey', projectKey)
             // verify required parameter 'aIToolPost' is not null or undefined
@@ -11746,13 +11821,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11795,9 +11873,15 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -11815,15 +11899,12 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
         /**
          * Create an AI model config. You can use this in any variation for any AI Config in your project.
          * @summary Create an AI model config
-         * @param {PostModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {ModelConfigPost} modelConfigPost AI model config object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postModelConfig: async (lDAPIVersion: PostModelConfigLDAPIVersionEnum, projectKey: string, modelConfigPost: ModelConfigPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('postModelConfig', 'lDAPIVersion', lDAPIVersion)
+        postModelConfig: async (projectKey: string, modelConfigPost: ModelConfigPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postModelConfig', 'projectKey', projectKey)
             // verify required parameter 'modelConfigPost' is not null or undefined
@@ -11844,13 +11925,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11862,17 +11946,14 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
-         * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs-beta/list-model-configs) endpoint.
+         * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs/list-model-configs) endpoint.
          * @summary Add AI models to the restricted list
-         * @param {PostRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to add to the restricted list.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postRestrictedModels: async (lDAPIVersion: PostRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'lDAPIVersion' is not null or undefined
-            assertParamExists('postRestrictedModels', 'lDAPIVersion', lDAPIVersion)
+        postRestrictedModels: async (projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('postRestrictedModels', 'projectKey', projectKey)
             // verify required parameter 'restrictedModelsRequest' is not null or undefined
@@ -11893,13 +11974,16 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-            if (lDAPIVersion != null) {
-                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
-            }
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -11914,55 +11998,52 @@ export const AIConfigsBetaApiAxiosParamCreator = function (configuration?: Confi
 };
 
 /**
- * AIConfigsBetaApi - functional programming interface
+ * AIConfigsApi - functional programming interface
  */
-export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
-    const localVarAxiosParamCreator = AIConfigsBetaApiAxiosParamCreator(configuration)
+export const AIConfigsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = AIConfigsApiAxiosParamCreator(configuration)
     return {
         /**
          * Delete an existing AI Config.
          * @summary Delete AI Config
-         * @param {DeleteAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteAIConfig(lDAPIVersion: DeleteAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAIConfig(lDAPIVersion, projectKey, configKey, options);
+        async deleteAIConfig(projectKey: string, configKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAIConfig(projectKey, configKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.deleteAIConfig']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.deleteAIConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Delete a specific variation of an AI Config by config key and variation key.
          * @summary Delete AI Config variation
-         * @param {DeleteAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteAIConfigVariation(lDAPIVersion: DeleteAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, options);
+        async deleteAIConfigVariation(projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAIConfigVariation(projectKey, configKey, variationKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.deleteAIConfigVariation']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.deleteAIConfigVariation']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Delete an existing AI tool.
          * @summary Delete AI tool
-         * @param {DeleteAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteAITool(lDAPIVersion: DeleteAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAITool(lDAPIVersion, projectKey, toolKey, options);
+        async deleteAITool(projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAITool(projectKey, toolKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.deleteAITool']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.deleteAITool']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -11977,58 +12058,54 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
         async deleteAgentGraph(lDAPIVersion: DeleteAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAgentGraph(lDAPIVersion, projectKey, graphKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.deleteAgentGraph']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.deleteAgentGraph']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Delete an AI model config.
          * @summary Delete an AI model config
-         * @param {DeleteModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} modelConfigKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteModelConfig(lDAPIVersion: DeleteModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteModelConfig(lDAPIVersion, projectKey, modelConfigKey, options);
+        async deleteModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteModelConfig(projectKey, modelConfigKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.deleteModelConfig']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.deleteModelConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Remove AI models, by key, from the restricted list.
          * @summary Remove AI models from the restricted list
-         * @param {DeleteRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to remove from the restricted list
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async deleteRestrictedModels(lDAPIVersion: DeleteRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRestrictedModels(lDAPIVersion, projectKey, restrictedModelsRequest, options);
+        async deleteRestrictedModels(projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRestrictedModels(projectKey, restrictedModelsRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.deleteRestrictedModels']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.deleteRestrictedModels']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Retrieve a specific AI Config by its key.
          * @summary Get AI Config
-         * @param {GetAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAIConfig(lDAPIVersion: GetAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfig>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfig(lDAPIVersion, projectKey, configKey, options);
+        async getAIConfig(projectKey: string, configKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfig(projectKey, configKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAIConfig']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAIConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Retrieve usage metrics for an AI Config by config key.
          * @summary Get AI Config metrics
-         * @param {GetAIConfigMetricsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -12037,16 +12114,15 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAIConfigMetrics(lDAPIVersion: GetAIConfigMetricsLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Metrics>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigMetrics(lDAPIVersion, projectKey, configKey, from, to, env, options);
+        async getAIConfigMetrics(projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Metrics>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigMetrics(projectKey, configKey, from, to, env, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAIConfigMetrics']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAIConfigMetrics']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Retrieve usage metrics for an AI Config by config key, with results split by variation.
          * @summary Get AI Config metrics by variation
-         * @param {GetAIConfigMetricsByVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -12055,47 +12131,44 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAIConfigMetricsByVariation(lDAPIVersion: GetAIConfigMetricsByVariationLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<MetricByVariation>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigMetricsByVariation(lDAPIVersion, projectKey, configKey, from, to, env, options);
+        async getAIConfigMetricsByVariation(projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<MetricByVariation>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigMetricsByVariation(projectKey, configKey, from, to, env, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAIConfigMetricsByVariation']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAIConfigMetricsByVariation']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Retrieves a specific AI Config\'s targeting by its key
          * @summary Show an AI Config\'s targeting
-         * @param {GetAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAIConfigTargeting(lDAPIVersion: GetAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigTargeting>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigTargeting(lDAPIVersion, projectKey, configKey, options);
+        async getAIConfigTargeting(projectKey: string, configKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigTargeting>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigTargeting(projectKey, configKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAIConfigTargeting']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAIConfigTargeting']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Get an AI Config variation by key. The response includes all variation versions for the given variation key.
          * @summary Get AI Config variation
-         * @param {GetAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAIConfigVariation(lDAPIVersion: GetAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigVariationsResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, options);
+        async getAIConfigVariation(projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigVariationsResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigVariation(projectKey, configKey, variationKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAIConfigVariation']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAIConfigVariation']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Get a list of all AI Configs in the given project.
          * @summary List AI Configs
-         * @param {GetAIConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
          * @param {number} [limit] The number of AI Configs to return.
@@ -12104,25 +12177,24 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAIConfigs(lDAPIVersion: GetAIConfigsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigs>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigs(lDAPIVersion, projectKey, sort, limit, offset, filter, options);
+        async getAIConfigs(projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigs>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAIConfigs(projectKey, sort, limit, offset, filter, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAIConfigs']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAIConfigs']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Retrieve a specific AI tool by its key.
          * @summary Get AI tool
-         * @param {GetAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getAITool(lDAPIVersion: GetAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITool>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getAITool(lDAPIVersion, projectKey, toolKey, options);
+        async getAITool(projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITool>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAITool(projectKey, toolKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAITool']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAITool']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -12137,28 +12209,26 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
         async getAgentGraph(lDAPIVersion: GetAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraph>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getAgentGraph(lDAPIVersion, projectKey, graphKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getAgentGraph']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getAgentGraph']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Get an AI model config by key.
          * @summary Get AI model config
-         * @param {GetModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} modelConfigKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getModelConfig(lDAPIVersion: GetModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfig>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getModelConfig(lDAPIVersion, projectKey, modelConfigKey, options);
+        async getModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getModelConfig(projectKey, modelConfigKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.getModelConfig']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.getModelConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Get a list of all versions of an AI tool in the given project.
          * @summary List AI tool versions
-         * @param {ListAIToolVersionsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
@@ -12167,16 +12237,15 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listAIToolVersions(lDAPIVersion: ListAIToolVersionsLDAPIVersionEnum, projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITools>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.listAIToolVersions(lDAPIVersion, projectKey, toolKey, sort, limit, offset, options);
+        async listAIToolVersions(projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITools>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listAIToolVersions(projectKey, toolKey, sort, limit, offset, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.listAIToolVersions']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.listAIToolVersions']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Get a list of all AI tools in the given project.
          * @summary List AI tools
-         * @param {ListAIToolsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
          * @param {number} [limit] The number of AI Configs to return.
@@ -12185,10 +12254,10 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listAITools(lDAPIVersion: ListAIToolsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITools>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.listAITools(lDAPIVersion, projectKey, sort, limit, offset, filter, options);
+        async listAITools(projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITools>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listAITools(projectKey, sort, limit, offset, filter, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.listAITools']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.listAITools']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -12204,60 +12273,56 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
         async listAgentGraphs(lDAPIVersion: ListAgentGraphsLDAPIVersionEnum, projectKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraphs>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.listAgentGraphs(lDAPIVersion, projectKey, limit, offset, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.listAgentGraphs']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.listAgentGraphs']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Get all AI model configs for a project.
          * @summary List AI model configs
-         * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {boolean} [restricted] Whether to return only restricted models
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listModelConfigs(lDAPIVersion: ListModelConfigsLDAPIVersionEnum, projectKey: string, restricted?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ModelConfig>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.listModelConfigs(lDAPIVersion, projectKey, restricted, options);
+        async listModelConfigs(projectKey: string, restricted?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ModelConfig>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listModelConfigs(projectKey, restricted, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.listModelConfigs']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.listModelConfigs']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Edit an existing AI Config.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example:   ```     {       \"description\": \"Example updated description\",       \"tags\": [\"new-tag\"]     }   ``` 
          * @summary Update AI Config
-         * @param {PatchAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigPatch} [aIConfigPatch] AI Config object to update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchAIConfig(lDAPIVersion: PatchAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfig>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAIConfig(lDAPIVersion, projectKey, configKey, aIConfigPatch, options);
+        async patchAIConfig(projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAIConfig(projectKey, configKey, aIConfigPatch, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.patchAIConfig']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.patchAIConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Perform a partial update to an AI Config\'s targeting. The request body must be a valid semantic patch.  ### Using semantic patches on an AI Config  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  The body of a semantic patch request for updating an AI Config\'s targeting takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating AI Configs.  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong> for AI Configs</summary>  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addClauses\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauses\": [{       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"USA\", \"Canada\"]     }]   }] } ```  #### addRule  Adds a new targeting rule to the AI Config. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a rule. - Either - `variationId`: ID of a variation.  or  - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }] }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }],   \"rolloutContextKind\": \"organization\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the AI Config to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"] }] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the AI Config.  ##### Parameters  - `ruleIds`: Array of IDs of all rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"] }] } ```  #### replaceRules  Removes all targeting rules for the AI Config and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceRules\",     \"rules\": [       {         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"description\": \"My new rule\",         \"clauses\": [           {             \"contextKind\": \"user\",             \"attribute\": \"segmentMatch\",             \"op\": \"segmentMatch\",             \"values\": [\"test\"]           }         ]       }     ]   } ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceTargets\",     \"targets\": [       {         \"contextKind\": \"user\",         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"values\": [\"user-key-123abc\"]       },       {         \"contextKind\": \"device\",         \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",         \"values\": [\"device-key-456def\"]       }     ]   } ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",   \"clause\": {     \"contextKind\": \"user\",     \"attribute\": \"country\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Mexico\", \"Canada\"]   } }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the AI Config.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json { \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the AI Config, which the AI Config serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The AI Config serves the default off variation when the AI Config\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updateRuleDescription  Updates the description of the targeting rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule. - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the AI Config, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ``` </details> 
          * @summary Update AI Config targeting
-         * @param {PatchAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigTargetingPatch} [aIConfigTargetingPatch] AI Config targeting semantic patch instructions
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchAIConfigTargeting(lDAPIVersion: PatchAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigTargeting>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAIConfigTargeting(lDAPIVersion, projectKey, configKey, aIConfigTargetingPatch, options);
+        async patchAIConfigTargeting(projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigTargeting>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAIConfigTargeting(projectKey, configKey, aIConfigTargetingPatch, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.patchAIConfigTargeting']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.patchAIConfigTargeting']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Edit an existing variation of an AI Config. This creates a new version of the variation.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example: ```   {     \"messages\": [       {         \"role\": \"system\",         \"content\": \"The new message\"       }     ]   } ``` 
          * @summary Update AI Config variation
-         * @param {PatchAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
@@ -12265,26 +12330,25 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchAIConfigVariation(lDAPIVersion: PatchAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigVariation>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, aIConfigVariationPatch, options);
+        async patchAIConfigVariation(projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigVariation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAIConfigVariation(projectKey, configKey, variationKey, aIConfigVariationPatch, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.patchAIConfigVariation']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.patchAIConfigVariation']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Edit an existing AI tool.
          * @summary Update AI tool
-         * @param {PatchAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {AIToolPatch} [aIToolPatch] AI tool object to update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchAITool(lDAPIVersion: PatchAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITool>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAITool(lDAPIVersion, projectKey, toolKey, aIToolPatch, options);
+        async patchAITool(projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITool>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAITool(projectKey, toolKey, aIToolPatch, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.patchAITool']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.patchAITool']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -12300,53 +12364,50 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
         async patchAgentGraph(lDAPIVersion: PatchAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, agentGraphPatch?: AgentGraphPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraph>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.patchAgentGraph(lDAPIVersion, projectKey, graphKey, agentGraphPatch, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.patchAgentGraph']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.patchAgentGraph']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Create a new AI Config within the given project.
          * @summary Create new AI Config
-         * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {AIConfigPost} aIConfigPost AI Config object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postAIConfig(lDAPIVersion: PostAIConfigLDAPIVersionEnum, projectKey: string, aIConfigPost: AIConfigPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfig>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postAIConfig(lDAPIVersion, projectKey, aIConfigPost, options);
+        async postAIConfig(projectKey: string, aIConfigPost: AIConfigPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postAIConfig(projectKey, aIConfigPost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postAIConfig']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.postAIConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Create a new variation for a given AI Config.  The <code>model</code> in the request body requires a <code>modelName</code> and <code>parameters</code>, for example:  ```   \"model\": {     \"modelName\": \"claude-3-opus-20240229\",     \"parameters\": {       \"max_tokens\": 1024     }   } ``` 
          * @summary Create AI Config variation
-         * @param {PostAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigVariationPost} aIConfigVariationPost AI Config variation object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postAIConfigVariation(lDAPIVersion: PostAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigVariation>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postAIConfigVariation(lDAPIVersion, projectKey, configKey, aIConfigVariationPost, options);
+        async postAIConfigVariation(projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AIConfigVariation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postAIConfigVariation(projectKey, configKey, aIConfigVariationPost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postAIConfigVariation']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.postAIConfigVariation']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Create an AI tool
          * @summary Create an AI tool
-         * @param {PostAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {AIToolPost} aIToolPost AI tool object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postAITool(lDAPIVersion: PostAIToolLDAPIVersionEnum, projectKey: string, aIToolPost: AIToolPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITool>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postAITool(lDAPIVersion, projectKey, aIToolPost, options);
+        async postAITool(projectKey: string, aIToolPost: AIToolPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AITool>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postAITool(projectKey, aIToolPost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postAITool']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.postAITool']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -12361,84 +12422,79 @@ export const AIConfigsBetaApiFp = function(configuration?: Configuration) {
         async postAgentGraph(lDAPIVersion: PostAgentGraphLDAPIVersionEnum, projectKey: string, agentGraphPost: AgentGraphPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentGraph>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postAgentGraph(lDAPIVersion, projectKey, agentGraphPost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postAgentGraph']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.postAgentGraph']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Create an AI model config. You can use this in any variation for any AI Config in your project.
          * @summary Create an AI model config
-         * @param {PostModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {ModelConfigPost} modelConfigPost AI model config object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postModelConfig(lDAPIVersion: PostModelConfigLDAPIVersionEnum, projectKey: string, modelConfigPost: ModelConfigPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfig>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postModelConfig(lDAPIVersion, projectKey, modelConfigPost, options);
+        async postModelConfig(projectKey: string, modelConfigPost: ModelConfigPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postModelConfig(projectKey, modelConfigPost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postModelConfig']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.postModelConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs-beta/list-model-configs) endpoint.
+         * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs/list-model-configs) endpoint.
          * @summary Add AI models to the restricted list
-         * @param {PostRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to add to the restricted list.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async postRestrictedModels(lDAPIVersion: PostRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RestrictedModelsResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.postRestrictedModels(lDAPIVersion, projectKey, restrictedModelsRequest, options);
+        async postRestrictedModels(projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RestrictedModelsResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postRestrictedModels(projectKey, restrictedModelsRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['AIConfigsBetaApi.postRestrictedModels']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['AIConfigsApi.postRestrictedModels']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
     }
 };
 
 /**
- * AIConfigsBetaApi - factory interface
+ * AIConfigsApi - factory interface
  */
-export const AIConfigsBetaApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
-    const localVarFp = AIConfigsBetaApiFp(configuration)
+export const AIConfigsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = AIConfigsApiFp(configuration)
     return {
         /**
          * Delete an existing AI Config.
          * @summary Delete AI Config
-         * @param {DeleteAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteAIConfig(lDAPIVersion: DeleteAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.deleteAIConfig(lDAPIVersion, projectKey, configKey, options).then((request) => request(axios, basePath));
+        deleteAIConfig(projectKey: string, configKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteAIConfig(projectKey, configKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete a specific variation of an AI Config by config key and variation key.
          * @summary Delete AI Config variation
-         * @param {DeleteAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteAIConfigVariation(lDAPIVersion: DeleteAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.deleteAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, options).then((request) => request(axios, basePath));
+        deleteAIConfigVariation(projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteAIConfigVariation(projectKey, configKey, variationKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete an existing AI tool.
          * @summary Delete AI tool
-         * @param {DeleteAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteAITool(lDAPIVersion: DeleteAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.deleteAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(axios, basePath));
+        deleteAITool(projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteAITool(projectKey, toolKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete an existing agent graph and all of its edges.
@@ -12455,43 +12511,39 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
         /**
          * Delete an AI model config.
          * @summary Delete an AI model config
-         * @param {DeleteModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} modelConfigKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteModelConfig(lDAPIVersion: DeleteModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.deleteModelConfig(lDAPIVersion, projectKey, modelConfigKey, options).then((request) => request(axios, basePath));
+        deleteModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteModelConfig(projectKey, modelConfigKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Remove AI models, by key, from the restricted list.
          * @summary Remove AI models from the restricted list
-         * @param {DeleteRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to remove from the restricted list
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        deleteRestrictedModels(lDAPIVersion: DeleteRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.deleteRestrictedModels(lDAPIVersion, projectKey, restrictedModelsRequest, options).then((request) => request(axios, basePath));
+        deleteRestrictedModels(projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteRestrictedModels(projectKey, restrictedModelsRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve a specific AI Config by its key.
          * @summary Get AI Config
-         * @param {GetAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfig(lDAPIVersion: GetAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfig> {
-            return localVarFp.getAIConfig(lDAPIVersion, projectKey, configKey, options).then((request) => request(axios, basePath));
+        getAIConfig(projectKey: string, configKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfig> {
+            return localVarFp.getAIConfig(projectKey, configKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve usage metrics for an AI Config by config key.
          * @summary Get AI Config metrics
-         * @param {GetAIConfigMetricsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -12500,13 +12552,12 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigMetrics(lDAPIVersion: GetAIConfigMetricsLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): AxiosPromise<Metrics> {
-            return localVarFp.getAIConfigMetrics(lDAPIVersion, projectKey, configKey, from, to, env, options).then((request) => request(axios, basePath));
+        getAIConfigMetrics(projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): AxiosPromise<Metrics> {
+            return localVarFp.getAIConfigMetrics(projectKey, configKey, from, to, env, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve usage metrics for an AI Config by config key, with results split by variation.
          * @summary Get AI Config metrics by variation
-         * @param {GetAIConfigMetricsByVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -12515,38 +12566,35 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigMetricsByVariation(lDAPIVersion: GetAIConfigMetricsByVariationLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): AxiosPromise<Array<MetricByVariation>> {
-            return localVarFp.getAIConfigMetricsByVariation(lDAPIVersion, projectKey, configKey, from, to, env, options).then((request) => request(axios, basePath));
+        getAIConfigMetricsByVariation(projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig): AxiosPromise<Array<MetricByVariation>> {
+            return localVarFp.getAIConfigMetricsByVariation(projectKey, configKey, from, to, env, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieves a specific AI Config\'s targeting by its key
          * @summary Show an AI Config\'s targeting
-         * @param {GetAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigTargeting(lDAPIVersion: GetAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigTargeting> {
-            return localVarFp.getAIConfigTargeting(lDAPIVersion, projectKey, configKey, options).then((request) => request(axios, basePath));
+        getAIConfigTargeting(projectKey: string, configKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigTargeting> {
+            return localVarFp.getAIConfigTargeting(projectKey, configKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get an AI Config variation by key. The response includes all variation versions for the given variation key.
          * @summary Get AI Config variation
-         * @param {GetAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigVariation(lDAPIVersion: GetAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigVariationsResponse> {
-            return localVarFp.getAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, options).then((request) => request(axios, basePath));
+        getAIConfigVariation(projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigVariationsResponse> {
+            return localVarFp.getAIConfigVariation(projectKey, configKey, variationKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all AI Configs in the given project.
          * @summary List AI Configs
-         * @param {GetAIConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
          * @param {number} [limit] The number of AI Configs to return.
@@ -12555,20 +12603,19 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAIConfigs(lDAPIVersion: GetAIConfigsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigs> {
-            return localVarFp.getAIConfigs(lDAPIVersion, projectKey, sort, limit, offset, filter, options).then((request) => request(axios, basePath));
+        getAIConfigs(projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigs> {
+            return localVarFp.getAIConfigs(projectKey, sort, limit, offset, filter, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve a specific AI tool by its key.
          * @summary Get AI tool
-         * @param {GetAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getAITool(lDAPIVersion: GetAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
-            return localVarFp.getAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(axios, basePath));
+        getAITool(projectKey: string, toolKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
+            return localVarFp.getAITool(projectKey, toolKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve a specific agent graph by its key, including its edges.
@@ -12585,19 +12632,17 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
         /**
          * Get an AI model config by key.
          * @summary Get AI model config
-         * @param {GetModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} modelConfigKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getModelConfig(lDAPIVersion: GetModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfig> {
-            return localVarFp.getModelConfig(lDAPIVersion, projectKey, modelConfigKey, options).then((request) => request(axios, basePath));
+        getModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfig> {
+            return localVarFp.getModelConfig(projectKey, modelConfigKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all versions of an AI tool in the given project.
          * @summary List AI tool versions
-         * @param {ListAIToolVersionsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
@@ -12606,13 +12651,12 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listAIToolVersions(lDAPIVersion: ListAIToolVersionsLDAPIVersionEnum, projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<AITools> {
-            return localVarFp.listAIToolVersions(lDAPIVersion, projectKey, toolKey, sort, limit, offset, options).then((request) => request(axios, basePath));
+        listAIToolVersions(projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<AITools> {
+            return localVarFp.listAIToolVersions(projectKey, toolKey, sort, limit, offset, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all AI tools in the given project.
          * @summary List AI tools
-         * @param {ListAIToolsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} [sort] A sort to apply to the list of AI Configs.
          * @param {number} [limit] The number of AI Configs to return.
@@ -12621,8 +12665,8 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listAITools(lDAPIVersion: ListAIToolsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): AxiosPromise<AITools> {
-            return localVarFp.listAITools(lDAPIVersion, projectKey, sort, limit, offset, filter, options).then((request) => request(axios, basePath));
+        listAITools(projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): AxiosPromise<AITools> {
+            return localVarFp.listAITools(projectKey, sort, limit, offset, filter, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of all agent graphs in the given project. Returns metadata only, without edge data.
@@ -12640,45 +12684,41 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
         /**
          * Get all AI model configs for a project.
          * @summary List AI model configs
-         * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {boolean} [restricted] Whether to return only restricted models
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listModelConfigs(lDAPIVersion: ListModelConfigsLDAPIVersionEnum, projectKey: string, restricted?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<Array<ModelConfig>> {
-            return localVarFp.listModelConfigs(lDAPIVersion, projectKey, restricted, options).then((request) => request(axios, basePath));
+        listModelConfigs(projectKey: string, restricted?: boolean, options?: RawAxiosRequestConfig): AxiosPromise<Array<ModelConfig>> {
+            return localVarFp.listModelConfigs(projectKey, restricted, options).then((request) => request(axios, basePath));
         },
         /**
          * Edit an existing AI Config.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example:   ```     {       \"description\": \"Example updated description\",       \"tags\": [\"new-tag\"]     }   ``` 
          * @summary Update AI Config
-         * @param {PatchAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigPatch} [aIConfigPatch] AI Config object to update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAIConfig(lDAPIVersion: PatchAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options?: RawAxiosRequestConfig): AxiosPromise<AIConfig> {
-            return localVarFp.patchAIConfig(lDAPIVersion, projectKey, configKey, aIConfigPatch, options).then((request) => request(axios, basePath));
+        patchAIConfig(projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options?: RawAxiosRequestConfig): AxiosPromise<AIConfig> {
+            return localVarFp.patchAIConfig(projectKey, configKey, aIConfigPatch, options).then((request) => request(axios, basePath));
         },
         /**
          * Perform a partial update to an AI Config\'s targeting. The request body must be a valid semantic patch.  ### Using semantic patches on an AI Config  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  The body of a semantic patch request for updating an AI Config\'s targeting takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating AI Configs.  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong> for AI Configs</summary>  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addClauses\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauses\": [{       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"USA\", \"Canada\"]     }]   }] } ```  #### addRule  Adds a new targeting rule to the AI Config. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a rule. - Either - `variationId`: ID of a variation.  or  - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }] }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }],   \"rolloutContextKind\": \"organization\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the AI Config to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"] }] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the AI Config.  ##### Parameters  - `ruleIds`: Array of IDs of all rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"] }] } ```  #### replaceRules  Removes all targeting rules for the AI Config and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceRules\",     \"rules\": [       {         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"description\": \"My new rule\",         \"clauses\": [           {             \"contextKind\": \"user\",             \"attribute\": \"segmentMatch\",             \"op\": \"segmentMatch\",             \"values\": [\"test\"]           }         ]       }     ]   } ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceTargets\",     \"targets\": [       {         \"contextKind\": \"user\",         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"values\": [\"user-key-123abc\"]       },       {         \"contextKind\": \"device\",         \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",         \"values\": [\"device-key-456def\"]       }     ]   } ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",   \"clause\": {     \"contextKind\": \"user\",     \"attribute\": \"country\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Mexico\", \"Canada\"]   } }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the AI Config.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json { \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the AI Config, which the AI Config serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The AI Config serves the default off variation when the AI Config\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updateRuleDescription  Updates the description of the targeting rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule. - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the AI Config, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ``` </details> 
          * @summary Update AI Config targeting
-         * @param {PatchAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigTargetingPatch} [aIConfigTargetingPatch] AI Config targeting semantic patch instructions
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAIConfigTargeting(lDAPIVersion: PatchAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigTargeting> {
-            return localVarFp.patchAIConfigTargeting(lDAPIVersion, projectKey, configKey, aIConfigTargetingPatch, options).then((request) => request(axios, basePath));
+        patchAIConfigTargeting(projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigTargeting> {
+            return localVarFp.patchAIConfigTargeting(projectKey, configKey, aIConfigTargetingPatch, options).then((request) => request(axios, basePath));
         },
         /**
          * Edit an existing variation of an AI Config. This creates a new version of the variation.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example: ```   {     \"messages\": [       {         \"role\": \"system\",         \"content\": \"The new message\"       }     ]   } ``` 
          * @summary Update AI Config variation
-         * @param {PatchAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {string} variationKey 
@@ -12686,21 +12726,20 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAIConfigVariation(lDAPIVersion: PatchAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigVariation> {
-            return localVarFp.patchAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, aIConfigVariationPatch, options).then((request) => request(axios, basePath));
+        patchAIConfigVariation(projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigVariation> {
+            return localVarFp.patchAIConfigVariation(projectKey, configKey, variationKey, aIConfigVariationPatch, options).then((request) => request(axios, basePath));
         },
         /**
          * Edit an existing AI tool.
          * @summary Update AI tool
-         * @param {PatchAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} toolKey 
          * @param {AIToolPatch} [aIToolPatch] AI tool object to update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchAITool(lDAPIVersion: PatchAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
-            return localVarFp.patchAITool(lDAPIVersion, projectKey, toolKey, aIToolPatch, options).then((request) => request(axios, basePath));
+        patchAITool(projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
+            return localVarFp.patchAITool(projectKey, toolKey, aIToolPatch, options).then((request) => request(axios, basePath));
         },
         /**
          * Edit an existing agent graph.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  If the update includes `rootConfigKey` or `edges`, both must be present and will be treated as full replacements. 
@@ -12718,39 +12757,36 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
         /**
          * Create a new AI Config within the given project.
          * @summary Create new AI Config
-         * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {AIConfigPost} aIConfigPost AI Config object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postAIConfig(lDAPIVersion: PostAIConfigLDAPIVersionEnum, projectKey: string, aIConfigPost: AIConfigPost, options?: RawAxiosRequestConfig): AxiosPromise<AIConfig> {
-            return localVarFp.postAIConfig(lDAPIVersion, projectKey, aIConfigPost, options).then((request) => request(axios, basePath));
+        postAIConfig(projectKey: string, aIConfigPost: AIConfigPost, options?: RawAxiosRequestConfig): AxiosPromise<AIConfig> {
+            return localVarFp.postAIConfig(projectKey, aIConfigPost, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new variation for a given AI Config.  The <code>model</code> in the request body requires a <code>modelName</code> and <code>parameters</code>, for example:  ```   \"model\": {     \"modelName\": \"claude-3-opus-20240229\",     \"parameters\": {       \"max_tokens\": 1024     }   } ``` 
          * @summary Create AI Config variation
-         * @param {PostAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {string} configKey 
          * @param {AIConfigVariationPost} aIConfigVariationPost AI Config variation object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postAIConfigVariation(lDAPIVersion: PostAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigVariation> {
-            return localVarFp.postAIConfigVariation(lDAPIVersion, projectKey, configKey, aIConfigVariationPost, options).then((request) => request(axios, basePath));
+        postAIConfigVariation(projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options?: RawAxiosRequestConfig): AxiosPromise<AIConfigVariation> {
+            return localVarFp.postAIConfigVariation(projectKey, configKey, aIConfigVariationPost, options).then((request) => request(axios, basePath));
         },
         /**
          * Create an AI tool
          * @summary Create an AI tool
-         * @param {PostAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {AIToolPost} aIToolPost AI tool object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postAITool(lDAPIVersion: PostAIToolLDAPIVersionEnum, projectKey: string, aIToolPost: AIToolPost, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
-            return localVarFp.postAITool(lDAPIVersion, projectKey, aIToolPost, options).then((request) => request(axios, basePath));
+        postAITool(projectKey: string, aIToolPost: AIToolPost, options?: RawAxiosRequestConfig): AxiosPromise<AITool> {
+            return localVarFp.postAITool(projectKey, aIToolPost, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new agent graph within the given project.
@@ -12767,72 +12803,67 @@ export const AIConfigsBetaApiFactory = function (configuration?: Configuration, 
         /**
          * Create an AI model config. You can use this in any variation for any AI Config in your project.
          * @summary Create an AI model config
-         * @param {PostModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {ModelConfigPost} modelConfigPost AI model config object to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postModelConfig(lDAPIVersion: PostModelConfigLDAPIVersionEnum, projectKey: string, modelConfigPost: ModelConfigPost, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfig> {
-            return localVarFp.postModelConfig(lDAPIVersion, projectKey, modelConfigPost, options).then((request) => request(axios, basePath));
+        postModelConfig(projectKey: string, modelConfigPost: ModelConfigPost, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfig> {
+            return localVarFp.postModelConfig(projectKey, modelConfigPost, options).then((request) => request(axios, basePath));
         },
         /**
-         * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs-beta/list-model-configs) endpoint.
+         * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs/list-model-configs) endpoint.
          * @summary Add AI models to the restricted list
-         * @param {PostRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
          * @param {string} projectKey 
          * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to add to the restricted list.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        postRestrictedModels(lDAPIVersion: PostRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): AxiosPromise<RestrictedModelsResponse> {
-            return localVarFp.postRestrictedModels(lDAPIVersion, projectKey, restrictedModelsRequest, options).then((request) => request(axios, basePath));
+        postRestrictedModels(projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig): AxiosPromise<RestrictedModelsResponse> {
+            return localVarFp.postRestrictedModels(projectKey, restrictedModelsRequest, options).then((request) => request(axios, basePath));
         },
     };
 };
 
 /**
- * AIConfigsBetaApi - object-oriented interface
+ * AIConfigsApi - object-oriented interface
  */
-export class AIConfigsBetaApi extends BaseAPI {
+export class AIConfigsApi extends BaseAPI {
     /**
      * Delete an existing AI Config.
      * @summary Delete AI Config
-     * @param {DeleteAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public deleteAIConfig(lDAPIVersion: DeleteAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).deleteAIConfig(lDAPIVersion, projectKey, configKey, options).then((request) => request(this.axios, this.basePath));
+    public deleteAIConfig(projectKey: string, configKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).deleteAIConfig(projectKey, configKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Delete a specific variation of an AI Config by config key and variation key.
      * @summary Delete AI Config variation
-     * @param {DeleteAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {string} variationKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public deleteAIConfigVariation(lDAPIVersion: DeleteAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).deleteAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, options).then((request) => request(this.axios, this.basePath));
+    public deleteAIConfigVariation(projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).deleteAIConfigVariation(projectKey, configKey, variationKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Delete an existing AI tool.
      * @summary Delete AI tool
-     * @param {DeleteAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} toolKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public deleteAITool(lDAPIVersion: DeleteAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).deleteAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(this.axios, this.basePath));
+    public deleteAITool(projectKey: string, toolKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).deleteAITool(projectKey, toolKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12845,52 +12876,48 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      */
     public deleteAgentGraph(lDAPIVersion: DeleteAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).deleteAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(this.axios, this.basePath));
+        return AIConfigsApiFp(this.configuration).deleteAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Delete an AI model config.
      * @summary Delete an AI model config
-     * @param {DeleteModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} modelConfigKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public deleteModelConfig(lDAPIVersion: DeleteModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).deleteModelConfig(lDAPIVersion, projectKey, modelConfigKey, options).then((request) => request(this.axios, this.basePath));
+    public deleteModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).deleteModelConfig(projectKey, modelConfigKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Remove AI models, by key, from the restricted list.
      * @summary Remove AI models from the restricted list
-     * @param {DeleteRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to remove from the restricted list
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public deleteRestrictedModels(lDAPIVersion: DeleteRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).deleteRestrictedModels(lDAPIVersion, projectKey, restrictedModelsRequest, options).then((request) => request(this.axios, this.basePath));
+    public deleteRestrictedModels(projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).deleteRestrictedModels(projectKey, restrictedModelsRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Retrieve a specific AI Config by its key.
      * @summary Get AI Config
-     * @param {GetAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getAIConfig(lDAPIVersion: GetAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAIConfig(lDAPIVersion, projectKey, configKey, options).then((request) => request(this.axios, this.basePath));
+    public getAIConfig(projectKey: string, configKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getAIConfig(projectKey, configKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Retrieve usage metrics for an AI Config by config key.
      * @summary Get AI Config metrics
-     * @param {GetAIConfigMetricsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -12899,14 +12926,13 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getAIConfigMetrics(lDAPIVersion: GetAIConfigMetricsLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAIConfigMetrics(lDAPIVersion, projectKey, configKey, from, to, env, options).then((request) => request(this.axios, this.basePath));
+    public getAIConfigMetrics(projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getAIConfigMetrics(projectKey, configKey, from, to, env, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Retrieve usage metrics for an AI Config by config key, with results split by variation.
      * @summary Get AI Config metrics by variation
-     * @param {GetAIConfigMetricsByVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {number} from The starting time, as milliseconds since epoch (inclusive).
@@ -12915,41 +12941,38 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getAIConfigMetricsByVariation(lDAPIVersion: GetAIConfigMetricsByVariationLDAPIVersionEnum, projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAIConfigMetricsByVariation(lDAPIVersion, projectKey, configKey, from, to, env, options).then((request) => request(this.axios, this.basePath));
+    public getAIConfigMetricsByVariation(projectKey: string, configKey: string, from: number, to: number, env: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getAIConfigMetricsByVariation(projectKey, configKey, from, to, env, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Retrieves a specific AI Config\'s targeting by its key
      * @summary Show an AI Config\'s targeting
-     * @param {GetAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getAIConfigTargeting(lDAPIVersion: GetAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAIConfigTargeting(lDAPIVersion, projectKey, configKey, options).then((request) => request(this.axios, this.basePath));
+    public getAIConfigTargeting(projectKey: string, configKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getAIConfigTargeting(projectKey, configKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get an AI Config variation by key. The response includes all variation versions for the given variation key.
      * @summary Get AI Config variation
-     * @param {GetAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {string} variationKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getAIConfigVariation(lDAPIVersion: GetAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, options).then((request) => request(this.axios, this.basePath));
+    public getAIConfigVariation(projectKey: string, configKey: string, variationKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getAIConfigVariation(projectKey, configKey, variationKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of all AI Configs in the given project.
      * @summary List AI Configs
-     * @param {GetAIConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} [sort] A sort to apply to the list of AI Configs.
      * @param {number} [limit] The number of AI Configs to return.
@@ -12958,21 +12981,20 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getAIConfigs(lDAPIVersion: GetAIConfigsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAIConfigs(lDAPIVersion, projectKey, sort, limit, offset, filter, options).then((request) => request(this.axios, this.basePath));
+    public getAIConfigs(projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getAIConfigs(projectKey, sort, limit, offset, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Retrieve a specific AI tool by its key.
      * @summary Get AI tool
-     * @param {GetAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} toolKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getAITool(lDAPIVersion: GetAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAITool(lDAPIVersion, projectKey, toolKey, options).then((request) => request(this.axios, this.basePath));
+    public getAITool(projectKey: string, toolKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getAITool(projectKey, toolKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12985,26 +13007,24 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      */
     public getAgentGraph(lDAPIVersion: GetAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(this.axios, this.basePath));
+        return AIConfigsApiFp(this.configuration).getAgentGraph(lDAPIVersion, projectKey, graphKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get an AI model config by key.
      * @summary Get AI model config
-     * @param {GetModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} modelConfigKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getModelConfig(lDAPIVersion: GetModelConfigLDAPIVersionEnum, projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).getModelConfig(lDAPIVersion, projectKey, modelConfigKey, options).then((request) => request(this.axios, this.basePath));
+    public getModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).getModelConfig(projectKey, modelConfigKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of all versions of an AI tool in the given project.
      * @summary List AI tool versions
-     * @param {ListAIToolVersionsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} toolKey 
      * @param {string} [sort] A sort to apply to the list of AI Configs.
@@ -13013,14 +13033,13 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public listAIToolVersions(lDAPIVersion: ListAIToolVersionsLDAPIVersionEnum, projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).listAIToolVersions(lDAPIVersion, projectKey, toolKey, sort, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    public listAIToolVersions(projectKey: string, toolKey: string, sort?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).listAIToolVersions(projectKey, toolKey, sort, limit, offset, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a list of all AI tools in the given project.
      * @summary List AI tools
-     * @param {ListAIToolsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} [sort] A sort to apply to the list of AI Configs.
      * @param {number} [limit] The number of AI Configs to return.
@@ -13029,8 +13048,8 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public listAITools(lDAPIVersion: ListAIToolsLDAPIVersionEnum, projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).listAITools(lDAPIVersion, projectKey, sort, limit, offset, filter, options).then((request) => request(this.axios, this.basePath));
+    public listAITools(projectKey: string, sort?: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).listAITools(projectKey, sort, limit, offset, filter, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -13044,54 +13063,50 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      */
     public listAgentGraphs(lDAPIVersion: ListAgentGraphsLDAPIVersionEnum, projectKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).listAgentGraphs(lDAPIVersion, projectKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
+        return AIConfigsApiFp(this.configuration).listAgentGraphs(lDAPIVersion, projectKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get all AI model configs for a project.
      * @summary List AI model configs
-     * @param {ListModelConfigsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {boolean} [restricted] Whether to return only restricted models
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public listModelConfigs(lDAPIVersion: ListModelConfigsLDAPIVersionEnum, projectKey: string, restricted?: boolean, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).listModelConfigs(lDAPIVersion, projectKey, restricted, options).then((request) => request(this.axios, this.basePath));
+    public listModelConfigs(projectKey: string, restricted?: boolean, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).listModelConfigs(projectKey, restricted, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Edit an existing AI Config.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example:   ```     {       \"description\": \"Example updated description\",       \"tags\": [\"new-tag\"]     }   ``` 
      * @summary Update AI Config
-     * @param {PatchAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {AIConfigPatch} [aIConfigPatch] AI Config object to update
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public patchAIConfig(lDAPIVersion: PatchAIConfigLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).patchAIConfig(lDAPIVersion, projectKey, configKey, aIConfigPatch, options).then((request) => request(this.axios, this.basePath));
+    public patchAIConfig(projectKey: string, configKey: string, aIConfigPatch?: AIConfigPatch, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).patchAIConfig(projectKey, configKey, aIConfigPatch, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Perform a partial update to an AI Config\'s targeting. The request body must be a valid semantic patch.  ### Using semantic patches on an AI Config  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  The body of a semantic patch request for updating an AI Config\'s targeting takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): The key of the LaunchDarkly environment. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the action requires parameters, you must include those parameters as additional fields in the object. The body of a single semantic patch can contain many different instructions.  ### Instructions  Semantic patch requests support the following `kind` instructions for updating AI Configs.  <details> <summary>Click to expand instructions for <strong>working with targeting and variations</strong> for AI Configs</summary>  #### addClauses  Adds the given clauses to the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json {   \"environmentKey\": \"environment-key-123abc\",   \"instructions\": [{     \"kind\": \"addClauses\",     \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",     \"clauses\": [{       \"contextKind\": \"user\",       \"attribute\": \"country\",       \"op\": \"in\",       \"negate\": false,       \"values\": [\"USA\", \"Canada\"]     }]   }] } ```  #### addRule  Adds a new targeting rule to the AI Config. The rule may contain `clauses` and serve the variation that `variationId` indicates, or serve a percentage rollout that `rolloutWeights`, `rolloutBucketBy`, and `rolloutContextKind` indicate.  If you set `beforeRuleId`, this adds the new rule before the indicated rule. Otherwise, adds the new rule to the end of the list.  ##### Parameters  - `clauses`: Array of clause objects, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case. - `beforeRuleId`: (Optional) ID of a rule. - Either - `variationId`: ID of a variation.  or  - `rolloutWeights`: (Optional) Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }] }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addRule\",   \"clauses\": [{     \"contextKind\": \"organization\",     \"attribute\": \"located_in\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Sweden\", \"Norway\"]   }],   \"rolloutContextKind\": \"organization\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### addTargets  Adds context keys to the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Returns an error if this causes the AI Config to target the same context key in multiple variations.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### addValuesToClause  Adds `values` to the values of the clause that `ruleId` and `clauseId` indicate. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule in the AI Config. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"addValuesToClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### clearTargets  Removes all individual targets from the variation that `variationId` specifies. This includes both user and non-user targets.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"clearTargets\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### removeClauses  Removes the clauses specified by `clauseIds` from the rule indicated by `ruleId`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseIds`: Array of IDs of clauses in the rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeClauses\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseIds\": [\"10a58772-3121-400f-846b-b8a04e8944ed\", \"36a461dc-235e-4b08-97b9-73ce9365873e\"] }] } ```  #### removeRule  Removes the targeting rule specified by `ruleId`. Does nothing if the rule does not exist.  ##### Parameters  - `ruleId`: ID of a rule.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"removeRule\", \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" } ] } ```  #### removeTargets  Removes context keys from the individual context targets for the context kind that `contextKind` specifies and the variation that `variationId` specifies. Does nothing if the flag does not target the context keys.  ##### Parameters  - `values`: List of context keys. - `contextKind`: (Optional) Context kind to target, defaults to `user` - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeTargets\",   \"values\": [\"context-key-123abc\", \"context-key-456def\"],   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### removeValuesFromClause  Removes `values` from the values of the clause indicated by `ruleId` and `clauseId`. Does not update the context kind, attribute, or operator.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `values`: Array of strings, case sensitive.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"removeValuesFromClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10a58772-3121-400f-846b-b8a04e8944ed\",   \"values\": [\"beta_testers\"] }] } ```  #### reorderRules  Rearranges the rules to match the order given in `ruleIds`. Returns an error if `ruleIds` does not match the current set of rules on the AI Config.  ##### Parameters  - `ruleIds`: Array of IDs of all rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"reorderRules\",   \"ruleIds\": [\"a902ef4a-2faf-4eaf-88e1-ecc356708a29\", \"63c238d1-835d-435e-8f21-c8d5e40b2a3d\"] }] } ```  #### replaceRules  Removes all targeting rules for the AI Config and replaces them with the list you provide.  ##### Parameters  - `rules`: A list of rules.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceRules\",     \"rules\": [       {         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"description\": \"My new rule\",         \"clauses\": [           {             \"contextKind\": \"user\",             \"attribute\": \"segmentMatch\",             \"op\": \"segmentMatch\",             \"values\": [\"test\"]           }         ]       }     ]   } ] } ```  #### replaceTargets  Removes all existing targeting and replaces it with the list of targets you provide.  ##### Parameters  - `targets`: A list of context targeting. Each item in the list includes an optional `contextKind` that defaults to `user`, a required `variationId`, and a required list of `values`.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [   {     \"kind\": \"replaceTargets\",     \"targets\": [       {         \"contextKind\": \"user\",         \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\",         \"values\": [\"user-key-123abc\"]       },       {         \"contextKind\": \"device\",         \"variationId\": \"e5830889-1ec5-4b0c-9cc9-c48790090c43\",         \"values\": [\"device-key-456def\"]       }     ]   } ] } ```  #### updateClause  Replaces the clause indicated by `ruleId` and `clauseId` with `clause`.  ##### Parameters  - `ruleId`: ID of a rule. - `clauseId`: ID of a clause in that rule. - `clause`: New `clause` object, with `contextKind` (string), `attribute` (string), `op` (string), `negate` (boolean), and `values` (array of strings, numbers, or dates) properties. The `contextKind`, `attribute`, and `values` are case sensitive. The `op` must be lower-case.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateClause\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"clauseId\": \"10c7462a-2062-45ba-a8bb-dfb3de0f8af5\",   \"clause\": {     \"contextKind\": \"user\",     \"attribute\": \"country\",     \"op\": \"in\",     \"negate\": false,     \"values\": [\"Mexico\", \"Canada\"]   } }] } ```  #### updateDefaultVariation  Updates the default on or off variation of the AI Config.  ##### Parameters  - `onVariationValue`: (Optional) The value of the variation of the new on variation. - `offVariationValue`: (Optional) The value of the variation of the new off variation  Here\'s an example:  ```json { \"instructions\": [ { \"kind\": \"updateDefaultVariation\", \"OnVariationValue\": true, \"OffVariationValue\": false } ] } ```  #### updateFallthroughVariationOrRollout  Updates the default or \"fallthrough\" rule for the AI Config, which the AI Config serves when a context matches none of the targeting rules. The rule can serve either the variation that `variationId` indicates, or a percentage rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example that uses a `variationId`:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  Here\'s an example that uses a percentage rollout:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateFallthroughVariationOrRollout\",   \"rolloutContextKind\": \"user\",   \"rolloutWeights\": {     \"2f43f67c-3e4e-4945-a18a-26559378ca00\": 15000, // serve 15% this variation     \"e5830889-1ec5-4b0c-9cc9-c48790090c43\": 85000  // serve 85% this variation   } }] } ```  #### updateOffVariation  Updates the default off variation to `variationId`. The AI Config serves the default off variation when the AI Config\'s targeting is **Off**.  ##### Parameters  - `variationId`: ID of a variation.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateOffVariation\", \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" } ] } ```  #### updateRuleDescription  Updates the description of the targeting rule.  ##### Parameters  - `description`: The new human-readable description for this rule. - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleDescription\",   \"description\": \"New rule description\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\" }] } ```  #### updateRuleTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config associated with this rule.  ##### Parameters  - `ruleId`: The ID of the rule. You can retrieve this by making a GET request for the AI Config. - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleTrackEvents\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"trackEvents\": true }] } ```  #### updateRuleVariationOrRollout  Updates what `ruleId` serves when its clauses evaluate to true. The rule can serve either the variation that `variationId` indicates, or a percent rollout that `rolloutWeights` and `rolloutBucketBy` indicate.  ##### Parameters  - `ruleId`: ID of a rule. - `variationId`: ID of a variation.  or  - `rolloutWeights`: Map of `variationId` to weight, in thousandths of a percent (0-100000). - `rolloutBucketBy`: (Optional) Context attribute available in the specified `rolloutContextKind`. - `rolloutContextKind`: (Optional) Context kind, defaults to `user`  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [{   \"kind\": \"updateRuleVariationOrRollout\",   \"ruleId\": \"a902ef4a-2faf-4eaf-88e1-ecc356708a29\",   \"variationId\": \"2f43f67c-3e4e-4945-a18a-26559378ca00\" }] } ```  #### updateTrackEvents  Updates whether or not LaunchDarkly tracks events for the AI Config, for all rules.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEvents\", \"trackEvents\": true } ] } ```  #### updateTrackEventsFallthrough  Updates whether or not LaunchDarkly tracks events for the AI Config, for the default rule.  ##### Parameters  - `trackEvents`: Whether or not events are tracked.  Here\'s an example:  ```json { \"environmentKey\": \"environment-key-123abc\", \"instructions\": [ { \"kind\": \"updateTrackEventsFallthrough\", \"trackEvents\": true } ] } ``` </details> 
      * @summary Update AI Config targeting
-     * @param {PatchAIConfigTargetingLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {AIConfigTargetingPatch} [aIConfigTargetingPatch] AI Config targeting semantic patch instructions
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public patchAIConfigTargeting(lDAPIVersion: PatchAIConfigTargetingLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).patchAIConfigTargeting(lDAPIVersion, projectKey, configKey, aIConfigTargetingPatch, options).then((request) => request(this.axios, this.basePath));
+    public patchAIConfigTargeting(projectKey: string, configKey: string, aIConfigTargetingPatch?: AIConfigTargetingPatch, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).patchAIConfigTargeting(projectKey, configKey, aIConfigTargetingPatch, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Edit an existing variation of an AI Config. This creates a new version of the variation.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example: ```   {     \"messages\": [       {         \"role\": \"system\",         \"content\": \"The new message\"       }     ]   } ``` 
      * @summary Update AI Config variation
-     * @param {PatchAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {string} variationKey 
@@ -13099,22 +13114,21 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public patchAIConfigVariation(lDAPIVersion: PatchAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).patchAIConfigVariation(lDAPIVersion, projectKey, configKey, variationKey, aIConfigVariationPatch, options).then((request) => request(this.axios, this.basePath));
+    public patchAIConfigVariation(projectKey: string, configKey: string, variationKey: string, aIConfigVariationPatch?: AIConfigVariationPatch, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).patchAIConfigVariation(projectKey, configKey, variationKey, aIConfigVariationPatch, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Edit an existing AI tool.
      * @summary Update AI tool
-     * @param {PatchAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} toolKey 
      * @param {AIToolPatch} [aIToolPatch] AI tool object to update
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public patchAITool(lDAPIVersion: PatchAIToolLDAPIVersionEnum, projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).patchAITool(lDAPIVersion, projectKey, toolKey, aIToolPatch, options).then((request) => request(this.axios, this.basePath));
+    public patchAITool(projectKey: string, toolKey: string, aIToolPatch?: AIToolPatch, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).patchAITool(projectKey, toolKey, aIToolPatch, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -13128,47 +13142,44 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      */
     public patchAgentGraph(lDAPIVersion: PatchAgentGraphLDAPIVersionEnum, projectKey: string, graphKey: string, agentGraphPatch?: AgentGraphPatch, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).patchAgentGraph(lDAPIVersion, projectKey, graphKey, agentGraphPatch, options).then((request) => request(this.axios, this.basePath));
+        return AIConfigsApiFp(this.configuration).patchAgentGraph(lDAPIVersion, projectKey, graphKey, agentGraphPatch, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Create a new AI Config within the given project.
      * @summary Create new AI Config
-     * @param {PostAIConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {AIConfigPost} aIConfigPost AI Config object to create
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public postAIConfig(lDAPIVersion: PostAIConfigLDAPIVersionEnum, projectKey: string, aIConfigPost: AIConfigPost, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).postAIConfig(lDAPIVersion, projectKey, aIConfigPost, options).then((request) => request(this.axios, this.basePath));
+    public postAIConfig(projectKey: string, aIConfigPost: AIConfigPost, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).postAIConfig(projectKey, aIConfigPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Create a new variation for a given AI Config.  The <code>model</code> in the request body requires a <code>modelName</code> and <code>parameters</code>, for example:  ```   \"model\": {     \"modelName\": \"claude-3-opus-20240229\",     \"parameters\": {       \"max_tokens\": 1024     }   } ``` 
      * @summary Create AI Config variation
-     * @param {PostAIConfigVariationLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {string} configKey 
      * @param {AIConfigVariationPost} aIConfigVariationPost AI Config variation object to create
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public postAIConfigVariation(lDAPIVersion: PostAIConfigVariationLDAPIVersionEnum, projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).postAIConfigVariation(lDAPIVersion, projectKey, configKey, aIConfigVariationPost, options).then((request) => request(this.axios, this.basePath));
+    public postAIConfigVariation(projectKey: string, configKey: string, aIConfigVariationPost: AIConfigVariationPost, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).postAIConfigVariation(projectKey, configKey, aIConfigVariationPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Create an AI tool
      * @summary Create an AI tool
-     * @param {PostAIToolLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {AIToolPost} aIToolPost AI tool object to create
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public postAITool(lDAPIVersion: PostAIToolLDAPIVersionEnum, projectKey: string, aIToolPost: AIToolPost, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).postAITool(lDAPIVersion, projectKey, aIToolPost, options).then((request) => request(this.axios, this.basePath));
+    public postAITool(projectKey: string, aIToolPost: AIToolPost, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).postAITool(projectKey, aIToolPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -13181,156 +13192,54 @@ export class AIConfigsBetaApi extends BaseAPI {
      * @throws {RequiredError}
      */
     public postAgentGraph(lDAPIVersion: PostAgentGraphLDAPIVersionEnum, projectKey: string, agentGraphPost: AgentGraphPost, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).postAgentGraph(lDAPIVersion, projectKey, agentGraphPost, options).then((request) => request(this.axios, this.basePath));
+        return AIConfigsApiFp(this.configuration).postAgentGraph(lDAPIVersion, projectKey, agentGraphPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Create an AI model config. You can use this in any variation for any AI Config in your project.
      * @summary Create an AI model config
-     * @param {PostModelConfigLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {ModelConfigPost} modelConfigPost AI model config object to create
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public postModelConfig(lDAPIVersion: PostModelConfigLDAPIVersionEnum, projectKey: string, modelConfigPost: ModelConfigPost, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).postModelConfig(lDAPIVersion, projectKey, modelConfigPost, options).then((request) => request(this.axios, this.basePath));
+    public postModelConfig(projectKey: string, modelConfigPost: ModelConfigPost, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).postModelConfig(projectKey, modelConfigPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs-beta/list-model-configs) endpoint.
+     * Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs/list-model-configs) endpoint.
      * @summary Add AI models to the restricted list
-     * @param {PostRestrictedModelsLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
      * @param {string} projectKey 
      * @param {RestrictedModelsRequest} restrictedModelsRequest List of AI model keys to add to the restricted list.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public postRestrictedModels(lDAPIVersion: PostRestrictedModelsLDAPIVersionEnum, projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig) {
-        return AIConfigsBetaApiFp(this.configuration).postRestrictedModels(lDAPIVersion, projectKey, restrictedModelsRequest, options).then((request) => request(this.axios, this.basePath));
+    public postRestrictedModels(projectKey: string, restrictedModelsRequest: RestrictedModelsRequest, options?: RawAxiosRequestConfig) {
+        return AIConfigsApiFp(this.configuration).postRestrictedModels(projectKey, restrictedModelsRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
-export const DeleteAIConfigLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type DeleteAIConfigLDAPIVersionEnum = typeof DeleteAIConfigLDAPIVersionEnum[keyof typeof DeleteAIConfigLDAPIVersionEnum];
-export const DeleteAIConfigVariationLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type DeleteAIConfigVariationLDAPIVersionEnum = typeof DeleteAIConfigVariationLDAPIVersionEnum[keyof typeof DeleteAIConfigVariationLDAPIVersionEnum];
-export const DeleteAIToolLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type DeleteAIToolLDAPIVersionEnum = typeof DeleteAIToolLDAPIVersionEnum[keyof typeof DeleteAIToolLDAPIVersionEnum];
 export const DeleteAgentGraphLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type DeleteAgentGraphLDAPIVersionEnum = typeof DeleteAgentGraphLDAPIVersionEnum[keyof typeof DeleteAgentGraphLDAPIVersionEnum];
-export const DeleteModelConfigLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type DeleteModelConfigLDAPIVersionEnum = typeof DeleteModelConfigLDAPIVersionEnum[keyof typeof DeleteModelConfigLDAPIVersionEnum];
-export const DeleteRestrictedModelsLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type DeleteRestrictedModelsLDAPIVersionEnum = typeof DeleteRestrictedModelsLDAPIVersionEnum[keyof typeof DeleteRestrictedModelsLDAPIVersionEnum];
-export const GetAIConfigLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetAIConfigLDAPIVersionEnum = typeof GetAIConfigLDAPIVersionEnum[keyof typeof GetAIConfigLDAPIVersionEnum];
-export const GetAIConfigMetricsLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetAIConfigMetricsLDAPIVersionEnum = typeof GetAIConfigMetricsLDAPIVersionEnum[keyof typeof GetAIConfigMetricsLDAPIVersionEnum];
-export const GetAIConfigMetricsByVariationLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetAIConfigMetricsByVariationLDAPIVersionEnum = typeof GetAIConfigMetricsByVariationLDAPIVersionEnum[keyof typeof GetAIConfigMetricsByVariationLDAPIVersionEnum];
-export const GetAIConfigTargetingLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetAIConfigTargetingLDAPIVersionEnum = typeof GetAIConfigTargetingLDAPIVersionEnum[keyof typeof GetAIConfigTargetingLDAPIVersionEnum];
-export const GetAIConfigVariationLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetAIConfigVariationLDAPIVersionEnum = typeof GetAIConfigVariationLDAPIVersionEnum[keyof typeof GetAIConfigVariationLDAPIVersionEnum];
-export const GetAIConfigsLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetAIConfigsLDAPIVersionEnum = typeof GetAIConfigsLDAPIVersionEnum[keyof typeof GetAIConfigsLDAPIVersionEnum];
-export const GetAIToolLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetAIToolLDAPIVersionEnum = typeof GetAIToolLDAPIVersionEnum[keyof typeof GetAIToolLDAPIVersionEnum];
 export const GetAgentGraphLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type GetAgentGraphLDAPIVersionEnum = typeof GetAgentGraphLDAPIVersionEnum[keyof typeof GetAgentGraphLDAPIVersionEnum];
-export const GetModelConfigLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type GetModelConfigLDAPIVersionEnum = typeof GetModelConfigLDAPIVersionEnum[keyof typeof GetModelConfigLDAPIVersionEnum];
-export const ListAIToolVersionsLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type ListAIToolVersionsLDAPIVersionEnum = typeof ListAIToolVersionsLDAPIVersionEnum[keyof typeof ListAIToolVersionsLDAPIVersionEnum];
-export const ListAIToolsLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type ListAIToolsLDAPIVersionEnum = typeof ListAIToolsLDAPIVersionEnum[keyof typeof ListAIToolsLDAPIVersionEnum];
 export const ListAgentGraphsLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type ListAgentGraphsLDAPIVersionEnum = typeof ListAgentGraphsLDAPIVersionEnum[keyof typeof ListAgentGraphsLDAPIVersionEnum];
-export const ListModelConfigsLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type ListModelConfigsLDAPIVersionEnum = typeof ListModelConfigsLDAPIVersionEnum[keyof typeof ListModelConfigsLDAPIVersionEnum];
-export const PatchAIConfigLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PatchAIConfigLDAPIVersionEnum = typeof PatchAIConfigLDAPIVersionEnum[keyof typeof PatchAIConfigLDAPIVersionEnum];
-export const PatchAIConfigTargetingLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PatchAIConfigTargetingLDAPIVersionEnum = typeof PatchAIConfigTargetingLDAPIVersionEnum[keyof typeof PatchAIConfigTargetingLDAPIVersionEnum];
-export const PatchAIConfigVariationLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PatchAIConfigVariationLDAPIVersionEnum = typeof PatchAIConfigVariationLDAPIVersionEnum[keyof typeof PatchAIConfigVariationLDAPIVersionEnum];
-export const PatchAIToolLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PatchAIToolLDAPIVersionEnum = typeof PatchAIToolLDAPIVersionEnum[keyof typeof PatchAIToolLDAPIVersionEnum];
 export const PatchAgentGraphLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type PatchAgentGraphLDAPIVersionEnum = typeof PatchAgentGraphLDAPIVersionEnum[keyof typeof PatchAgentGraphLDAPIVersionEnum];
-export const PostAIConfigLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PostAIConfigLDAPIVersionEnum = typeof PostAIConfigLDAPIVersionEnum[keyof typeof PostAIConfigLDAPIVersionEnum];
-export const PostAIConfigVariationLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PostAIConfigVariationLDAPIVersionEnum = typeof PostAIConfigVariationLDAPIVersionEnum[keyof typeof PostAIConfigVariationLDAPIVersionEnum];
-export const PostAIToolLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PostAIToolLDAPIVersionEnum = typeof PostAIToolLDAPIVersionEnum[keyof typeof PostAIToolLDAPIVersionEnum];
 export const PostAgentGraphLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type PostAgentGraphLDAPIVersionEnum = typeof PostAgentGraphLDAPIVersionEnum[keyof typeof PostAgentGraphLDAPIVersionEnum];
-export const PostModelConfigLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PostModelConfigLDAPIVersionEnum = typeof PostModelConfigLDAPIVersionEnum[keyof typeof PostModelConfigLDAPIVersionEnum];
-export const PostRestrictedModelsLDAPIVersionEnum = {
-    Beta: 'beta'
-} as const;
-export type PostRestrictedModelsLDAPIVersionEnum = typeof PostRestrictedModelsLDAPIVersionEnum[keyof typeof PostRestrictedModelsLDAPIVersionEnum];
 
 
 /**
@@ -13364,8 +13273,15 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -13401,8 +13317,15 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -13449,8 +13372,15 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -13489,9 +13419,15 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -13528,9 +13464,15 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -13573,8 +13515,15 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['expiry'] = expiry;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -13859,8 +13808,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -13901,8 +13857,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -13959,8 +13922,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['sort'] = sort;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -13999,9 +13969,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -14038,9 +14014,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -14081,9 +14063,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -14120,9 +14108,15 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -14498,8 +14492,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -14581,8 +14582,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -14669,8 +14677,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -14742,8 +14757,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -14802,8 +14824,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['tz'] = tz;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -14849,8 +14878,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['to'] = to;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -14927,8 +14963,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15000,8 +15043,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15078,8 +15128,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15161,8 +15218,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15209,8 +15273,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['sdktype'] = sdktype;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15293,8 +15364,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['contextKind'] = contextKind;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15337,8 +15415,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['to'] = to;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15395,8 +15480,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['aggregationType'] = aggregationType;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15453,8 +15545,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['aggregationType'] = aggregationType;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15511,8 +15610,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['aggregationType'] = aggregationType;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15569,8 +15675,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['aggregationType'] = aggregationType;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15662,8 +15775,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['granularity'] = granularity;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15714,8 +15834,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['tz'] = tz;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15776,8 +15903,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['version'] = version;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -15813,8 +15947,15 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -16965,9 +17106,15 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -17005,8 +17152,15 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -17053,8 +17207,15 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -17093,9 +17254,15 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -17317,8 +17484,15 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -17358,8 +17532,15 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -17400,8 +17581,15 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -17457,8 +17645,15 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['sort'] = sort;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -17515,8 +17710,15 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -17555,9 +17757,15 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -17602,9 +17810,15 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -17952,8 +18166,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -18001,8 +18222,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -18050,8 +18278,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -18092,8 +18327,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -18145,8 +18387,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -18190,8 +18439,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -18202,7 +18458,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs-beta/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
+         * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
          * @summary Create approval request
          * @param {CreateApprovalRequestRequest} createApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -18226,9 +18482,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -18269,9 +18531,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -18324,9 +18592,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -18375,9 +18649,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -18418,9 +18698,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -18473,9 +18759,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -18524,9 +18816,15 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -18638,7 +18936,7 @@ export const ApprovalsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs-beta/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
+         * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
          * @summary Create approval request
          * @param {CreateApprovalRequestRequest} createApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -18826,7 +19124,7 @@ export const ApprovalsApiFactory = function (configuration?: Configuration, base
             return localVarFp.getApprovalsForFlag(projectKey, featureFlagKey, environmentKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs-beta/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
+         * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
          * @summary Create approval request
          * @param {CreateApprovalRequestRequest} createApprovalRequestRequest 
          * @param {*} [options] Override http request option.
@@ -18997,7 +19295,7 @@ export class ApprovalsApi extends BaseAPI {
     }
 
     /**
-     * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs-beta/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
+     * Create an approval request.  This endpoint requires a list of `instructions`, in semantic patch format, that will be applied when the approval request is approved and applied.  ### Flags  If you are creating an approval request for a flag, you can use the following `instructions`:  - `addVariation` - `removeVariation` - `updateVariation` - `updateDefaultVariation`  For details on using these instructions, read [Update feature flag](https://launchdarkly.com/docs/api/feature-flags/patch-feature-flag).  To create an approval for a flag specific to an environment, use [Create approval request for a flag](https://launchdarkly.com/docs/api/approvals/post-approval-request-for-flag).  ### AI Configs  If you are creating an approval request for an AI Config, you can use the semantic patch instructions listed under [Update AI Config targeting](https://launchdarkly.com/docs/api/ai-configs/patch-ai-config-targeting).  ### Segments  If you are creating an approval request for a segment, you can use the semantic patch instructions listed under [Patch segment](https://launchdarkly.com/docs/api/segments/patch-segment). 
      * @summary Create approval request
      * @param {CreateApprovalRequestRequest} createApprovalRequestRequest 
      * @param {*} [options] Override http request option.
@@ -19141,8 +19439,15 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -19156,15 +19461,18 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
-         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ``` 
+         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ```  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"updateDescription\",     \"value\": \"Updated approval request title\"   }] } ``` 
          * @summary Update approval request
          * @param {string} id The approval ID
+         * @param {ApprovalRequestPatchInput} approvalRequestPatchInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchApprovalRequest: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        patchApprovalRequest: async (id: string, approvalRequestPatchInput: ApprovalRequestPatchInput, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('patchApprovalRequest', 'id', id)
+            // verify required parameter 'approvalRequestPatchInput' is not null or undefined
+            assertParamExists('patchApprovalRequest', 'approvalRequestPatchInput', approvalRequestPatchInput)
             const localVarPath = `/api/v2/approval-requests/{id}`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -19181,11 +19489,20 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(approvalRequestPatchInput, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19222,9 +19539,15 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -19240,7 +19563,7 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
-         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys. 
+         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters. 
          * @summary Update flag approval request
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag key
@@ -19277,8 +19600,15 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -19315,14 +19645,15 @@ export const ApprovalsBetaApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ``` 
+         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ```  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"updateDescription\",     \"value\": \"Updated approval request title\"   }] } ``` 
          * @summary Update approval request
          * @param {string} id The approval ID
+         * @param {ApprovalRequestPatchInput} approvalRequestPatchInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async patchApprovalRequest(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.patchApprovalRequest(id, options);
+        async patchApprovalRequest(id: string, approvalRequestPatchInput: ApprovalRequestPatchInput, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FlagConfigApprovalRequestResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchApprovalRequest(id, approvalRequestPatchInput, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ApprovalsBetaApi.patchApprovalRequest']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -19343,7 +19674,7 @@ export const ApprovalsBetaApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys. 
+         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters. 
          * @summary Update flag approval request
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag key
@@ -19382,14 +19713,15 @@ export const ApprovalsBetaApiFactory = function (configuration?: Configuration, 
             return localVarFp.getApprovalRequestSettings(lDAPIVersion, projectKey, environmentKey, resourceKind, expand, options).then((request) => request(axios, basePath));
         },
         /**
-         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ``` 
+         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ```  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"updateDescription\",     \"value\": \"Updated approval request title\"   }] } ``` 
          * @summary Update approval request
          * @param {string} id The approval ID
+         * @param {ApprovalRequestPatchInput} approvalRequestPatchInput 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        patchApprovalRequest(id: string, options?: RawAxiosRequestConfig): AxiosPromise<FlagConfigApprovalRequestResponse> {
-            return localVarFp.patchApprovalRequest(id, options).then((request) => request(axios, basePath));
+        patchApprovalRequest(id: string, approvalRequestPatchInput: ApprovalRequestPatchInput, options?: RawAxiosRequestConfig): AxiosPromise<FlagConfigApprovalRequestResponse> {
+            return localVarFp.patchApprovalRequest(id, approvalRequestPatchInput, options).then((request) => request(axios, basePath));
         },
         /**
          * Perform a partial update to approval request settings
@@ -19404,7 +19736,7 @@ export const ApprovalsBetaApiFactory = function (configuration?: Configuration, 
             return localVarFp.patchApprovalRequestSettings(lDAPIVersion, projectKey, approvalRequestSettingsPatch, options).then((request) => request(axios, basePath));
         },
         /**
-         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys. 
+         * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters. 
          * @summary Update flag approval request
          * @param {string} projectKey The project key
          * @param {string} featureFlagKey The feature flag key
@@ -19439,14 +19771,15 @@ export class ApprovalsBetaApi extends BaseAPI {
     }
 
     /**
-     * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ``` 
+     * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ```  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"updateDescription\",     \"value\": \"Updated approval request title\"   }] } ``` 
      * @summary Update approval request
      * @param {string} id The approval ID
+     * @param {ApprovalRequestPatchInput} approvalRequestPatchInput 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public patchApprovalRequest(id: string, options?: RawAxiosRequestConfig) {
-        return ApprovalsBetaApiFp(this.configuration).patchApprovalRequest(id, options).then((request) => request(this.axios, this.basePath));
+    public patchApprovalRequest(id: string, approvalRequestPatchInput: ApprovalRequestPatchInput, options?: RawAxiosRequestConfig) {
+        return ApprovalsBetaApiFp(this.configuration).patchApprovalRequest(id, approvalRequestPatchInput, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -19463,7 +19796,7 @@ export class ApprovalsBetaApi extends BaseAPI {
     }
 
     /**
-     * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys. 
+     * Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters. 
      * @summary Update flag approval request
      * @param {string} projectKey The project key
      * @param {string} featureFlagKey The feature flag key
@@ -19539,8 +19872,15 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['spec'] = spec;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -19576,8 +19916,15 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -19630,9 +19977,15 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['limit'] = limit;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -19832,9 +20185,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -19872,8 +20231,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -19923,8 +20289,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['flagKey'] = flagKey;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -19960,8 +20333,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -20023,8 +20403,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['to'] = to;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -20076,8 +20463,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['flagKey'] = flagKey;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -20113,8 +20507,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -20146,8 +20547,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -20188,8 +20596,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
                 localVarQueryParameter['flagKey'] = flagKey;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -20228,9 +20643,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -20275,9 +20696,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -20314,9 +20741,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -20361,9 +20794,15 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -20946,9 +21385,15 @@ export const ContextSettingsApiAxiosParamCreator = function (configuration?: Con
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -21076,8 +21521,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -21140,9 +21592,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['filter'] = filter;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -21194,8 +21652,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['limit'] = limit;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -21249,8 +21714,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['limit'] = limit;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -21319,8 +21791,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['includeTotalCount'] = includeTotalCount;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -21356,8 +21835,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -21430,8 +21916,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['includeTotalCount'] = includeTotalCount;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -21474,9 +21967,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -21546,9 +22045,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['includeTotalCount'] = includeTotalCount;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -21618,9 +22123,15 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['includeTotalCount'] = includeTotalCount;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -22169,8 +22680,15 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -22206,8 +22724,15 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -22249,8 +22774,15 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -22289,9 +22821,15 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -22328,9 +22866,15 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -22585,8 +23129,15 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -22630,8 +23181,15 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -22663,8 +23221,15 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -22711,9 +23276,15 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -22758,9 +23329,15 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -22802,8 +23379,15 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -22835,8 +23419,15 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -23171,8 +23762,15 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -23212,8 +23810,15 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -23269,8 +23874,15 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['sort'] = sort;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -23313,9 +23925,15 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -23356,9 +23974,15 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -23400,8 +24024,15 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -23446,8 +24077,15 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['expiry'] = expiry;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -23797,9 +24435,15 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -23848,9 +24492,15 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -23901,8 +24551,15 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -23938,8 +24595,15 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24004,8 +24668,15 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
                 localVarQueryParameter['lifecycleState'] = lifecycleState;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24052,9 +24723,15 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -24095,9 +24772,15 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -24467,9 +25150,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -24511,8 +25200,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24556,8 +25252,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24601,8 +25304,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24652,8 +25362,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24697,8 +25414,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24743,8 +25467,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['env'] = env;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24784,8 +25515,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24871,8 +25609,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -24919,9 +25664,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -24970,9 +25721,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -25027,9 +25784,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['dryRun'] = dryRun;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -25075,9 +25838,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['clone'] = clone;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -25126,9 +25895,15 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -25799,8 +26574,15 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -25844,8 +26626,15 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -25998,9 +26787,15 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -26046,8 +26841,15 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -26091,8 +26893,15 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -26124,8 +26933,15 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -26172,9 +26988,15 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -26220,8 +27042,15 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -26531,9 +27360,15 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -26579,8 +27414,15 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -26620,8 +27462,15 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -26668,9 +27517,15 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -26912,9 +27767,15 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -26964,8 +27825,15 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27013,8 +27881,15 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27058,8 +27933,15 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27110,9 +27992,15 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -27410,8 +28298,15 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27455,8 +28350,15 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27496,8 +28398,15 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27545,8 +28454,15 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27792,8 +28708,15 @@ export const HoldoutsBetaApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27842,8 +28765,15 @@ export const HoldoutsBetaApiAxiosParamCreator = function (configuration?: Config
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27887,8 +28817,15 @@ export const HoldoutsBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -27935,9 +28872,15 @@ export const HoldoutsBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -27982,9 +28925,15 @@ export const HoldoutsBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -28309,8 +29258,15 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -28361,8 +29317,15 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['applicationKey'] = applicationKey;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -28441,8 +29404,15 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -28537,8 +29507,15 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -28609,8 +29586,15 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -28950,9 +29934,15 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -28995,8 +29985,15 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -29087,8 +30084,15 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
                 localVarQueryParameter['status'] = status;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -29127,9 +30131,15 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -29437,8 +30447,15 @@ export const InsightsFlagEventsBetaApiAxiosParamCreator = function (configuratio
                 localVarQueryParameter['before'] = before;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -29639,8 +30656,15 @@ export const InsightsPullRequestsBetaApiAxiosParamCreator = function (configurat
                 localVarQueryParameter['before'] = before;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -29775,9 +30799,15 @@ export const InsightsRepositoriesBetaApiAxiosParamCreator = function (configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -29819,8 +30849,15 @@ export const InsightsRepositoriesBetaApiAxiosParamCreator = function (configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -29857,8 +30894,15 @@ export const InsightsRepositoriesBetaApiAxiosParamCreator = function (configurat
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30031,9 +31075,15 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -30071,8 +31121,15 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30113,8 +31170,15 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30171,8 +31235,15 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30223,8 +31294,15 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
                 localVarQueryParameter['applicationKey'] = applicationKey;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30263,9 +31341,15 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -30567,9 +31651,15 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -30611,8 +31701,15 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30652,8 +31749,15 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30689,8 +31793,15 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -30733,9 +31844,15 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -31002,9 +32119,15 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -31054,8 +32177,15 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31095,8 +32225,15 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31144,8 +32281,15 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31177,8 +32321,15 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31229,9 +32380,15 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -31281,8 +32438,15 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31640,9 +32804,15 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -31680,8 +32850,15 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31717,8 +32894,15 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31754,8 +32938,15 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -31794,9 +32985,15 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -32046,9 +33243,15 @@ export const LayersApiAxiosParamCreator = function (configuration?: Configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -32091,8 +33294,15 @@ export const LayersApiAxiosParamCreator = function (configuration?: Configuratio
                 localVarQueryParameter['filter'] = filter;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -32135,9 +33345,15 @@ export const LayersApiAxiosParamCreator = function (configuration?: Configuratio
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -32326,8 +33542,15 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -32377,8 +33600,15 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
                 localVarQueryParameter['versionId'] = versionId;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -32439,8 +33669,15 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
                 localVarQueryParameter['filter'] = filter;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -32483,9 +33720,15 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -32526,9 +33769,15 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -32808,9 +34057,15 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -32852,8 +34107,15 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -32898,8 +34160,15 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -32960,8 +34229,15 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33004,9 +34280,15 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -33279,9 +34561,15 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -33319,8 +34607,15 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33356,8 +34651,15 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33389,8 +34691,15 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33429,9 +34738,15 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -33668,8 +34983,15 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33701,8 +35023,15 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33734,8 +35063,15 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33767,8 +35103,15 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -33800,8 +35143,15 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34036,9 +35386,15 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -34088,8 +35444,15 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34137,8 +35500,15 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34170,8 +35540,15 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34222,9 +35599,15 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -34501,8 +35884,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34538,8 +35928,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34580,8 +35977,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34638,8 +36042,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -34678,9 +36089,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -34721,9 +36138,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -34760,9 +36183,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -34803,9 +36232,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -35172,8 +36607,15 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35209,8 +36651,15 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35242,8 +36691,15 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35282,9 +36738,15 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -35321,9 +36783,15 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -35366,8 +36834,15 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
                 localVarQueryParameter['expiry'] = expiry;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35647,8 +37122,15 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35699,8 +37181,15 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35755,8 +37244,15 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35796,8 +37292,15 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -35836,9 +37339,15 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -35883,9 +37392,15 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -36203,8 +37718,15 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -36251,8 +37773,15 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
                 localVarQueryParameter['excludeDefault'] = excludeDefault;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -36298,8 +37827,15 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -36344,9 +37880,15 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -36393,9 +37935,15 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -36446,9 +37994,15 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -36796,9 +38350,15 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -36840,8 +38400,15 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -36881,8 +38448,15 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -36925,9 +38499,15 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -36976,9 +38556,15 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -37258,8 +38844,15 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -37307,8 +38900,15 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -37352,8 +38952,15 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -37409,9 +39016,15 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['ignoreConflicts'] = ignoreConflicts;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -37465,9 +39078,15 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
                 localVarQueryParameter['ignoreConflicts'] = ignoreConflicts;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -37767,8 +39386,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -37820,18 +39446,24 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             if (file !== undefined) { 
                 localVarFormParams.append('file', file as any);
             }
-    
+
             if (mode !== undefined) { 
                 localVarFormParams.append('mode', mode as any);
             }
-    
+
             if (waitOnApprovals !== undefined) { 
                 localVarFormParams.append('waitOnApprovals', String(waitOnApprovals) as any);
             }
-    
-    
             localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
-    
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -37876,8 +39508,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -37925,8 +39564,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -37974,8 +39620,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -38018,9 +39671,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -38066,8 +39725,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -38111,8 +39777,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -38156,8 +39829,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -38205,8 +39885,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -38254,8 +39941,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -38315,8 +40009,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['filter'] = filter;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -38363,9 +40064,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -38414,9 +40121,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -38470,9 +40183,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
                 localVarQueryParameter['dryRun'] = dryRun;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -38517,9 +40236,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -38568,9 +40293,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -38619,9 +40350,15 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -39486,8 +41223,15 @@ export const TagsApiAxiosParamCreator = function (configuration?: Configuration)
                 localVarQueryParameter['asOf'] = asOf;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -39605,8 +41349,15 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -39647,8 +41398,15 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -39694,8 +41452,15 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -39741,8 +41506,15 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -39794,8 +41566,15 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -39839,9 +41618,15 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['expand'] = expand;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -39883,9 +41668,15 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['expand'] = expand;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -39929,10 +41720,16 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             if (file !== undefined) { 
                 localVarFormParams.append('file', file as any);
             }
-    
-    
             localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
-    
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -40309,9 +42106,15 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -40425,8 +42228,15 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -40475,8 +42285,15 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -40521,8 +42338,15 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -40570,9 +42394,15 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -40626,9 +42456,15 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -40935,8 +42771,15 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -41012,8 +42855,15 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['filter'] = filter;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -41058,8 +42908,15 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -41110,8 +42967,15 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
                 localVarQueryParameter['searchAfter'] = searchAfter;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -41378,8 +43242,15 @@ export const UsersBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -41494,9 +43365,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -41544,8 +43421,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -41610,8 +43494,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['sort'] = sort;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -41676,8 +43567,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -41748,8 +43646,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['expand'] = expand;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -41816,8 +43721,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['expand'] = expand.join(COLLECTION_FORMATS.csv);
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
@@ -41870,9 +43782,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -41927,9 +43845,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -41980,9 +43904,15 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
@@ -42584,8 +44514,15 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -42617,8 +44554,15 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -42654,8 +44598,15 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -42694,9 +44645,15 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -42733,9 +44690,15 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -42975,9 +44938,15 @@ export const WorkflowTemplatesApiAxiosParamCreator = function (configuration?: C
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -43015,8 +44984,15 @@ export const WorkflowTemplatesApiAxiosParamCreator = function (configuration?: C
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -43058,8 +45034,15 @@ export const WorkflowTemplatesApiAxiosParamCreator = function (configuration?: C
                 localVarQueryParameter['search'] = search;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -43245,8 +45228,15 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -43294,8 +45284,15 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -43359,8 +45356,15 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['offset'] = offset;
             }
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
-    
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -43417,9 +45421,15 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['dryRun'] = dryRun;
             }
 
-
-    
             localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/21.0.0/typescript';
+            // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};

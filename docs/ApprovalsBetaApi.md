@@ -77,25 +77,28 @@ const { status, data } = await apiInstance.getApprovalRequestSettings(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **patchApprovalRequest**
-> FlagConfigApprovalRequestResponse patchApprovalRequest()
+> FlagConfigApprovalRequestResponse patchApprovalRequest(approvalRequestPatchInput)
 
-Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ``` 
+Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint works with any approval requests.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"addReviewers\",     \"notifyMemberIds\": [ \"user-key-123abc\", \"user-key-456def\" ],     \"notifyTeamKeys\": [ \"team-key-789abc\"]   }] } ```  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters.  Here\'s an example:  ```json {   \"instructions\": [{     \"kind\": \"updateDescription\",     \"value\": \"Updated approval request title\"   }] } ``` 
 
 ### Example
 
 ```typescript
 import {
     ApprovalsBetaApi,
-    Configuration
+    Configuration,
+    ApprovalRequestPatchInput
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
 const apiInstance = new ApprovalsBetaApi(configuration);
 
 let id: string; //The approval ID (default to undefined)
+let approvalRequestPatchInput: ApprovalRequestPatchInput; //
 
 const { status, data } = await apiInstance.patchApprovalRequest(
-    id
+    id,
+    approvalRequestPatchInput
 );
 ```
 
@@ -103,6 +106,7 @@ const { status, data } = await apiInstance.patchApprovalRequest(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
+| **approvalRequestPatchInput** | **ApprovalRequestPatchInput**|  | |
 | **id** | [**string**] | The approval ID | defaults to undefined|
 
 
@@ -116,7 +120,7 @@ const { status, data } = await apiInstance.patchApprovalRequest(
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 
@@ -196,7 +200,7 @@ const { status, data } = await apiInstance.patchApprovalRequestSettings(
 # **patchFlagConfigApprovalRequest**
 > FlagConfigApprovalRequestResponse patchFlagConfigApprovalRequest()
 
-Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instruction for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys. 
+Perform a partial update to an approval request. Updating an approval request uses the semantic patch format. This endpoint requires a feature flag key, and can only be used for updating approval requests for flags.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header. To learn more, read [Updates using semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch).  ### Instructions  Semantic patch requests support the following `kind` instructions for updating an approval request.  #### addReviewers  Adds the specified members and teams to the existing list of reviewers. You must include at least one of `notifyMemberIds` and `notifyTeamKeys`.  ##### Parameters  - `notifyMemberIds`: (Optional) List of member IDs. - `notifyTeamKeys`: (Optional) List of team keys.  #### updateDescription  Updates the description (title) of the approval request.  ##### Parameters  - `value`: (Required) The new description for the approval request. Must be non-empty and no more than 5000 characters. 
 
 ### Example
 

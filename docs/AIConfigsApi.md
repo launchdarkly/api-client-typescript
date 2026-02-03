@@ -1,4 +1,4 @@
-# AIConfigsBetaApi
+# AIConfigsApi
 
 All URIs are relative to *https://app.launchdarkly.com*
 
@@ -44,19 +44,17 @@ Delete an existing AI Config.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.deleteAIConfig(
-    lDAPIVersion,
     projectKey,
     configKey
 );
@@ -66,7 +64,6 @@ const { status, data } = await apiInstance.deleteAIConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 
@@ -105,20 +102,18 @@ Delete a specific variation of an AI Config by config key and variation key.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let variationKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.deleteAIConfigVariation(
-    lDAPIVersion,
     projectKey,
     configKey,
     variationKey
@@ -129,7 +124,6 @@ const { status, data } = await apiInstance.deleteAIConfigVariation(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 | **variationKey** | [**string**] |  | defaults to undefined|
@@ -169,19 +163,17 @@ Delete an existing AI tool.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let toolKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.deleteAITool(
-    lDAPIVersion,
     projectKey,
     toolKey
 );
@@ -191,7 +183,6 @@ const { status, data } = await apiInstance.deleteAITool(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **toolKey** | [**string**] |  | defaults to undefined|
 
@@ -230,12 +221,12 @@ Delete an existing agent graph and all of its edges.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
@@ -291,19 +282,17 @@ Delete an AI model config.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let modelConfigKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.deleteModelConfig(
-    lDAPIVersion,
     projectKey,
     modelConfigKey
 );
@@ -313,7 +302,6 @@ const { status, data } = await apiInstance.deleteModelConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **modelConfigKey** | [**string**] |  | defaults to undefined|
 
@@ -352,20 +340,18 @@ Remove AI models, by key, from the restricted list.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     RestrictedModelsRequest
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let restrictedModelsRequest: RestrictedModelsRequest; //List of AI model keys to remove from the restricted list
 
 const { status, data } = await apiInstance.deleteRestrictedModels(
-    lDAPIVersion,
     projectKey,
     restrictedModelsRequest
 );
@@ -376,7 +362,6 @@ const { status, data } = await apiInstance.deleteRestrictedModels(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **restrictedModelsRequest** | **RestrictedModelsRequest**| List of AI model keys to remove from the restricted list | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 
 
@@ -414,19 +399,17 @@ Retrieve a specific AI Config by its key.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfig(
-    lDAPIVersion,
     projectKey,
     configKey
 );
@@ -436,7 +419,6 @@ const { status, data } = await apiInstance.getAIConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 
@@ -475,14 +457,13 @@ Retrieve usage metrics for an AI Config by config key.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let from: number; //The starting time, as milliseconds since epoch (inclusive). (default to undefined)
@@ -490,7 +471,6 @@ let to: number; //The ending time, as milliseconds since epoch (exclusive). May 
 let env: string; //An environment key. Only metrics from this environment will be included. (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigMetrics(
-    lDAPIVersion,
     projectKey,
     configKey,
     from,
@@ -503,7 +483,6 @@ const { status, data } = await apiInstance.getAIConfigMetrics(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 | **from** | [**number**] | The starting time, as milliseconds since epoch (inclusive). | defaults to undefined|
@@ -545,14 +524,13 @@ Retrieve usage metrics for an AI Config by config key, with results split by var
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let from: number; //The starting time, as milliseconds since epoch (inclusive). (default to undefined)
@@ -560,7 +538,6 @@ let to: number; //The ending time, as milliseconds since epoch (exclusive). May 
 let env: string; //An environment key. Only metrics from this environment will be included. (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigMetricsByVariation(
-    lDAPIVersion,
     projectKey,
     configKey,
     from,
@@ -573,7 +550,6 @@ const { status, data } = await apiInstance.getAIConfigMetricsByVariation(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 | **from** | [**number**] | The starting time, as milliseconds since epoch (inclusive). | defaults to undefined|
@@ -615,19 +591,17 @@ Retrieves a specific AI Config\'s targeting by its key
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigTargeting(
-    lDAPIVersion,
     projectKey,
     configKey
 );
@@ -637,7 +611,6 @@ const { status, data } = await apiInstance.getAIConfigTargeting(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 
@@ -675,20 +648,18 @@ Get an AI Config variation by key. The response includes all variation versions 
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let variationKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigVariation(
-    lDAPIVersion,
     projectKey,
     configKey,
     variationKey
@@ -699,7 +670,6 @@ const { status, data } = await apiInstance.getAIConfigVariation(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 | **variationKey** | [**string**] |  | defaults to undefined|
@@ -739,14 +709,13 @@ Get a list of all AI Configs in the given project.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let sort: string; //A sort to apply to the list of AI Configs. (optional) (default to undefined)
 let limit: number; //The number of AI Configs to return. (optional) (default to undefined)
@@ -754,7 +723,6 @@ let offset: number; //Where to start in the list. Use this with pagination. For 
 let filter: string; //A filter to apply to the list of AI Configs. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigs(
-    lDAPIVersion,
     projectKey,
     sort,
     limit,
@@ -767,7 +735,6 @@ const { status, data } = await apiInstance.getAIConfigs(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **sort** | [**string**] | A sort to apply to the list of AI Configs. | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of AI Configs to return. | (optional) defaults to undefined|
@@ -809,19 +776,17 @@ Retrieve a specific AI tool by its key.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let toolKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.getAITool(
-    lDAPIVersion,
     projectKey,
     toolKey
 );
@@ -831,7 +796,6 @@ const { status, data } = await apiInstance.getAITool(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **toolKey** | [**string**] |  | defaults to undefined|
 
@@ -870,12 +834,12 @@ Retrieve a specific agent graph by its key, including its edges.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
@@ -931,19 +895,17 @@ Get an AI model config by key.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let modelConfigKey: string; // (default to undefined)
 
 const { status, data } = await apiInstance.getModelConfig(
-    lDAPIVersion,
     projectKey,
     modelConfigKey
 );
@@ -953,7 +915,6 @@ const { status, data } = await apiInstance.getModelConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **modelConfigKey** | [**string**] |  | defaults to undefined|
 
@@ -992,14 +953,13 @@ Get a list of all versions of an AI tool in the given project.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let toolKey: string; // (default to undefined)
 let sort: string; //A sort to apply to the list of AI Configs. (optional) (default to undefined)
@@ -1007,7 +967,6 @@ let limit: number; //The number of AI Configs to return. (optional) (default to 
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.listAIToolVersions(
-    lDAPIVersion,
     projectKey,
     toolKey,
     sort,
@@ -1020,7 +979,6 @@ const { status, data } = await apiInstance.listAIToolVersions(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **toolKey** | [**string**] |  | defaults to undefined|
 | **sort** | [**string**] | A sort to apply to the list of AI Configs. | (optional) defaults to undefined|
@@ -1061,14 +1019,13 @@ Get a list of all AI tools in the given project.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let sort: string; //A sort to apply to the list of AI Configs. (optional) (default to undefined)
 let limit: number; //The number of AI Configs to return. (optional) (default to undefined)
@@ -1076,7 +1033,6 @@ let offset: number; //Where to start in the list. Use this with pagination. For 
 let filter: string; //A filter to apply to the list of AI Configs. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.listAITools(
-    lDAPIVersion,
     projectKey,
     sort,
     limit,
@@ -1089,7 +1045,6 @@ const { status, data } = await apiInstance.listAITools(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **sort** | [**string**] | A sort to apply to the list of AI Configs. | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of AI Configs to return. | (optional) defaults to undefined|
@@ -1130,12 +1085,12 @@ Get a list of all agent graphs in the given project. Returns metadata only, with
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
@@ -1193,19 +1148,17 @@ Get all AI model configs for a project.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let restricted: boolean; //Whether to return only restricted models (optional) (default to undefined)
 
 const { status, data } = await apiInstance.listModelConfigs(
-    lDAPIVersion,
     projectKey,
     restricted
 );
@@ -1215,7 +1168,6 @@ const { status, data } = await apiInstance.listModelConfigs(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **restricted** | [**boolean**] | Whether to return only restricted models | (optional) defaults to undefined|
 
@@ -1254,21 +1206,19 @@ Edit an existing AI Config.  The request body must be a JSON object of the field
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AIConfigPatch
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let aIConfigPatch: AIConfigPatch; //AI Config object to update (optional)
 
 const { status, data } = await apiInstance.patchAIConfig(
-    lDAPIVersion,
     projectKey,
     configKey,
     aIConfigPatch
@@ -1280,7 +1230,6 @@ const { status, data } = await apiInstance.patchAIConfig(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigPatch** | **AIConfigPatch**| AI Config object to update | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 
@@ -1319,21 +1268,19 @@ Perform a partial update to an AI Config\'s targeting. The request body must be 
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AIConfigTargetingPatch
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let aIConfigTargetingPatch: AIConfigTargetingPatch; //AI Config targeting semantic patch instructions (optional)
 
 const { status, data } = await apiInstance.patchAIConfigTargeting(
-    lDAPIVersion,
     projectKey,
     configKey,
     aIConfigTargetingPatch
@@ -1345,7 +1292,6 @@ const { status, data } = await apiInstance.patchAIConfigTargeting(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigTargetingPatch** | **AIConfigTargetingPatch**| AI Config targeting semantic patch instructions | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 
@@ -1384,22 +1330,20 @@ Edit an existing variation of an AI Config. This creates a new version of the va
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AIConfigVariationPatch
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let variationKey: string; // (default to undefined)
 let aIConfigVariationPatch: AIConfigVariationPatch; //AI Config variation object to update (optional)
 
 const { status, data } = await apiInstance.patchAIConfigVariation(
-    lDAPIVersion,
     projectKey,
     configKey,
     variationKey,
@@ -1412,7 +1356,6 @@ const { status, data } = await apiInstance.patchAIConfigVariation(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigVariationPatch** | **AIConfigVariationPatch**| AI Config variation object to update | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 | **variationKey** | [**string**] |  | defaults to undefined|
@@ -1452,21 +1395,19 @@ Edit an existing AI tool.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AIToolPatch
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let toolKey: string; // (default to undefined)
 let aIToolPatch: AIToolPatch; //AI tool object to update (optional)
 
 const { status, data } = await apiInstance.patchAITool(
-    lDAPIVersion,
     projectKey,
     toolKey,
     aIToolPatch
@@ -1478,7 +1419,6 @@ const { status, data } = await apiInstance.patchAITool(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIToolPatch** | **AIToolPatch**| AI tool object to update | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **toolKey** | [**string**] |  | defaults to undefined|
 
@@ -1517,13 +1457,13 @@ Edit an existing agent graph.  The request body must be a JSON object of the fie
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AgentGraphPatch
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
@@ -1582,20 +1522,18 @@ Create a new AI Config within the given project.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AIConfigPost
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let aIConfigPost: AIConfigPost; //AI Config object to create
 
 const { status, data } = await apiInstance.postAIConfig(
-    lDAPIVersion,
     projectKey,
     aIConfigPost
 );
@@ -1606,7 +1544,6 @@ const { status, data } = await apiInstance.postAIConfig(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigPost** | **AIConfigPost**| AI Config object to create | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 
 
@@ -1643,21 +1580,19 @@ Create a new variation for a given AI Config.  The <code>model</code> in the req
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AIConfigVariationPost
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let configKey: string; // (default to undefined)
 let aIConfigVariationPost: AIConfigVariationPost; //AI Config variation object to create
 
 const { status, data } = await apiInstance.postAIConfigVariation(
-    lDAPIVersion,
     projectKey,
     configKey,
     aIConfigVariationPost
@@ -1669,7 +1604,6 @@ const { status, data } = await apiInstance.postAIConfigVariation(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigVariationPost** | **AIConfigVariationPost**| AI Config variation object to create | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **configKey** | [**string**] |  | defaults to undefined|
 
@@ -1707,20 +1641,18 @@ Create an AI tool
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AIToolPost
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let aIToolPost: AIToolPost; //AI tool object to create
 
 const { status, data } = await apiInstance.postAITool(
-    lDAPIVersion,
     projectKey,
     aIToolPost
 );
@@ -1731,7 +1663,6 @@ const { status, data } = await apiInstance.postAITool(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIToolPost** | **AIToolPost**| AI tool object to create | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 
 
@@ -1768,13 +1699,13 @@ Create a new agent graph within the given project.
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     AgentGraphPost
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
@@ -1830,20 +1761,18 @@ Create an AI model config. You can use this in any variation for any AI Config i
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     ModelConfigPost
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let modelConfigPost: ModelConfigPost; //AI model config object to create
 
 const { status, data } = await apiInstance.postModelConfig(
-    lDAPIVersion,
     projectKey,
     modelConfigPost
 );
@@ -1854,7 +1783,6 @@ const { status, data } = await apiInstance.postModelConfig(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **modelConfigPost** | **ModelConfigPost**| AI model config object to create | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 
 
@@ -1886,26 +1814,24 @@ const { status, data } = await apiInstance.postModelConfig(
 # **postRestrictedModels**
 > RestrictedModelsResponse postRestrictedModels(restrictedModelsRequest)
 
-Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs-beta/list-model-configs) endpoint.
+Add AI models, by key, to the restricted list. Keys are included in the response from the [List AI model configs](https://launchdarkly.com/docs/api/ai-configs/list-model-configs) endpoint.
 
 ### Example
 
 ```typescript
 import {
-    AIConfigsBetaApi,
+    AIConfigsApi,
     Configuration,
     RestrictedModelsRequest
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new AIConfigsBetaApi(configuration);
+const apiInstance = new AIConfigsApi(configuration);
 
-let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let restrictedModelsRequest: RestrictedModelsRequest; //List of AI model keys to add to the restricted list.
 
 const { status, data } = await apiInstance.postRestrictedModels(
-    lDAPIVersion,
     projectKey,
     restrictedModelsRequest
 );
@@ -1916,7 +1842,6 @@ const { status, data } = await apiInstance.postRestrictedModels(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **restrictedModelsRequest** | **RestrictedModelsRequest**| List of AI model keys to add to the restricted list. | |
-| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 
 

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**judgeConfigKey** | **string** | Key of the judge AI config | [default to undefined]
+**judgeConfigKey** | **string** | Key of the judge AI Config | [default to undefined]
 **samplingRate** | **number** | Sampling rate for this judge attachment (0.0 to 1.0) | [default to undefined]
 
 ## Example

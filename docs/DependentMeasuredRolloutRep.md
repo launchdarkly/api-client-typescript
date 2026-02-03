@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **_id** | **string** | The guarded rollout measured rollout Id | [default to undefined]
 **flagKey** | **string** | The guarded rollout flag key  | [default to undefined]
 **flagName** | **string** | The guarded rollout flag name  | [default to undefined]
+**flagPurpose** | **string** | The guarded rollout flag purpose | [optional] [default to undefined]
 **environmentKey** | **string** | The guarded rollout environment key | [default to undefined]
 **environmentName** | **string** | The guarded rollout environment name | [default to undefined]
 **status** | **string** | The guarded rollout status | [default to undefined]
@@ -23,6 +24,7 @@ const instance: DependentMeasuredRolloutRep = {
     _id,
     flagKey,
     flagName,
+    flagPurpose,
     environmentKey,
     environmentName,
     status,

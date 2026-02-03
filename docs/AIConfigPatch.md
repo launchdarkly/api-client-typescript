@@ -10,6 +10,8 @@ Name | Type | Description | Notes
 **maintainerTeamKey** | **string** |  | [optional] [default to undefined]
 **name** | **string** |  | [optional] [default to undefined]
 **tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
+**evaluationMetricKey** | **string** | Evaluation metric key for this AI Config | [optional] [default to undefined]
+**isInverted** | **boolean** | Whether the evaluation metric is inverted, meaning a lower value is better if set as true | [optional] [default to undefined]
 
 ## Example
 
@@ -22,6 +24,8 @@ const instance: AIConfigPatch = {
     maintainerTeamKey,
     name,
     tags,
+    evaluationMetricKey,
+    isInverted,
 };
 ```
 

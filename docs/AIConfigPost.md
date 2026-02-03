@@ -13,6 +13,8 @@ Name | Type | Description | Notes
 **name** | **string** |  | [default to undefined]
 **tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
 **defaultVariation** | [**AIConfigVariationPost**](AIConfigVariationPost.md) |  | [optional] [default to undefined]
+**evaluationMetricKey** | **string** | Evaluation metric key for this AI Config | [optional] [default to undefined]
+**isInverted** | **boolean** | Whether the evaluation metric is inverted, meaning a lower value is better if set as true | [optional] [default to undefined]
 
 ## Example
 
@@ -28,6 +30,8 @@ const instance: AIConfigPost = {
     name,
     tags,
     defaultVariation,
+    evaluationMetricKey,
+    isInverted,
 };
 ```
 
