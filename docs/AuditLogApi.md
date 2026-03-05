@@ -7,6 +7,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getAuditLogEntries**](#getauditlogentries) | **GET** /api/v2/auditlog | List audit log entries|
 |[**getAuditLogEntry**](#getauditlogentry) | **GET** /api/v2/auditlog/{id} | Get audit log entry|
 |[**postAuditLogEntries**](#postauditlogentries) | **POST** /api/v2/auditlog | Search audit log entries|
+|[**postAuditLogEntryCounts**](#postauditlogentrycounts) | **POST** /api/v2/auditlog/counts | Get audit log entry counts|
 
 # **getAuditLogEntries**
 > AuditLogEntryListingRepCollection getAuditLogEntries()
@@ -190,6 +191,70 @@ const { status, data } = await apiInstance.postAuditLogEntries(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | Audit log entries response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **postAuditLogEntryCounts**
+> CountBucketsResult postAuditLogEntryCounts(statementPost)
+
+Returns aggregate counts of audit log entries per time bucket. Used for dashboard overlays that show flag targeting changes.
+
+### Example
+
+```typescript
+import {
+    AuditLogApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AuditLogApi(configuration);
+
+let after: number; //A timestamp filter, expressed as a Unix epoch time in milliseconds. Required. (default to undefined)
+let statementPost: Array<StatementPost>; //
+let before: number; //A timestamp filter, expressed as a Unix epoch time in milliseconds. Defaults to now. (optional) (default to undefined)
+let buckets: number; //Number of time buckets to divide the range into. Default 50, max 500. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.postAuditLogEntryCounts(
+    after,
+    statementPost,
+    before,
+    buckets
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **statementPost** | **Array<StatementPost>**|  | |
+| **after** | [**number**] | A timestamp filter, expressed as a Unix epoch time in milliseconds. Required. | defaults to undefined|
+| **before** | [**number**] | A timestamp filter, expressed as a Unix epoch time in milliseconds. Defaults to now. | (optional) defaults to undefined|
+| **buckets** | [**number**] | Number of time buckets to divide the range into. Default 50, max 500. | (optional) defaults to undefined|
+
+
+### Return type
+
+**CountBucketsResult**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Audit log entry counts response |  -  |
 |**400** | Invalid request |  -  |
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |

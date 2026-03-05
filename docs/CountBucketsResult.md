@@ -1,21 +1,23 @@
-# ExpandedLinkedResourcesAIConfigs
+# CountBucketsResult
 
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**items** | [**Array&lt;ExpandedAIConfig&gt;**](ExpandedAIConfig.md) |  | [default to undefined]
+**buckets** | [**Array&lt;CountBucket&gt;**](CountBucket.md) |  | [default to undefined]
 **totalCount** | **number** |  | [default to undefined]
+**bucketIntervalMs** | **number** |  | [default to undefined]
 
 ## Example
 
 ```typescript
-import { ExpandedLinkedResourcesAIConfigs } from 'launchdarkly-api-typescript';
+import { CountBucketsResult } from 'launchdarkly-api-typescript';
 
-const instance: ExpandedLinkedResourcesAIConfigs = {
-    items,
+const instance: CountBucketsResult = {
+    buckets,
     totalCount,
+    bucketIntervalMs,
 };
 ```
 

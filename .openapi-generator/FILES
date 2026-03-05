@@ -7,6 +7,7 @@ base.ts
 common.ts
 configuration.ts
 docs/AIConfig.md
+docs/AIConfigDependency.md
 docs/AIConfigMaintainer.md
 docs/AIConfigPatch.md
 docs/AIConfigPost.md
@@ -49,6 +50,7 @@ docs/ActionOutput.md
 docs/AgentGraph.md
 docs/AgentGraphEdge.md
 docs/AgentGraphEdgePost.md
+docs/AgentGraphMaintainer.md
 docs/AgentGraphPatch.md
 docs/AgentGraphPost.md
 docs/AgentGraphs.md
@@ -156,6 +158,8 @@ docs/Contexts.md
 docs/ContextsApi.md
 docs/CopiedFromEnv.md
 docs/CoreLink.md
+docs/CountBucket.md
+docs/CountBucketsResult.md
 docs/CreateAnnouncementBody.md
 docs/CreateApprovalRequestRequest.md
 docs/CreateCopyFlagConfigApprovalRequestRequest.md
@@ -212,15 +216,14 @@ docs/ExpandedDirectlyLinkedFlags.md
 docs/ExpandedDirectlyLinkedSegment.md
 docs/ExpandedDirectlyLinkedSegments.md
 docs/ExpandedFlag.md
+docs/ExpandedFlagMaintainer.md
 docs/ExpandedFlagRep.md
 docs/ExpandedLinkedAIConfigs.md
 docs/ExpandedLinkedFlags.md
 docs/ExpandedLinkedMetrics.md
 docs/ExpandedLinkedResources.md
-docs/ExpandedLinkedResourcesAIConfigs.md
 docs/ExpandedLinkedResourcesFlags.md
 docs/ExpandedLinkedResourcesItems.md
-docs/ExpandedLinkedResourcesMetrics.md
 docs/ExpandedLinkedResourcesSegments.md
 docs/ExpandedLinkedSegments.md
 docs/ExpandedMetric.md
@@ -620,6 +623,7 @@ docs/VariationToolPost.md
 docs/VersionsRep.md
 docs/View.md
 docs/ViewLinkRequest.md
+docs/ViewLinkRequestFilter.md
 docs/ViewLinkRequestKeys.md
 docs/ViewLinkRequestSegmentIdentifier.md
 docs/ViewLinkRequestSegmentIdentifiers.md
@@ -639,6 +643,8 @@ docs/ViewsBetaApi.md
 docs/ViewsLink.md
 docs/ViewsMaintainerMember.md
 docs/ViewsMaintainerTeam.md
+docs/ViewsMemberSummary.md
+docs/ViewsMemberTeamSummaryRep.md
 docs/ViewsPaginatedLinks.md
 docs/ViewsSelfLink.md
 docs/Webhook.md

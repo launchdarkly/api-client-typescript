@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **experimentCount** | **number** | The number of experiments using this metric | [optional] [default to undefined]
 **metricGroupCount** | **number** | The number of metric groups using this metric | [optional] [default to undefined]
 **guardedRolloutCount** | **number** | The number of guarded rollouts using this metric | [optional] [default to undefined]
+**releasePolicyCount** | **number** | The number of release policies using this metric | [optional] [default to undefined]
 **activeExperimentCount** | **number** | The number of active experiments using this metric | [optional] [default to undefined]
 **activeGuardedRolloutCount** | **number** | The number of active guarded rollouts using this metric | [optional] [default to undefined]
 **_id** | **string** | The ID of this metric | [default to undefined]
@@ -38,6 +39,7 @@ Name | Type | Description | Notes
 **percentileValue** | **number** | The percentile for the analysis method. An integer denoting the target percentile between 0 and 100. Required when &lt;code&gt;analysisType&lt;/code&gt; is &lt;code&gt;percentile&lt;/code&gt;. | [optional] [default to undefined]
 **eventDefault** | [**AiConfigsMetricEventDefaultRep**](AiConfigsMetricEventDefaultRep.md) |  | [optional] [default to undefined]
 **dataSource** | [**AiConfigsMetricDataSourceRefRep**](AiConfigsMetricDataSourceRefRep.md) |  | [default to undefined]
+**lastSeen** | **number** |  | [optional] [default to undefined]
 **archived** | **boolean** | Whether the metric version is archived | [optional] [default to undefined]
 **archivedAt** | **number** |  | [optional] [default to undefined]
 **selector** | **string** | For click metrics, the CSS selectors | [optional] [default to undefined]
@@ -52,6 +54,7 @@ const instance: AiConfigsMetricListingRep = {
     experimentCount,
     metricGroupCount,
     guardedRolloutCount,
+    releasePolicyCount,
     activeExperimentCount,
     activeGuardedRolloutCount,
     _id,
@@ -82,6 +85,7 @@ const instance: AiConfigsMetricListingRep = {
     percentileValue,
     eventDefault,
     dataSource,
+    lastSeen,
     archived,
     archivedAt,
     selector,

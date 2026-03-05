@@ -9,7 +9,8 @@ Name | Type | Description | Notes
 **maintainerId** | **string** |  | [optional] [default to undefined]
 **maintainerTeamKey** | **string** |  | [optional] [default to undefined]
 **description** | **string** |  | [optional] [default to undefined]
-**schema** | **object** |  | [default to undefined]
+**schema** | **object** | JSON Schema defining the tool\&#39;s parameters for LLM consumption | [default to undefined]
+**customParameters** | **object** | Custom metadata and configuration for application-level use (not sent to LLM) | [optional] [default to undefined]
 
 ## Example
 
@@ -22,6 +23,7 @@ const instance: AIToolPost = {
     maintainerTeamKey,
     description,
     schema,
+    customParameters,
 };
 ```
 

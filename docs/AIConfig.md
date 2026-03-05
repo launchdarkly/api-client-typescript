@@ -20,6 +20,7 @@ Name | Type | Description | Notes
 **evaluationMetricKey** | **string** | Evaluation metric key for this AI Config | [optional] [default to undefined]
 **evaluationMetricKeys** | **Array&lt;string&gt;** | List of evaluation metric keys for this AI Config | [optional] [default to undefined]
 **isInverted** | **boolean** | Whether the evaluation metric is inverted, meaning a lower value is better if set as true | [optional] [default to undefined]
+**dependencies** | [**Array&lt;AIConfigDependency&gt;**](AIConfigDependency.md) | Resources that depend on this AI Config, grouped by type | [optional] [default to undefined]
 
 ## Example
 
@@ -42,6 +43,7 @@ const instance: AIConfig = {
     evaluationMetricKey,
     evaluationMetricKeys,
     isInverted,
+    dependencies,
 };
 ```
 

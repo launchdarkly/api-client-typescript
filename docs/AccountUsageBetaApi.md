@@ -19,12 +19,14 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getMauUsageByCategory**](#getmauusagebycategory) | **GET** /api/v2/usage/mau/bycategory | Get MAU usage by category|
 |[**getObservabilityErrorsUsage**](#getobservabilityerrorsusage) | **GET** /api/v2/usage/observability/errors | Get observability errors usage|
 |[**getObservabilityLogsUsage**](#getobservabilitylogsusage) | **GET** /api/v2/usage/observability/logs | Get observability logs usage|
+|[**getObservabilityMetricsUsage**](#getobservabilitymetricsusage) | **GET** /api/v2/usage/observability/metrics | Get observability metrics usage|
 |[**getObservabilitySessionsUsage**](#getobservabilitysessionsusage) | **GET** /api/v2/usage/observability/sessions | Get observability sessions usage|
 |[**getObservabilityTracesUsage**](#getobservabilitytracesusage) | **GET** /api/v2/usage/observability/traces | Get observability traces usage|
 |[**getServiceConnectionsUsage**](#getserviceconnectionsusage) | **GET** /api/v2/usage/service-connections | Get service connections usage|
 |[**getStreamUsage**](#getstreamusage) | **GET** /api/v2/usage/streams/{source} | Get stream usage|
 |[**getStreamUsageBySdkVersion**](#getstreamusagebysdkversion) | **GET** /api/v2/usage/streams/{source}/bysdkversion | Get stream usage by SDK version|
 |[**getStreamUsageSdkversion**](#getstreamusagesdkversion) | **GET** /api/v2/usage/streams/{source}/sdkversions | Get stream usage SDK versions|
+|[**getVegaAIUsage**](#getvegaaiusage) | **GET** /api/v2/usage/vega-ai | Get Vega AI usage|
 
 # **getContextsClientsideUsage**
 > SeriesListRep getContextsClientsideUsage()
@@ -1146,6 +1148,74 @@ const { status, data } = await apiInstance.getObservabilityLogsUsage(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getObservabilityMetricsUsage**
+> SeriesListRep getObservabilityMetricsUsage()
+
+Get time-series arrays of the number of observability metrics. Supports `daily` and `monthly` granularity.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let from: string; //The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month. (optional) (default to undefined)
+let to: string; //The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let granularity: string; //Specifies the data granularity. Defaults to `daily`. Valid values depend on `aggregationType`: **month_to_date** supports `daily` and `monthly`; **incremental** and **rolling_30d** support `daily` only. (optional) (default to undefined)
+let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`, `rolling_30d`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getObservabilityMetricsUsage(
+    from,
+    to,
+    projectKey,
+    granularity,
+    aggregationType
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **from** | [**string**] | The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
+| **to** | [**string**] | The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only. | (optional) defaults to undefined|
+| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**SeriesListRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Invalid resource identifier |  -  |
+|**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getObservabilitySessionsUsage**
 > SeriesListRep getObservabilitySessionsUsage()
 
@@ -1557,6 +1627,74 @@ const { status, data } = await apiInstance.getStreamUsageSdkversion(
 |**200** | SDK Versions response |  -  |
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getVegaAIUsage**
+> SeriesListRep getVegaAIUsage()
+
+Get time-series arrays of the number of Vega AI usage. Supports `daily` and `monthly` granularity.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let from: string; //The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month. (optional) (default to undefined)
+let to: string; //The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let granularity: string; //Specifies the data granularity. Defaults to `daily`. Valid values depend on `aggregationType`: **month_to_date** supports `daily` and `monthly`; **incremental** and **rolling_30d** support `daily` only. (optional) (default to undefined)
+let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`, `rolling_30d`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getVegaAIUsage(
+    from,
+    to,
+    projectKey,
+    granularity,
+    aggregationType
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **from** | [**string**] | The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
+| **to** | [**string**] | The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only. | (optional) defaults to undefined|
+| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**SeriesListRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Invalid resource identifier |  -  |
 |**429** | Rate limited |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

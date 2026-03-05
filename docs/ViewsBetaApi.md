@@ -155,10 +155,13 @@ const apiInstance = new ViewsBetaApi(configuration);
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let viewKey: string; // (default to undefined)
-let resourceType: 'flags' | 'segments' | 'aiConfigs' | 'metrics'; // (default to undefined)
+let resourceType: 'flags' | 'segments'; // (default to undefined)
 let limit: number; //The number of views to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 let sort: 'linkedAt' | 'name'; //Field to sort by. Default field is `linkedAt`, default order is ascending. (optional) (default to 'linkedAt')
+let query: string; //Case-insensitive search query for linked resources. Matches resource key and, when expanded, resource name. (optional) (default to undefined)
+let filter: string; //Optional resource filter expression for linked resources. - Supported for `flags` and `segments` resource types. - Uses the same syntax as link/unlink and list endpoints. - For `segments`, `environmentId` is required when `filter` is provided.  (optional) (default to undefined)
+let expand: Array<'maintainer' | 'resourceDetails'>; //A comma-separated list of fields to expand. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getLinkedResources(
     lDAPIVersion,
@@ -167,7 +170,10 @@ const { status, data } = await apiInstance.getLinkedResources(
     resourceType,
     limit,
     offset,
-    sort
+    sort,
+    query,
+    filter,
+    expand
 );
 ```
 
@@ -178,10 +184,13 @@ const { status, data } = await apiInstance.getLinkedResources(
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **viewKey** | [**string**] |  | defaults to undefined|
-| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39; | &#39;aiConfigs&#39; | &#39;metrics&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39; &#124; &#39;aiConfigs&#39; &#124; &#39;metrics&#39;>** |  | defaults to undefined|
+| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39;>** |  | defaults to undefined|
 | **limit** | [**number**] | The number of views to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 | **sort** | [**&#39;linkedAt&#39; | &#39;name&#39;**]**Array<&#39;linkedAt&#39; &#124; &#39;name&#39;>** | Field to sort by. Default field is &#x60;linkedAt&#x60;, default order is ascending. | (optional) defaults to 'linkedAt'|
+| **query** | [**string**] | Case-insensitive search query for linked resources. Matches resource key and, when expanded, resource name. | (optional) defaults to undefined|
+| **filter** | [**string**] | Optional resource filter expression for linked resources. - Supported for &#x60;flags&#x60; and &#x60;segments&#x60; resource types. - Uses the same syntax as link/unlink and list endpoints. - For &#x60;segments&#x60;, &#x60;environmentId&#x60; is required when &#x60;filter&#x60; is provided.  | (optional) defaults to undefined|
+| **expand** | **Array<&#39;maintainer&#39; &#124; &#39;resourceDetails&#39;>** | A comma-separated list of fields to expand. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -212,7 +221,7 @@ const { status, data } = await apiInstance.getLinkedResources(
 # **getLinkedViews**
 > Views getLinkedViews()
 
-Get a list of all linked views for a resource. Flags, AI configs and metrics are identified by key. Segments are identified by segment ID.
+Get a list of all linked views for a resource. Flags are identified by key. Segments are identified by segment ID.
 
 ### Example
 
@@ -227,7 +236,7 @@ const apiInstance = new ViewsBetaApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
-let resourceType: 'flags' | 'segments' | 'aiConfigs' | 'metrics'; // (default to undefined)
+let resourceType: 'flags' | 'segments'; // (default to undefined)
 let resourceKey: string; // (default to undefined)
 let environmentId: string; //Environment ID. Required when resourceType is \'segments\' (optional) (default to undefined)
 let limit: number; //The number of views to return. (optional) (default to undefined)
@@ -250,7 +259,7 @@ const { status, data } = await apiInstance.getLinkedViews(
 |------------- | ------------- | ------------- | -------------|
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
-| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39; | &#39;aiConfigs&#39; | &#39;metrics&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39; &#124; &#39;aiConfigs&#39; &#124; &#39;metrics&#39;>** |  | defaults to undefined|
+| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39;>** |  | defaults to undefined|
 | **resourceKey** | [**string**] |  | defaults to undefined|
 | **environmentId** | [**string**] | Environment ID. Required when resourceType is \&#39;segments\&#39; | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of views to return. | (optional) defaults to undefined|
@@ -304,8 +313,8 @@ let viewKey: string; // (default to undefined)
 let sort: 'key' | 'name' | 'updatedAt'; //A sort to apply to the list of views. (optional) (default to undefined)
 let limit: number; //The number of views to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
-let filter: string; //A filter to apply to the list of views. (optional) (default to undefined)
-let expand: Array<'allFlags' | 'allSegments' | 'allMetrics' | 'allAIConfigs' | 'allResources' | 'flagsSummary' | 'segmentsSummary' | 'metricsSummary' | 'aiConfigsSummary' | 'resourceSummary'>; //A comma-separated list of fields to expand. (optional) (default to undefined)
+let filter: string; //A filter to apply to the list of views. Supports the following fields and operators: `name` (equals, notEquals, startsWith, contains, anyOf), `key` (equals, notEquals, startsWith, contains, anyOf), `tag` (equals, anyOf), `maintainerId` (equals, anyOf), `isPayloadView` (equals). (optional) (default to undefined)
+let expand: Array<'allFlags' | 'allSegments' | 'allResources' | 'maintainer' | 'flagsSummary' | 'segmentsSummary' | 'resourceSummary'>; //A comma-separated list of fields to expand. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getView(
     lDAPIVersion,
@@ -329,8 +338,8 @@ const { status, data } = await apiInstance.getView(
 | **sort** | [**&#39;key&#39; | &#39;name&#39; | &#39;updatedAt&#39;**]**Array<&#39;key&#39; &#124; &#39;name&#39; &#124; &#39;updatedAt&#39;>** | A sort to apply to the list of views. | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of views to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
-| **filter** | [**string**] | A filter to apply to the list of views. | (optional) defaults to undefined|
-| **expand** | **Array<&#39;allFlags&#39; &#124; &#39;allSegments&#39; &#124; &#39;allMetrics&#39; &#124; &#39;allAIConfigs&#39; &#124; &#39;allResources&#39; &#124; &#39;flagsSummary&#39; &#124; &#39;segmentsSummary&#39; &#124; &#39;metricsSummary&#39; &#124; &#39;aiConfigsSummary&#39; &#124; &#39;resourceSummary&#39;>** | A comma-separated list of fields to expand. | (optional) defaults to undefined|
+| **filter** | [**string**] | A filter to apply to the list of views. Supports the following fields and operators: &#x60;name&#x60; (equals, notEquals, startsWith, contains, anyOf), &#x60;key&#x60; (equals, notEquals, startsWith, contains, anyOf), &#x60;tag&#x60; (equals, anyOf), &#x60;maintainerId&#x60; (equals, anyOf), &#x60;isPayloadView&#x60; (equals). | (optional) defaults to undefined|
+| **expand** | **Array<&#39;allFlags&#39; &#124; &#39;allSegments&#39; &#124; &#39;allResources&#39; &#124; &#39;maintainer&#39; &#124; &#39;flagsSummary&#39; &#124; &#39;segmentsSummary&#39; &#124; &#39;resourceSummary&#39;>** | A comma-separated list of fields to expand. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -379,8 +388,8 @@ let projectKey: string; // (default to undefined)
 let sort: 'key' | 'name' | 'updatedAt'; //A sort to apply to the list of views. (optional) (default to undefined)
 let limit: number; //The number of views to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
-let filter: string; //A filter to apply to the list of views. (optional) (default to undefined)
-let expand: Array<'flagsSummary' | 'segmentsSummary' | 'metricsSummary' | 'aiConfigsSummary' | 'resourceSummary'>; //A comma-separated list of fields to expand. (optional) (default to undefined)
+let filter: string; //A filter to apply to the list of views. Supports the following fields and operators: `name` (equals, notEquals, startsWith, contains, anyOf), `key` (equals, notEquals, startsWith, contains, anyOf), `tag` (equals, anyOf), `maintainerId` (equals, anyOf), `isPayloadView` (equals). (optional) (default to undefined)
+let expand: Array<'flagsSummary' | 'segmentsSummary' | 'resourceSummary'>; //A comma-separated list of fields to expand. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getViews(
     lDAPIVersion,
@@ -402,8 +411,8 @@ const { status, data } = await apiInstance.getViews(
 | **sort** | [**&#39;key&#39; | &#39;name&#39; | &#39;updatedAt&#39;**]**Array<&#39;key&#39; &#124; &#39;name&#39; &#124; &#39;updatedAt&#39;>** | A sort to apply to the list of views. | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of views to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
-| **filter** | [**string**] | A filter to apply to the list of views. | (optional) defaults to undefined|
-| **expand** | **Array<&#39;flagsSummary&#39; &#124; &#39;segmentsSummary&#39; &#124; &#39;metricsSummary&#39; &#124; &#39;aiConfigsSummary&#39; &#124; &#39;resourceSummary&#39;>** | A comma-separated list of fields to expand. | (optional) defaults to undefined|
+| **filter** | [**string**] | A filter to apply to the list of views. Supports the following fields and operators: &#x60;name&#x60; (equals, notEquals, startsWith, contains, anyOf), &#x60;key&#x60; (equals, notEquals, startsWith, contains, anyOf), &#x60;tag&#x60; (equals, anyOf), &#x60;maintainerId&#x60; (equals, anyOf), &#x60;isPayloadView&#x60; (equals). | (optional) defaults to undefined|
+| **expand** | **Array<&#39;flagsSummary&#39; &#124; &#39;segmentsSummary&#39; &#124; &#39;resourceSummary&#39;>** | A comma-separated list of fields to expand. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -434,7 +443,7 @@ const { status, data } = await apiInstance.getViews(
 # **linkResource**
 > LinkResourceSuccessResponse linkResource(viewLinkRequest)
 
-Link one or multiple resources to a view: - Link flags using flag keys - Link AI configs using AI config keys - Link metrics using metric keys - Link segments using segment IDs 
+Link one or multiple resources to a view by keys, filters, or both: - Link flags using flag keys or filters (maintainerId, maintainerTeamKey, tags, state, query) - Link segments using segment IDs or filters (tags, query, unbounded)  When both keys and filters are provided, resources matching either condition are linked (union). 
 
 ### Example
 
@@ -451,8 +460,8 @@ const apiInstance = new ViewsBetaApi(configuration);
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let viewKey: string; // (default to undefined)
-let resourceType: 'flags' | 'segments' | 'aiConfigs' | 'metrics'; // (default to undefined)
-let viewLinkRequest: ViewLinkRequest; //The resource to link to the view. Flags are identified by key. Segments are identified by segment ID.
+let resourceType: 'flags' | 'segments'; // (default to undefined)
+let viewLinkRequest: ViewLinkRequest; //Resources to link to the view. You can provide explicit keys/IDs, filters, or both. - Flags: identified by key or filtered by maintainerId, maintainerTeamKey, tags, state, query - Segments: identified by segment ID or filtered by tags, query, unbounded 
 
 const { status, data } = await apiInstance.linkResource(
     lDAPIVersion,
@@ -467,11 +476,11 @@ const { status, data } = await apiInstance.linkResource(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **viewLinkRequest** | **ViewLinkRequest**| The resource to link to the view. Flags are identified by key. Segments are identified by segment ID. | |
+| **viewLinkRequest** | **ViewLinkRequest**| Resources to link to the view. You can provide explicit keys/IDs, filters, or both. - Flags: identified by key or filtered by maintainerId, maintainerTeamKey, tags, state, query - Segments: identified by segment ID or filtered by tags, query, unbounded  | |
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **viewKey** | [**string**] |  | defaults to undefined|
-| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39; | &#39;aiConfigs&#39; | &#39;metrics&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39; &#124; &#39;aiConfigs&#39; &#124; &#39;metrics&#39;>** |  | defaults to undefined|
+| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39;>** |  | defaults to undefined|
 
 
 ### Return type
@@ -502,7 +511,7 @@ const { status, data } = await apiInstance.linkResource(
 # **unlinkResource**
 > UnlinkResourceSuccessResponse unlinkResource(viewLinkRequest)
 
-Unlink one or multiple resources from a view: - Unlink flags using flag keys - Unlink segments using segment IDs - Unlink AI configs using AI config keys - Unlink metrics using metric keys 
+Unlink one or multiple resources from a view: - Unlink flags using flag keys - Unlink segments using segment IDs 
 
 ### Example
 
@@ -519,7 +528,7 @@ const apiInstance = new ViewsBetaApi(configuration);
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
 let projectKey: string; // (default to undefined)
 let viewKey: string; // (default to undefined)
-let resourceType: 'flags' | 'segments' | 'aiConfigs' | 'metrics'; // (default to undefined)
+let resourceType: 'flags' | 'segments'; // (default to undefined)
 let viewLinkRequest: ViewLinkRequest; //The resource to link to the view. Flags are identified by key. Segments are identified by segment ID.
 
 const { status, data } = await apiInstance.unlinkResource(
@@ -539,7 +548,7 @@ const { status, data } = await apiInstance.unlinkResource(
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **viewKey** | [**string**] |  | defaults to undefined|
-| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39; | &#39;aiConfigs&#39; | &#39;metrics&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39; &#124; &#39;aiConfigs&#39; &#124; &#39;metrics&#39;>** |  | defaults to undefined|
+| **resourceType** | [**&#39;flags&#39; | &#39;segments&#39;**]**Array<&#39;flags&#39; &#124; &#39;segments&#39;>** |  | defaults to undefined|
 
 
 ### Return type

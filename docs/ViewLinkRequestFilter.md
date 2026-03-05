@@ -1,27 +1,23 @@
-# ViewLinkRequest
+# ViewLinkRequestFilter
 
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**keys** | **Array&lt;string&gt;** | Keys of the resources (flags, segments) to link/unlink | [default to undefined]
 **filter** | **string** | Filter string to match resources for linking. Uses the same syntax as list endpoints: flags use comma-separated field:value filters, segments use queryfilter syntax.  Supported filters by resource type: - flags: query, tags, maintainerId, maintainerTeamKey, type, status, state, staleState, sdkAvailability, targeting, hasExperiment, hasDataExport, evaluated, creationDate, contextKindTargeted, contextKindsEvaluated, filterEnv, segmentTargeted, codeReferences.min, codeReferences.max, excludeSettings, releasePipeline, applicationEvaluated, purpose, guardedRollout, view, key, name, archived, followerId - segments (queryfilter): query, tags, keys, excludedKeys, unbounded, external, view, type Some filters are only available when the corresponding feature is enabled on your account.  | [default to undefined]
-**comment** | **string** | Optional comment for the link/unlink operation | [optional] [default to '']
-**segmentIdentifiers** | [**Array&lt;ViewLinkRequestSegmentIdentifier&gt;**](ViewLinkRequestSegmentIdentifier.md) | Identifiers of the segments to link/unlink (environmentId and segmentKey) | [default to undefined]
 **environmentId** | **string** | Required when using filter for segment resources. Specifies which environment to query for segments matching the filter. Ignored for flag resources (flags are global across environments).  | [optional] [default to undefined]
+**comment** | **string** | Optional comment for the link/unlink operation | [optional] [default to '']
 
 ## Example
 
 ```typescript
-import { ViewLinkRequest } from 'launchdarkly-api-typescript';
+import { ViewLinkRequestFilter } from 'launchdarkly-api-typescript';
 
-const instance: ViewLinkRequest = {
-    keys,
+const instance: ViewLinkRequestFilter = {
     filter,
-    comment,
-    segmentIdentifiers,
     environmentId,
+    comment,
 };
 ```
 

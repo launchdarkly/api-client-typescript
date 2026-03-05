@@ -7,6 +7,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **key** | **string** | The key of the tool to use. | [default to undefined]
 **version** | **number** | The version of the tool. | [default to undefined]
+**customParameters** | **{ [key: string]: any; }** | Custom metadata and configuration for application-level use | [optional] [default to undefined]
 
 ## Example
 
@@ -16,6 +17,7 @@ import { VariationTool } from 'launchdarkly-api-typescript';
 const instance: VariationTool = {
     key,
     version,
+    customParameters,
 };
 ```
 

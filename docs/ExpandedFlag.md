@@ -10,11 +10,12 @@ Name | Type | Description | Notes
 **name** | **string** | A human-friendly name for the flag | [default to undefined]
 **description** | **string** | Description of the flag | [optional] [default to undefined]
 **creationDate** | **number** | Creation date in milliseconds | [optional] [default to undefined]
-**version** | **number** | Version of the flag | [optional] [default to undefined]
+**_version** | **number** | Version of the flag | [optional] [default to undefined]
 **archived** | **boolean** | Whether the flag is archived | [optional] [default to undefined]
 **tags** | **Array&lt;string&gt;** | Tags for the flag | [optional] [default to undefined]
 **temporary** | **boolean** | Whether the flag is temporary | [optional] [default to undefined]
 **includeInSnippet** | **boolean** | Whether to include in snippet | [optional] [default to undefined]
+**maintainer** | [**ExpandedFlagMaintainer**](ExpandedFlagMaintainer.md) |  | [optional] [default to undefined]
 **_links** | [**ParentAndSelfLinks**](ParentAndSelfLinks.md) |  | [optional] [default to undefined]
 
 ## Example
@@ -27,11 +28,12 @@ const instance: ExpandedFlag = {
     name,
     description,
     creationDate,
-    version,
+    _version,
     archived,
     tags,
     temporary,
     includeInSnippet,
+    maintainer,
     _links,
 };
 ```

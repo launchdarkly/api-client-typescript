@@ -17,6 +17,7 @@ Name | Type | Description | Notes
 **tokenId** | **string** |  | [optional] [default to undefined]
 **memberId** | **string** |  | [optional] [default to undefined]
 **serviceToken** | **boolean** |  | [optional] [default to undefined]
+**scopes** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
 
 ## Example
 
@@ -36,6 +37,7 @@ const instance: CallerIdentityRep = {
     tokenId,
     memberId,
     serviceToken,
+    scopes,
 };
 ```
 

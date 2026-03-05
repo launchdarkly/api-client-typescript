@@ -6,7 +6,7 @@ This REST API is for custom integrations, data export, or automating your featur
 This client library is only compatible with the latest version of our REST API. Previous versions of this client library are compatible with earlier versions of our REST API. When you create an access token, you can set the REST API version associated with the token. By default, API requests you send using the token will use the specified API version. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).
 View our [sample code](#sample-code) for example usage.
 
-## launchdarkly-api-typescript@21.0.0
+## launchdarkly-api-typescript@22.0.0
 
 This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
 
@@ -44,7 +44,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@21.0.0 --save
+npm install launchdarkly-api-typescript@22.0.0 --save
 ```
 
 _unPublished (not recommended):_
@@ -117,12 +117,14 @@ Class | Method | HTTP request | Description
 *AccountUsageBetaApi* | [**getMauUsageByCategory**](docs/AccountUsageBetaApi.md#getmauusagebycategory) | **GET** /api/v2/usage/mau/bycategory | Get MAU usage by category
 *AccountUsageBetaApi* | [**getObservabilityErrorsUsage**](docs/AccountUsageBetaApi.md#getobservabilityerrorsusage) | **GET** /api/v2/usage/observability/errors | Get observability errors usage
 *AccountUsageBetaApi* | [**getObservabilityLogsUsage**](docs/AccountUsageBetaApi.md#getobservabilitylogsusage) | **GET** /api/v2/usage/observability/logs | Get observability logs usage
+*AccountUsageBetaApi* | [**getObservabilityMetricsUsage**](docs/AccountUsageBetaApi.md#getobservabilitymetricsusage) | **GET** /api/v2/usage/observability/metrics | Get observability metrics usage
 *AccountUsageBetaApi* | [**getObservabilitySessionsUsage**](docs/AccountUsageBetaApi.md#getobservabilitysessionsusage) | **GET** /api/v2/usage/observability/sessions | Get observability sessions usage
 *AccountUsageBetaApi* | [**getObservabilityTracesUsage**](docs/AccountUsageBetaApi.md#getobservabilitytracesusage) | **GET** /api/v2/usage/observability/traces | Get observability traces usage
 *AccountUsageBetaApi* | [**getServiceConnectionsUsage**](docs/AccountUsageBetaApi.md#getserviceconnectionsusage) | **GET** /api/v2/usage/service-connections | Get service connections usage
 *AccountUsageBetaApi* | [**getStreamUsage**](docs/AccountUsageBetaApi.md#getstreamusage) | **GET** /api/v2/usage/streams/{source} | Get stream usage
 *AccountUsageBetaApi* | [**getStreamUsageBySdkVersion**](docs/AccountUsageBetaApi.md#getstreamusagebysdkversion) | **GET** /api/v2/usage/streams/{source}/bysdkversion | Get stream usage by SDK version
 *AccountUsageBetaApi* | [**getStreamUsageSdkversion**](docs/AccountUsageBetaApi.md#getstreamusagesdkversion) | **GET** /api/v2/usage/streams/{source}/sdkversions | Get stream usage SDK versions
+*AccountUsageBetaApi* | [**getVegaAIUsage**](docs/AccountUsageBetaApi.md#getvegaaiusage) | **GET** /api/v2/usage/vega-ai | Get Vega AI usage
 *AnnouncementsApi* | [**createAnnouncementPublic**](docs/AnnouncementsApi.md#createannouncementpublic) | **POST** /api/v2/announcements | Create an announcement
 *AnnouncementsApi* | [**deleteAnnouncementPublic**](docs/AnnouncementsApi.md#deleteannouncementpublic) | **DELETE** /api/v2/announcements/{announcementId} | Delete an announcement
 *AnnouncementsApi* | [**getAnnouncementsPublic**](docs/AnnouncementsApi.md#getannouncementspublic) | **GET** /api/v2/announcements | Get announcements
@@ -154,6 +156,7 @@ Class | Method | HTTP request | Description
 *AuditLogApi* | [**getAuditLogEntries**](docs/AuditLogApi.md#getauditlogentries) | **GET** /api/v2/auditlog | List audit log entries
 *AuditLogApi* | [**getAuditLogEntry**](docs/AuditLogApi.md#getauditlogentry) | **GET** /api/v2/auditlog/{id} | Get audit log entry
 *AuditLogApi* | [**postAuditLogEntries**](docs/AuditLogApi.md#postauditlogentries) | **POST** /api/v2/auditlog | Search audit log entries
+*AuditLogApi* | [**postAuditLogEntryCounts**](docs/AuditLogApi.md#postauditlogentrycounts) | **POST** /api/v2/auditlog/counts | Get audit log entry counts
 *CodeReferencesApi* | [**deleteBranches**](docs/CodeReferencesApi.md#deletebranches) | **POST** /api/v2/code-refs/repositories/{repo}/branch-delete-tasks | Delete branches
 *CodeReferencesApi* | [**deleteRepository**](docs/CodeReferencesApi.md#deleterepository) | **DELETE** /api/v2/code-refs/repositories/{repo} | Delete repository
 *CodeReferencesApi* | [**getBranch**](docs/CodeReferencesApi.md#getbranch) | **GET** /api/v2/code-refs/repositories/{repo}/branches/{branch} | Get branch
@@ -409,6 +412,7 @@ Class | Method | HTTP request | Description
 ### Documentation For Models
 
  - [AIConfig](docs/AIConfig.md)
+ - [AIConfigDependency](docs/AIConfigDependency.md)
  - [AIConfigMaintainer](docs/AIConfigMaintainer.md)
  - [AIConfigPatch](docs/AIConfigPatch.md)
  - [AIConfigPost](docs/AIConfigPost.md)
@@ -447,6 +451,7 @@ Class | Method | HTTP request | Description
  - [AgentGraph](docs/AgentGraph.md)
  - [AgentGraphEdge](docs/AgentGraphEdge.md)
  - [AgentGraphEdgePost](docs/AgentGraphEdgePost.md)
+ - [AgentGraphMaintainer](docs/AgentGraphMaintainer.md)
  - [AgentGraphPatch](docs/AgentGraphPatch.md)
  - [AgentGraphPost](docs/AgentGraphPost.md)
  - [AgentGraphs](docs/AgentGraphs.md)
@@ -546,6 +551,8 @@ Class | Method | HTTP request | Description
  - [Contexts](docs/Contexts.md)
  - [CopiedFromEnv](docs/CopiedFromEnv.md)
  - [CoreLink](docs/CoreLink.md)
+ - [CountBucket](docs/CountBucket.md)
+ - [CountBucketsResult](docs/CountBucketsResult.md)
  - [CreateAnnouncementBody](docs/CreateAnnouncementBody.md)
  - [CreateApprovalRequestRequest](docs/CreateApprovalRequestRequest.md)
  - [CreateCopyFlagConfigApprovalRequestRequest](docs/CreateCopyFlagConfigApprovalRequestRequest.md)
@@ -598,15 +605,14 @@ Class | Method | HTTP request | Description
  - [ExpandedDirectlyLinkedSegment](docs/ExpandedDirectlyLinkedSegment.md)
  - [ExpandedDirectlyLinkedSegments](docs/ExpandedDirectlyLinkedSegments.md)
  - [ExpandedFlag](docs/ExpandedFlag.md)
+ - [ExpandedFlagMaintainer](docs/ExpandedFlagMaintainer.md)
  - [ExpandedFlagRep](docs/ExpandedFlagRep.md)
  - [ExpandedLinkedAIConfigs](docs/ExpandedLinkedAIConfigs.md)
  - [ExpandedLinkedFlags](docs/ExpandedLinkedFlags.md)
  - [ExpandedLinkedMetrics](docs/ExpandedLinkedMetrics.md)
  - [ExpandedLinkedResources](docs/ExpandedLinkedResources.md)
- - [ExpandedLinkedResourcesAIConfigs](docs/ExpandedLinkedResourcesAIConfigs.md)
  - [ExpandedLinkedResourcesFlags](docs/ExpandedLinkedResourcesFlags.md)
  - [ExpandedLinkedResourcesItems](docs/ExpandedLinkedResourcesItems.md)
- - [ExpandedLinkedResourcesMetrics](docs/ExpandedLinkedResourcesMetrics.md)
  - [ExpandedLinkedResourcesSegments](docs/ExpandedLinkedResourcesSegments.md)
  - [ExpandedLinkedSegments](docs/ExpandedLinkedSegments.md)
  - [ExpandedMetric](docs/ExpandedMetric.md)
@@ -971,6 +977,7 @@ Class | Method | HTTP request | Description
  - [VersionsRep](docs/VersionsRep.md)
  - [View](docs/View.md)
  - [ViewLinkRequest](docs/ViewLinkRequest.md)
+ - [ViewLinkRequestFilter](docs/ViewLinkRequestFilter.md)
  - [ViewLinkRequestKeys](docs/ViewLinkRequestKeys.md)
  - [ViewLinkRequestSegmentIdentifier](docs/ViewLinkRequestSegmentIdentifier.md)
  - [ViewLinkRequestSegmentIdentifiers](docs/ViewLinkRequestSegmentIdentifiers.md)
@@ -989,6 +996,8 @@ Class | Method | HTTP request | Description
  - [ViewsLink](docs/ViewsLink.md)
  - [ViewsMaintainerMember](docs/ViewsMaintainerMember.md)
  - [ViewsMaintainerTeam](docs/ViewsMaintainerTeam.md)
+ - [ViewsMemberSummary](docs/ViewsMemberSummary.md)
+ - [ViewsMemberTeamSummaryRep](docs/ViewsMemberTeamSummaryRep.md)
  - [ViewsPaginatedLinks](docs/ViewsPaginatedLinks.md)
  - [ViewsSelfLink](docs/ViewsSelfLink.md)
  - [Webhook](docs/Webhook.md)
