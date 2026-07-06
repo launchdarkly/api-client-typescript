@@ -20,7 +20,7 @@ Name | Type | Description | Notes
 **confirmChanges** | **boolean** | Whether members who modify flags and segments through the LaunchDarkly user interface are required to confirm those changes | [default to undefined]
 **tags** | **Array&lt;string&gt;** | A list of tags for this environment | [default to undefined]
 **approvalSettings** | [**ApprovalSettings**](ApprovalSettings.md) |  | [optional] [default to undefined]
-**resourceApprovalSettings** | [**{ [key: string]: ApprovalSettings; }**](ApprovalSettings.md) | Details on the approval settings for this environment for each resource kind | [optional] [default to undefined]
+**resourceApprovalSettings** | [**{ [key: string]: ApprovalSettings; }**](ApprovalSettings.md) | Details about the approval settings for other resources in this environment, organized by resource kind (for example, \&quot;aiconfig\&quot; and \&quot;segment\&quot;) | [optional] [default to undefined]
 **critical** | **boolean** | Whether the environment is critical | [default to undefined]
 
 ## Example

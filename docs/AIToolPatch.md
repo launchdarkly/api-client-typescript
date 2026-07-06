@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 **description** | **string** |  | [optional] [default to undefined]
 **schema** | **object** | JSON Schema defining the tool\&#39;s parameters for LLM consumption | [optional] [default to undefined]
 **customParameters** | **object** | Custom metadata and configuration for application-level use (not sent to LLM) | [optional] [default to undefined]
+**tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
 
 ## Example
 
@@ -22,6 +23,7 @@ const instance: AIToolPatch = {
     description,
     schema,
     customParameters,
+    tags,
 };
 ```
 

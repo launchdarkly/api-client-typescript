@@ -15,6 +15,9 @@ Name | Type | Description | Notes
 **description** | **string** | Description of the change recorded in the audit log entry | [default to undefined]
 **shortDescription** | **string** | Shorter version of the change recorded in the audit log entry | [default to undefined]
 **comment** | **string** | Optional comment for the audit log entry | [optional] [default to undefined]
+**relatedFlag** | [**RelatedFlag**](RelatedFlag.md) |  | [optional] [default to undefined]
+**relatedExperiment** | [**RelatedExperiment**](RelatedExperiment.md) |  | [optional] [default to undefined]
+**relatedAIConfig** | [**RelatedAIConfig**](RelatedAIConfig.md) |  | [optional] [default to undefined]
 **subject** | [**SubjectDataRep**](SubjectDataRep.md) |  | [optional] [default to undefined]
 **member** | [**MemberDataRep**](MemberDataRep.md) |  | [optional] [default to undefined]
 **token** | [**TokenSummary**](TokenSummary.md) |  | [optional] [default to undefined]
@@ -40,6 +43,9 @@ const instance: AuditLogEntryListingRep = {
     description,
     shortDescription,
     comment,
+    relatedFlag,
+    relatedExperiment,
+    relatedAIConfig,
     subject,
     member,
     token,

@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **model** | **object** |  | [default to undefined]
 **modelConfigKey** | **string** |  | [optional] [default to undefined]
 **name** | **string** |  | [default to undefined]
+**outputFormat** | **{ [key: string]: any; }** | JSON Schema defining the structured output format for the variation. | [optional] [default to undefined]
 **createdAt** | **number** |  | [default to undefined]
 **version** | **number** |  | [default to undefined]
 **state** | **string** |  | [optional] [default to undefined]
@@ -42,6 +43,7 @@ const instance: AIConfigVariation = {
     model,
     modelConfigKey,
     name,
+    outputFormat,
     createdAt,
     version,
     state,

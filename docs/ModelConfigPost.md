@@ -15,6 +15,7 @@ Name | Type | Description | Notes
 **tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
 **costPerInputToken** | **number** | Cost per input token in USD | [optional] [default to undefined]
 **costPerOutputToken** | **number** | Cost per output token in USD | [optional] [default to undefined]
+**costPerCachedInputToken** | **number** | Cost per cached input token in USD | [optional] [default to undefined]
 
 ## Example
 
@@ -32,6 +33,7 @@ const instance: ModelConfigPost = {
     tags,
     costPerInputToken,
     costPerOutputToken,
+    costPerCachedInputToken,
 };
 ```
 

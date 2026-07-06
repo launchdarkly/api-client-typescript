@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **_id** | **string** |  | [default to undefined]
 **_creationDate** | **number** |  | [default to undefined]
 **_maintainerId** | **string** | The ID of the scheduled change maintainer | [default to undefined]
+**_maintainerServiceTokenId** | **string** | The ID of the service token that created or updated this scheduled change | [optional] [default to undefined]
 **_version** | **number** | Version of the scheduled change | [default to undefined]
 **executionDate** | **number** |  | [default to undefined]
 **instructions** | **Array&lt;{ [key: string]: any; }&gt;** |  | [default to undefined]
@@ -23,6 +24,7 @@ const instance: FeatureFlagScheduledChange = {
     _id,
     _creationDate,
     _maintainerId,
+    _maintainerServiceTokenId,
     _version,
     executionDate,
     instructions,

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**addresses** | **Array&lt;string&gt;** | A list of the IP addresses LaunchDarkly\&#39;s service uses | [default to undefined]
+**addresses** | **Array&lt;string&gt;** | A list of IP addresses used by the LaunchDarkly service | [default to undefined]
 **outboundAddresses** | **Array&lt;string&gt;** | A list of the IP addresses outgoing webhook notifications use | [default to undefined]
 
 ## Example

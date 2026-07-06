@@ -24,8 +24,11 @@ Name | Type | Description | Notes
 **permissionGrants** | [**Array&lt;MemberPermissionGrantSummaryRep&gt;**](MemberPermissionGrantSummaryRep.md) | A list of permission grants. Permission grants allow a member to have access to a specific action, without having to create or update a custom role. | [optional] [default to undefined]
 **creationDate** | **number** |  | [default to undefined]
 **oauthProviders** | **Array&lt;string&gt;** | A list of OAuth providers | [optional] [default to undefined]
+**hasPassword** | **boolean** | Whether the member has a password set (basic auth). False for OAuth-only or SCIM-provisioned members without a password. | [optional] [default to undefined]
 **version** | **number** | Version of the current configuration | [optional] [default to undefined]
 **roleAttributes** | **{ [key: string]: Array&lt;string&gt;; }** |  | [optional] [default to undefined]
+**mfaEnforced** | **boolean** |  | [optional] [default to undefined]
+**mfaGracePeriodExpiresAt** | **number** |  | [optional] [default to undefined]
 
 ## Example
 
@@ -52,8 +55,11 @@ const instance: Member = {
     permissionGrants,
     creationDate,
     oauthProviders,
+    hasPassword,
     version,
     roleAttributes,
+    mfaEnforced,
+    mfaGracePeriodExpiresAt,
 };
 ```
 

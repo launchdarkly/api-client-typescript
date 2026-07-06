@@ -5,8 +5,10 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**member** | [**MemberSummary**](MemberSummary.md) |  | [optional] [default to undefined]
-**team** | [**MemberTeamSummaryRep**](MemberTeamSummaryRep.md) |  | [optional] [default to undefined]
+**key** | **string** | The ID of the maintainer member, or the key of the maintainer team | [default to undefined]
+**kind** | **string** | The type of the maintainer | [default to undefined]
+**_member** | [**MemberSummary**](MemberSummary.md) |  | [optional] [default to undefined]
+**_team** | [**MemberTeamSummaryRep**](MemberTeamSummaryRep.md) |  | [optional] [default to undefined]
 
 ## Example
 
@@ -14,8 +16,10 @@ Name | Type | Description | Notes
 import { MaintainerRep } from 'launchdarkly-api-typescript';
 
 const instance: MaintainerRep = {
-    member,
-    team,
+    key,
+    kind,
+    _member,
+    _team,
 };
 ```
 

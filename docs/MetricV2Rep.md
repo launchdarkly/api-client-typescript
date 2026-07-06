@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **kind** | **string** | The kind of event the metric tracks | [default to undefined]
 **isNumeric** | **boolean** | For custom metrics, whether to track numeric changes in value against a baseline (&lt;code&gt;true&lt;/code&gt;) or to track a conversion when an end user takes an action (&lt;code&gt;false&lt;/code&gt;). | [optional] [default to undefined]
 **unitAggregationType** | **string** | The type of unit aggregation to use for the metric | [optional] [default to undefined]
+**analysisType** | **string** | The method for analyzing metric events | [optional] [default to undefined]
 **eventKey** | **string** | The event key sent with the metric. Only relevant for custom metrics. | [optional] [default to undefined]
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
 
@@ -26,6 +27,7 @@ const instance: MetricV2Rep = {
     kind,
     isNumeric,
     unitAggregationType,
+    analysisType,
     eventKey,
     _links,
 };

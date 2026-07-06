@@ -1,0 +1,20 @@
+# PatchIpAllowlistEntryRequest
+
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**description** | **string** |  | [default to undefined]
+
+## Example
+
+```typescript
+import { PatchIpAllowlistEntryRequest } from 'launchdarkly-api-typescript';
+
+const instance: PatchIpAllowlistEntryRequest = {
+    description,
+};
+```
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

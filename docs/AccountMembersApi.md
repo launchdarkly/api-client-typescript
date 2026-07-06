@@ -71,7 +71,7 @@ void (empty response body)
 # **getMember**
 > Member getMember()
 
-Get a single account member by member ID.  `me` is a reserved value for the `id` parameter that returns the caller\'s member information.  ### Expanding the member response LaunchDarkly supports one field for expanding the \"Get member\" response. By default, this field is **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  * `roleAttributes` includes a list of the role attributes that you have assigned to the member.  For example, `expand=roleAttributes` includes `roleAttributes` field in the response. 
+Get a single account member by member ID.  `me` is a reserved value for the `id` parameter that returns the caller\'s member information.  ### Expanding the member response LaunchDarkly supports the following fields for expanding the \"Get member\" response. By default, these fields are **not** included in the response.  To expand the response, append the `expand` query parameter and add a comma-separated list with any of the following fields:  * `customRoles` includes details on each custom role assigned to the member, including the role key, name, and ID. * `roleAttributes` includes a list of the role attributes that you have assigned to the member.  For example, `expand=customRoles,roleAttributes` includes both the `customRolesInfo` and `roleAttributes` fields in the response. 
 
 ### Example
 

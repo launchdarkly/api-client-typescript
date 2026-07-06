@@ -1,15 +1,15 @@
 # AgentGraphEdge
 
-An edge in an agent graph connecting two AI Configs
+An edge in an agent graph connecting two configs
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **key** | **string** | A unique key for this edge within the graph | [default to undefined]
-**sourceConfig** | **string** | The AI Config key that is the source of this edge | [default to undefined]
-**targetConfig** | **string** | The AI Config key that is the target of this edge | [default to undefined]
-**handoff** | **object** | The handoff options from the source AI Config to the target AI Config | [optional] [default to undefined]
+**sourceConfig** | **string** | The config key that is the source of this edge | [default to undefined]
+**targetConfig** | **string** | The config key that is the target of this edge | [default to undefined]
+**handoff** | **object** | The handoff options from the source config to the target config | [optional] [default to undefined]
 
 ## Example
 

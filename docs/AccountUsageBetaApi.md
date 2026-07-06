@@ -4,6 +4,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
+|[**getAIRunsUsage**](#getairunsusage) | **GET** /api/v2/usage/ai-runs | Get AI runs usage|
 |[**getContextsClientsideUsage**](#getcontextsclientsideusage) | **GET** /api/v2/usage/clientside-contexts | Get contexts clientside usage|
 |[**getContextsServersideUsage**](#getcontextsserversideusage) | **GET** /api/v2/usage/serverside-contexts | Get contexts serverside usage|
 |[**getContextsTotalUsage**](#getcontextstotalusage) | **GET** /api/v2/usage/total-contexts | Get contexts total usage|
@@ -22,11 +23,97 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getObservabilityMetricsUsage**](#getobservabilitymetricsusage) | **GET** /api/v2/usage/observability/metrics | Get observability metrics usage|
 |[**getObservabilitySessionsUsage**](#getobservabilitysessionsusage) | **GET** /api/v2/usage/observability/sessions | Get observability sessions usage|
 |[**getObservabilityTracesUsage**](#getobservabilitytracesusage) | **GET** /api/v2/usage/observability/traces | Get observability traces usage|
+|[**getSdkAllVersions**](#getsdkallversions) | **GET** /api/v2/usage/sdk-versions/all | Get usage details for all SDK versions|
+|[**getSdkVersionsDetails**](#getsdkversionsdetails) | **GET** /api/v2/usage/sdk-versions/details | Get SDK versions usage details|
 |[**getServiceConnectionsUsage**](#getserviceconnectionsusage) | **GET** /api/v2/usage/service-connections | Get service connections usage|
 |[**getStreamUsage**](#getstreamusage) | **GET** /api/v2/usage/streams/{source} | Get stream usage|
 |[**getStreamUsageBySdkVersion**](#getstreamusagebysdkversion) | **GET** /api/v2/usage/streams/{source}/bysdkversion | Get stream usage by SDK version|
 |[**getStreamUsageSdkversion**](#getstreamusagesdkversion) | **GET** /api/v2/usage/streams/{source}/sdkversions | Get stream usage SDK versions|
 |[**getVegaAIUsage**](#getvegaaiusage) | **GET** /api/v2/usage/vega-ai | Get Vega AI usage|
+|[**getWarehouseExportUsage**](#getwarehouseexportusage) | **GET** /api/v2/usage/warehouse-export | Get warehouse Data Export usage|
+
+# **getAIRunsUsage**
+> SeriesListRep getAIRunsUsage()
+
+Get a time series array showing the number of AI runs recorded for your account. The supported granularity varies by aggregation type. The maximum time range is 365 days.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let from: string; //The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. (optional) (default to undefined)
+let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
+let sdkName: string; //An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. (optional) (default to undefined)
+let sdkVersion: string; //An SDK version to filter results by. Can be specified multiple times, one query parameter per SDK version. (optional) (default to undefined)
+let sdkType: string; //An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `sdkName`, `sdkVersion`, `sdkType`. (optional) (default to undefined)
+let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`. (optional) (default to undefined)
+let granularity: string; //Specifies the data granularity. Defaults to `daily`. `monthly` granularity is only supported with the **month_to_date** aggregation type.<br/>Valid values: `daily`, `hourly`, `monthly`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getAIRunsUsage(
+    from,
+    to,
+    projectKey,
+    environmentKey,
+    sdkName,
+    sdkVersion,
+    sdkType,
+    groupBy,
+    aggregationType,
+    granularity
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **from** | [**string**] | The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
+| **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
+| **sdkName** | [**string**] | An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. | (optional) defaults to undefined|
+| **sdkVersion** | [**string**] | An SDK version to filter results by. Can be specified multiple times, one query parameter per SDK version. | (optional) defaults to undefined|
+| **sdkType** | [**string**] | An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;sdkName&#x60;, &#x60;sdkVersion&#x60;, &#x60;sdkType&#x60;. | (optional) defaults to undefined|
+| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;. | (optional) defaults to undefined|
+| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. &#x60;monthly&#x60; granularity is only supported with the **month_to_date** aggregation type.&lt;br/&gt;Valid values: &#x60;daily&#x60;, &#x60;hourly&#x60;, &#x60;monthly&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**SeriesListRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+|**503** | Service unavailable |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getContextsClientsideUsage**
 > SeriesListRep getContextsClientsideUsage()
@@ -1151,7 +1238,7 @@ const { status, data } = await apiInstance.getObservabilityLogsUsage(
 # **getObservabilityMetricsUsage**
 > SeriesListRep getObservabilityMetricsUsage()
 
-Get time-series arrays of the number of observability metrics. Supports `daily` and `monthly` granularity.
+Get time-series arrays of the number of observability metrics. Supports `hourly`, `daily`, and `monthly` granularity.
 
 ### Example
 
@@ -1167,8 +1254,8 @@ const apiInstance = new AccountUsageBetaApi(configuration);
 let from: string; //The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month. (optional) (default to undefined)
 let to: string; //The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time. (optional) (default to undefined)
 let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
-let granularity: string; //Specifies the data granularity. Defaults to `daily`. Valid values depend on `aggregationType`: **month_to_date** supports `daily` and `monthly`; **incremental** and **rolling_30d** support `daily` only. (optional) (default to undefined)
-let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`, `rolling_30d`. (optional) (default to undefined)
+let granularity: string; //Specifies the data granularity. Defaults to `daily`. Valid values depend on `aggregationType`: **month_to_date** supports `hourly`, `daily`, and `monthly`; **average** supports `hourly`, `daily`, and `monthly`. (optional) (default to undefined)
+let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `average`. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getObservabilityMetricsUsage(
     from,
@@ -1186,8 +1273,8 @@ const { status, data } = await apiInstance.getObservabilityMetricsUsage(
 | **from** | [**string**] | The series of data returned starts from this timestamp (Unix seconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
 | **to** | [**string**] | The series of data returned ends at this timestamp (Unix seconds). Defaults to the current time. | (optional) defaults to undefined|
 | **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
-| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;daily&#x60; and &#x60;monthly&#x60;; **incremental** and **rolling_30d** support &#x60;daily&#x60; only. | (optional) defaults to undefined|
-| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;, &#x60;rolling_30d&#x60;. | (optional) defaults to undefined|
+| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. Valid values depend on &#x60;aggregationType&#x60;: **month_to_date** supports &#x60;hourly&#x60;, &#x60;daily&#x60;, and &#x60;monthly&#x60;; **average** supports &#x60;hourly&#x60;, &#x60;daily&#x60;, and &#x60;monthly&#x60;. | (optional) defaults to undefined|
+| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;average&#x60;. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -1352,6 +1439,126 @@ const { status, data } = await apiInstance.getObservabilityTracesUsage(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getSdkAllVersions**
+> Array<SdkVersionDetailsRep> getSdkAllVersions()
+
+Get detailed SDK version usage data for all versions observed in the last 24 hours in your account. Unlike the `/details` endpoint which returns only the max version per SDK, this endpoint returns all SDK versions for the specified filters. This data is refreshed hourly.<br/><br/>All query parameters are optional, allowing you to filter results as broadly or narrowly as needed.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let environmentId: string; //Filter to a specific environment ID. (optional) (default to undefined)
+let projectId: string; //Filter to a specific project ID. (optional) (default to undefined)
+let sdkName: string; //Filter to a specific SDK name. (optional) (default to undefined)
+let sdkType: string; //Filter to a specific SDK type (for example, \'server\', \'browser\', \'mobile\'). (optional) (default to undefined)
+let sdkAppId: string; //Filter to a specific SDK application ID. (optional) (default to undefined)
+let connectionType: string; //Filter to a specific connection type (for example, \'direct\', \'proxy\'). (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getSdkAllVersions(
+    environmentId,
+    projectId,
+    sdkName,
+    sdkType,
+    sdkAppId,
+    connectionType
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **environmentId** | [**string**] | Filter to a specific environment ID. | (optional) defaults to undefined|
+| **projectId** | [**string**] | Filter to a specific project ID. | (optional) defaults to undefined|
+| **sdkName** | [**string**] | Filter to a specific SDK name. | (optional) defaults to undefined|
+| **sdkType** | [**string**] | Filter to a specific SDK type (for example, \&#39;server\&#39;, \&#39;browser\&#39;, \&#39;mobile\&#39;). | (optional) defaults to undefined|
+| **sdkAppId** | [**string**] | Filter to a specific SDK application ID. | (optional) defaults to undefined|
+| **connectionType** | [**string**] | Filter to a specific connection type (for example, \&#39;direct\&#39;, \&#39;proxy\&#39;). | (optional) defaults to undefined|
+
+
+### Return type
+
+**Array<SdkVersionDetailsRep>**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | SDK versions usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+|**503** | Service unavailable |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getSdkVersionsDetails**
+> Array<SdkVersionDetailsRep> getSdkVersionsDetails()
+
+Get detailed SDK version usage data for your account, including version information, EOL status, and relay proxy metadata. Refreshed hourly, returns the max version for each SDK observed in the last 24 hours, including those without EOL metadata available.<br/><br/>This endpoint provides comprehensive information about SDK versions in use across your projects and environments.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+const { status, data } = await apiInstance.getSdkVersionsDetails();
+```
+
+### Parameters
+This endpoint does not have any parameters.
+
+
+### Return type
+
+**Array<SdkVersionDetailsRep>**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | SDK versions usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+|**503** | Service unavailable |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getServiceConnectionsUsage**
 > SeriesListRepFloat getServiceConnectionsUsage()
 
@@ -1377,7 +1584,8 @@ let relayVersion: string; //A relay version to filter results by. Can be specifi
 let sdkName: string; //An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. (optional) (default to undefined)
 let sdkVersion: string; //An SDK version to filter results by. Can be specified multiple times, one query parameter per SDK version. (optional) (default to undefined)
 let sdkType: string; //An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. (optional) (default to undefined)
-let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `connectionType`, `relayVersion`, `sdkName`, `sdkVersion`, `sdkType`. (optional) (default to undefined)
+let sdkAppId: string; //An SDK app ID to filter results by. Can be specified multiple times, one query parameter per SDK app ID. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `connectionType`, `relayVersion`, `sdkName`, `sdkVersion`, `sdkType`, `sdkAppId`. (optional) (default to undefined)
 let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`. (optional) (default to undefined)
 let granularity: string; //Specifies the data granularity. Defaults to `daily`. `monthly` granularity is only supported with the **month_to_date** aggregation type.<br/>Valid values: `daily`, `hourly`, `monthly`. (optional) (default to undefined)
 
@@ -1391,6 +1599,7 @@ const { status, data } = await apiInstance.getServiceConnectionsUsage(
     sdkName,
     sdkVersion,
     sdkType,
+    sdkAppId,
     groupBy,
     aggregationType,
     granularity
@@ -1410,7 +1619,8 @@ const { status, data } = await apiInstance.getServiceConnectionsUsage(
 | **sdkName** | [**string**] | An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. | (optional) defaults to undefined|
 | **sdkVersion** | [**string**] | An SDK version to filter results by. Can be specified multiple times, one query parameter per SDK version. | (optional) defaults to undefined|
 | **sdkType** | [**string**] | An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. | (optional) defaults to undefined|
-| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;connectionType&#x60;, &#x60;relayVersion&#x60;, &#x60;sdkName&#x60;, &#x60;sdkVersion&#x60;, &#x60;sdkType&#x60;. | (optional) defaults to undefined|
+| **sdkAppId** | [**string**] | An SDK app ID to filter results by. Can be specified multiple times, one query parameter per SDK app ID. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;connectionType&#x60;, &#x60;relayVersion&#x60;, &#x60;sdkName&#x60;, &#x60;sdkVersion&#x60;, &#x60;sdkType&#x60;, &#x60;sdkAppId&#x60;. | (optional) defaults to undefined|
 | **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;. | (optional) defaults to undefined|
 | **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. &#x60;monthly&#x60; granularity is only supported with the **month_to_date** aggregation type.&lt;br/&gt;Valid values: &#x60;daily&#x60;, &#x60;hourly&#x60;, &#x60;monthly&#x60;. | (optional) defaults to undefined|
 
@@ -1696,6 +1906,83 @@ const { status, data } = await apiInstance.getVegaAIUsage(
 |**403** | Forbidden |  -  |
 |**404** | Invalid resource identifier |  -  |
 |**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getWarehouseExportUsage**
+> SeriesListRep getWarehouseExportUsage()
+
+Get a time series array showing the number of rows exported to your warehouse Data Export destinations. The supported granularity varies by aggregation type. The maximum time range is 365 days.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let from: string; //The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. (optional) (default to undefined)
+let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
+let destination: string; //A destination kind to filter results by. Can be specified multiple times, one query parameter per destination kind.<br/>Valid values: `snowflake-v2`, `databricks`, `bigquery`, `redshift`, `clickhouse`. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `destination`. (optional) (default to undefined)
+let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`. (optional) (default to undefined)
+let granularity: string; //Specifies the data granularity. Defaults to `daily`. `monthly` granularity is only supported with the **month_to_date** aggregation type.<br/>Valid values: `daily`, `hourly`, `monthly`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getWarehouseExportUsage(
+    from,
+    to,
+    projectKey,
+    environmentKey,
+    destination,
+    groupBy,
+    aggregationType,
+    granularity
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **from** | [**string**] | The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
+| **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
+| **destination** | [**string**] | A destination kind to filter results by. Can be specified multiple times, one query parameter per destination kind.&lt;br/&gt;Valid values: &#x60;snowflake-v2&#x60;, &#x60;databricks&#x60;, &#x60;bigquery&#x60;, &#x60;redshift&#x60;, &#x60;clickhouse&#x60;. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;destination&#x60;. | (optional) defaults to undefined|
+| **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;. | (optional) defaults to undefined|
+| **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. &#x60;monthly&#x60; granularity is only supported with the **month_to_date** aggregation type.&lt;br/&gt;Valid values: &#x60;daily&#x60;, &#x60;hourly&#x60;, &#x60;monthly&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**SeriesListRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Usage response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**429** | Rate limited |  -  |
+|**503** | Service unavailable |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

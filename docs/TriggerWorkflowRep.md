@@ -11,6 +11,8 @@ Name | Type | Description | Notes
 **_maintainerId** | **string** | The ID of the flag trigger maintainer | [optional] [default to undefined]
 **_maintainer** | [**MemberSummary**](MemberSummary.md) |  | [optional] [default to undefined]
 **enabled** | **boolean** | Whether the flag trigger is currently enabled | [optional] [default to undefined]
+**_status** | **string** | The trigger state: active, inactive, or failed | [optional] [default to undefined]
+**_lastFailedAt** | **number** |  | [optional] [default to undefined]
 **_integrationKey** | **string** | The unique identifier of the integration for your trigger | [optional] [default to undefined]
 **instructions** | **Array&lt;{ [key: string]: any; }&gt;** |  | [optional] [default to undefined]
 **_lastTriggeredAt** | **number** |  | [optional] [default to undefined]
@@ -31,6 +33,8 @@ const instance: TriggerWorkflowRep = {
     _maintainerId,
     _maintainer,
     enabled,
+    _status,
+    _lastFailedAt,
     _integrationKey,
     instructions,
     _lastTriggeredAt,

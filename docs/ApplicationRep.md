@@ -14,7 +14,7 @@ Name | Type | Description | Notes
 **description** | **string** | The application description | [optional] [default to undefined]
 **key** | **string** | The unique identifier of this application | [default to undefined]
 **kind** | **string** | To distinguish the kind of application | [default to undefined]
-**_maintainer** | [**MaintainerRep**](MaintainerRep.md) |  | [optional] [default to undefined]
+**_maintainer** | [**ApplicationMaintainerRep**](ApplicationMaintainerRep.md) |  | [optional] [default to undefined]
 **name** | **string** | The name of the application | [default to undefined]
 
 ## Example

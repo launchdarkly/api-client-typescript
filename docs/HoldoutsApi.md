@@ -1,4 +1,4 @@
-# HoldoutsBetaApi
+# HoldoutsApi
 
 All URIs are relative to *https://app.launchdarkly.com*
 
@@ -18,12 +18,12 @@ All URIs are relative to *https://app.launchdarkly.com*
 
 ```typescript
 import {
-    HoldoutsBetaApi,
+    HoldoutsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new HoldoutsBetaApi(configuration);
+const apiInstance = new HoldoutsApi(configuration);
 
 let projectKey: string; //The project key (default to undefined)
 let environmentKey: string; //The environment key (default to undefined)
@@ -82,12 +82,12 @@ Get details about a holdout.  ### Expanding the holdout response  LaunchDarkly s
 
 ```typescript
 import {
-    HoldoutsBetaApi,
+    HoldoutsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new HoldoutsBetaApi(configuration);
+const apiInstance = new HoldoutsApi(configuration);
 
 let projectKey: string; //The project key (default to undefined)
 let environmentKey: string; //The environment key (default to undefined)
@@ -146,12 +146,12 @@ const { status, data } = await apiInstance.getHoldout(
 
 ```typescript
 import {
-    HoldoutsBetaApi,
+    HoldoutsApi,
     Configuration
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new HoldoutsBetaApi(configuration);
+const apiInstance = new HoldoutsApi(configuration);
 
 let projectKey: string; //The project key (default to undefined)
 let environmentKey: string; //The environment key (default to undefined)
@@ -208,13 +208,13 @@ Updates an existing holdout, and returns the updated holdout. Updating holdouts 
 
 ```typescript
 import {
-    HoldoutsBetaApi,
+    HoldoutsApi,
     Configuration,
     HoldoutPatchInput
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new HoldoutsBetaApi(configuration);
+const apiInstance = new HoldoutsApi(configuration);
 
 let projectKey: string; //The project key (default to undefined)
 let environmentKey: string; //The environment key (default to undefined)
@@ -274,13 +274,13 @@ Create a new holdout in the specified project.
 
 ```typescript
 import {
-    HoldoutsBetaApi,
+    HoldoutsApi,
     Configuration,
     HoldoutPostRequest
 } from 'launchdarkly-api-typescript';
 
 const configuration = new Configuration();
-const apiInstance = new HoldoutsBetaApi(configuration);
+const apiInstance = new HoldoutsApi(configuration);
 
 let projectKey: string; //The project key (default to undefined)
 let environmentKey: string; //The environment key (default to undefined)

@@ -15,7 +15,6 @@ Name | Type | Description | Notes
 **serviceConfig** | **{ [key: string]: any; }** |  | [default to undefined]
 **requiredApprovalTags** | **Array&lt;string&gt;** | Require approval only on flags with the provided tags. Otherwise all flags will require approval. | [default to undefined]
 **serviceKindConfigurationId** | **string** | Optional field for integration configuration ID of a custom approval integration. This is an Enterprise-only feature. | [optional] [default to undefined]
-**resourceKind** | **string** | The kind of resource for which the approval settings apply, for example, flag or segment | [optional] [default to undefined]
 
 ## Example
 
@@ -33,7 +32,6 @@ const instance: ApprovalSettings = {
     serviceConfig,
     requiredApprovalTags,
     serviceKindConfigurationId,
-    resourceKind,
 };
 ```
 

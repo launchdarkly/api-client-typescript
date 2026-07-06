@@ -12,8 +12,9 @@ Name | Type | Description | Notes
 **mode** | **string** |  | [optional] [default to ModeEnum_Completion]
 **name** | **string** |  | [default to undefined]
 **tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
+**viewKeys** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
 **defaultVariation** | [**AIConfigVariationPost**](AIConfigVariationPost.md) |  | [optional] [default to undefined]
-**evaluationMetricKey** | **string** | Evaluation metric key for this AI Config | [optional] [default to undefined]
+**evaluationMetricKey** | **string** | Evaluation metric key for this config | [optional] [default to undefined]
 **isInverted** | **boolean** | Whether the evaluation metric is inverted, meaning a lower value is better if set as true | [optional] [default to undefined]
 
 ## Example
@@ -29,6 +30,7 @@ const instance: AIConfigPost = {
     mode,
     name,
     tags,
+    viewKeys,
     defaultVariation,
     evaluationMetricKey,
     isInverted,

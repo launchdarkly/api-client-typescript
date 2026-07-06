@@ -13,6 +13,8 @@ Name | Type | Description | Notes
 **treatments** | [**Array&lt;TreatmentInput&gt;**](TreatmentInput.md) |  | [default to undefined]
 **flags** | [**{ [key: string]: FlagInput; }**](FlagInput.md) |  | [default to undefined]
 **randomizationUnit** | **string** | The unit of randomization for this iteration. Defaults to user. | [optional] [default to undefined]
+**reallocationFrequencyMillis** | **number** | The cadence (in milliseconds) to update the allocation. | [optional] [default to undefined]
+**covariateId** | **string** | The ID of the covariate CSV | [optional] [default to undefined]
 **attributes** | **Array&lt;string&gt;** | The attributes that this iteration\&#39;s results can be sliced by | [optional] [default to undefined]
 
 ## Example
@@ -29,6 +31,8 @@ const instance: IterationInput = {
     treatments,
     flags,
     randomizationUnit,
+    reallocationFrequencyMillis,
+    covariateId,
     attributes,
 };
 ```

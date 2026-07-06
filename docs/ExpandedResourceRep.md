@@ -7,6 +7,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **kind** | **string** | The type of resource | [default to undefined]
 **aiConfig** | [**AIConfigRep**](AIConfigRep.md) |  | [optional] [default to undefined]
+**experiment** | [**ExpandedExperimentRep**](ExpandedExperimentRep.md) |  | [optional] [default to undefined]
 **flag** | [**ExpandedFlagRep**](ExpandedFlagRep.md) |  | [optional] [default to undefined]
 **segment** | [**UserSegment**](UserSegment.md) |  | [optional] [default to undefined]
 
@@ -18,6 +19,7 @@ import { ExpandedResourceRep } from 'launchdarkly-api-typescript';
 const instance: ExpandedResourceRep = {
     kind,
     aiConfig,
+    experiment,
     flag,
     segment,
 };

@@ -312,7 +312,7 @@ const { status, data } = await apiInstance.patchFlagDefaultsByProject(
 # **patchProject**
 > ProjectRep patchProject(patchOperation)
 
-Update a project. Updating a project uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](https://launchdarkly.com/docs/api#updates).<br/><br/>To add an element to the project fields that are arrays, set the `path` to the name of the field and then append `/<array index>`. Use `/0` to add to the beginning of the array. Use `/-` to add to the end of the array.
+Update a project. Updating a project uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) representation of the desired changes. To learn more, read [Updates](https://launchdarkly.com/docs/api#updates).<br/><br/>To add an element to the project fields that are arrays, set the `path` to the name of the field and then append `/<array index>`. Use `/0` to add to the beginning of the array. Use `/-` to add to the end of the array. For example, `\"path\": \"/tags/0\"` adds a tag.<br/><br/>Note that `tags` are always deduplicated and returned in alphabetical order, regardless of the array index used in the patch path.
 
 ### Example
 

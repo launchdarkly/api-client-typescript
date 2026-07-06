@@ -12,7 +12,10 @@ Name | Type | Description | Notes
 **version** | **number** |  | [optional] [default to undefined]
 **config** | **any** | An object with the configuration parameters required for the destination type | [optional] [default to undefined]
 **on** | **boolean** | Whether the export is on, that is, the status of the integration | [optional] [default to undefined]
+**createdAt** | **number** |  | [optional] [default to undefined]
+**maintainerId** | **string** | The ID of the member who maintains this Data Export destination | [optional] [default to undefined]
 **_access** | [**Access**](Access.md) |  | [optional] [default to undefined]
+**completedArtifacts** | [**RedshiftDataExportCompletedArtifactsRep**](RedshiftDataExportCompletedArtifactsRep.md) |  | [optional] [default to undefined]
 
 ## Example
 
@@ -27,7 +30,10 @@ const instance: Destination = {
     version,
     config,
     on,
+    createdAt,
+    maintainerId,
     _access,
+    completedArtifacts,
 };
 ```
 

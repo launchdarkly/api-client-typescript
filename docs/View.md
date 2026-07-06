@@ -14,7 +14,8 @@ Name | Type | Description | Notes
 **key** | **string** | Unique key for the view within the account/project | [default to undefined]
 **name** | **string** | Human-readable name for the view | [default to undefined]
 **description** | **string** | Optional detailed description of the view | [default to undefined]
-**generateSdkKeys** | **boolean** | Whether to generate SDK keys for this view. Defaults to false. | [default to undefined]
+**_affectsSdkPayload** | **boolean** | Whether this view is used to filter SDK payloads | [default to undefined]
+**generateSdkKeys** | **boolean** | Deprecated compatibility field. Mirrors &#x60;_affectsSdkPayload&#x60; during rollout. | [optional] [readonly] [default to undefined]
 **version** | **number** | Version number for tracking changes | [default to undefined]
 **tags** | **Array&lt;string&gt;** | Tags associated with this view | [default to undefined]
 **createdAt** | **number** |  | [default to undefined]
@@ -50,6 +51,7 @@ const instance: View = {
     key,
     name,
     description,
+    _affectsSdkPayload,
     generateSdkKeys,
     version,
     tags,

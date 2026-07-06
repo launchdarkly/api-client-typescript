@@ -8,9 +8,12 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getDestination**](#getdestination) | **GET** /api/v2/destinations/{projectKey}/{environmentKey}/{id} | Get destination|
 |[**getDestinations**](#getdestinations) | **GET** /api/v2/destinations | List destinations|
 |[**patchDestination**](#patchdestination) | **PATCH** /api/v2/destinations/{projectKey}/{environmentKey}/{id} | Update Data Export destination|
+|[**postCompleteWarehouseDestinationSetup**](#postcompletewarehousedestinationsetup) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/kinds/{kind}/complete-setup | Complete warehouse destination setup|
 |[**postDestination**](#postdestination) | **POST** /api/v2/destinations/{projectKey}/{environmentKey} | Create Data Export destination|
+|[**postGenerateProjectEnvWarehouseDestinationKeyPair**](#postgenerateprojectenvwarehousedestinationkeypair) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/generate-warehouse-destination-key-pair | Generate Snowflake destination key pair|
 |[**postGenerateTrustPolicy**](#postgeneratetrustpolicy) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/generate-trust-policy | Generate trust policy|
 |[**postGenerateWarehouseDestinationKeyPair**](#postgeneratewarehousedestinationkeypair) | **POST** /api/v2/destinations/generate-warehouse-destination-key-pair | Generate Snowflake destination key pair|
+|[**postGenerateWarehouseDestinationSetupScript**](#postgeneratewarehousedestinationsetupscript) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/kinds/{kind}/setup | Generate warehouse destination setup script|
 
 # **deleteDestination**
 > deleteDestination()
@@ -247,6 +250,72 @@ const { status, data } = await apiInstance.patchDestination(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **postCompleteWarehouseDestinationSetup**
+> Destination postCompleteWarehouseDestinationSetup(completeSetupPostBody)
+
+Complete the setup of a warehouse destination by providing the Snowflake host address and the public keys from the /setup response. The custom names are read from the stored configuration.
+
+### Example
+
+```typescript
+import {
+    DataExportDestinationsApi,
+    Configuration,
+    CompleteSetupPostBody
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new DataExportDestinationsApi(configuration);
+
+let projKey: string; //The project key (default to undefined)
+let envKey: string; //The environment key (default to undefined)
+let kind: string; //The destination kind (snowflake-v2, bigquery, clickhouse, redshift) (default to undefined)
+let completeSetupPostBody: CompleteSetupPostBody; //
+
+const { status, data } = await apiInstance.postCompleteWarehouseDestinationSetup(
+    projKey,
+    envKey,
+    kind,
+    completeSetupPostBody
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **completeSetupPostBody** | **CompleteSetupPostBody**|  | |
+| **projKey** | [**string**] | The project key | defaults to undefined|
+| **envKey** | [**string**] | The environment key | defaults to undefined|
+| **kind** | [**string**] | The destination kind (snowflake-v2, bigquery, clickhouse, redshift) | defaults to undefined|
+
+
+### Return type
+
+**Destination**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**201** | Completed destination |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Pending destination not found |  -  |
+|**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **postDestination**
 > Destination postDestination(destinationPost)
 
@@ -302,6 +371,65 @@ const { status, data } = await apiInstance.postDestination(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**201** | Destination response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**409** | Status conflict |  -  |
+|**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **postGenerateProjectEnvWarehouseDestinationKeyPair**
+> GenerateWarehouseDestinationKeyPairPostRep postGenerateProjectEnvWarehouseDestinationKeyPair()
+
+Generate key pair to allow Data Export to authenticate into a Snowflake warehouse destination
+
+### Example
+
+```typescript
+import {
+    DataExportDestinationsApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new DataExportDestinationsApi(configuration);
+
+let projKey: string; //The project key (default to undefined)
+let envKey: string; //The environment key (default to undefined)
+
+const { status, data } = await apiInstance.postGenerateProjectEnvWarehouseDestinationKeyPair(
+    projKey,
+    envKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projKey** | [**string**] | The project key | defaults to undefined|
+| **envKey** | [**string**] | The environment key | defaults to undefined|
+
+
+### Return type
+
+**GenerateWarehouseDestinationKeyPairPostRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**201** | Generate warehouse destination key pair response |  -  |
 |**400** | Invalid request |  -  |
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |
@@ -414,6 +542,71 @@ This endpoint does not have any parameters.
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |
 |**409** | Status conflict |  -  |
+|**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **postGenerateWarehouseDestinationSetupScript**
+> WarehouseDestinationSetupScriptRep postGenerateWarehouseDestinationSetupScript()
+
+Generate the SQL setup script required to prepare a warehouse for LaunchDarkly Data Export. For Snowflake, this also generates a key pair. Custom Snowflake object names may be provided. If omitted, defaults are used.
+
+### Example
+
+```typescript
+import {
+    DataExportDestinationsApi,
+    Configuration,
+    WarehouseSetupScriptPostBody
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new DataExportDestinationsApi(configuration);
+
+let projKey: string; //The project key (default to undefined)
+let envKey: string; //The environment key (default to undefined)
+let kind: string; //The destination kind (snowflake-v2, redshift, clickhouse) (default to undefined)
+let warehouseSetupScriptPostBody: WarehouseSetupScriptPostBody; // (optional)
+
+const { status, data } = await apiInstance.postGenerateWarehouseDestinationSetupScript(
+    projKey,
+    envKey,
+    kind,
+    warehouseSetupScriptPostBody
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **warehouseSetupScriptPostBody** | **WarehouseSetupScriptPostBody**|  | |
+| **projKey** | [**string**] | The project key | defaults to undefined|
+| **envKey** | [**string**] | The environment key | defaults to undefined|
+| **kind** | [**string**] | The destination kind (snowflake-v2, redshift, clickhouse) | defaults to undefined|
+
+
+### Return type
+
+**WarehouseDestinationSetupScriptRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**201** | Generate warehouse destination setup script response |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
 |**429** | Rate limited |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

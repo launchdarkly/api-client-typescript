@@ -26,11 +26,12 @@ Name | Type | Description | Notes
 **_maintainer** | [**MemberSummary**](MemberSummary.md) |  | [optional] [default to undefined]
 **description** | **string** | Description of the metric | [optional] [default to undefined]
 **category** | **string** | The category of the metric | [optional] [default to undefined]
-**isNumeric** | **boolean** | For custom metrics, whether to track numeric changes in value against a baseline (&lt;code&gt;true&lt;/code&gt;) or to track a conversion when an end user takes an action (&lt;code&gt;false&lt;/code&gt;). | [optional] [default to undefined]
-**successCriteria** | **string** | For custom metrics, the success criteria | [optional] [default to undefined]
-**unit** | **string** | For numeric custom metrics, the unit of measure | [optional] [default to undefined]
+**isNumeric** | **boolean** | For custom and trace metrics, whether to track numeric changes in value against a baseline (&lt;code&gt;true&lt;/code&gt;) or to track a conversion when an end user takes an action (&lt;code&gt;false&lt;/code&gt;). | [optional] [default to undefined]
+**successCriteria** | **string** | For custom and trace metrics, the success criteria | [optional] [default to undefined]
+**unit** | **string** | For numeric custom and trace metrics, the unit of measure | [optional] [default to undefined]
 **eventKey** | **string** | For custom metrics, the event key to use in your code | [optional] [default to undefined]
-**randomizationUnits** | **Array&lt;string&gt;** | An array of randomization units allowed for this metric | [optional] [default to undefined]
+**randomizationUnits** | **Array&lt;string&gt;** | Deprecated, use &lt;code&gt;analysisUnits&lt;/code&gt; instead. | [optional] [default to undefined]
+**analysisUnits** | **Array&lt;string&gt;** | An array of analysis units allowed for this metric. | [optional] [default to undefined]
 **filters** | [**Filter**](Filter.md) |  | [optional] [default to undefined]
 **unitAggregationType** | **string** | The method by which multiple unit event values are aggregated | [optional] [default to undefined]
 **analysisType** | **string** | The method for analyzing metric events | [optional] [default to undefined]
@@ -42,6 +43,15 @@ Name | Type | Description | Notes
 **archivedAt** | **number** |  | [optional] [default to undefined]
 **selector** | **string** | For click metrics, the CSS selectors | [optional] [default to undefined]
 **urls** | **Array&lt;{ [key: string]: any; }&gt;** |  | [optional] [default to undefined]
+**windowStartOffset** | **number** | Not yet implemented - The start of the measurement window, in milliseconds relative to the unit\&#39;s first exposure to a flag variation | [optional] [default to undefined]
+**windowEndOffset** | **number** | Not yet implemented - The end of the measurement window, in milliseconds relative to the unit\&#39;s first exposure to a flag variation | [optional] [default to undefined]
+**winsorLowerPercentile** | **number** | Lower winsorization percentile, expressed as a percent in the open interval (0, 100). When both bounds are set, defines a two-sided clamp range. Otherwise lower-only winsorization. | [optional] [default to undefined]
+**winsorUpperPercentile** | **number** | Upper winsorization percentile, expressed as a percent in the open interval (0, 100). When both bounds are set, must be greater than winsorLowerPercentile. | [optional] [default to undefined]
+**winsorExcludeImputed** | **boolean** | Deprecated and ignored. Use winsorIncludeImputed instead. | [optional] [default to undefined]
+**winsorIncludeImputed** | **boolean** | When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\&#39;t send events. | [optional] [default to undefined]
+**traceQuery** | **string** | For trace metrics, the trace query to use for the metric. | [optional] [default to undefined]
+**traceValueLocation** | **string** | For trace metrics, the location in the trace to use for numeric values. | [optional] [default to undefined]
+**denominator** | [**MetricDenominatorRep**](MetricDenominatorRep.md) |  | [optional] [default to undefined]
 **experiments** | [**Array&lt;DependentExperimentRep&gt;**](DependentExperimentRep.md) |  | [optional] [default to undefined]
 **metricGroups** | [**Array&lt;DependentMetricGroupRep&gt;**](DependentMetricGroupRep.md) | Metric groups that use this metric | [optional] [default to undefined]
 **lastUsedInExperiment** | [**DependentExperimentRep**](DependentExperimentRep.md) |  | [optional] [default to undefined]
@@ -81,6 +91,7 @@ const instance: MetricRep = {
     unit,
     eventKey,
     randomizationUnits,
+    analysisUnits,
     filters,
     unitAggregationType,
     analysisType,
@@ -92,6 +103,15 @@ const instance: MetricRep = {
     archivedAt,
     selector,
     urls,
+    windowStartOffset,
+    windowEndOffset,
+    winsorLowerPercentile,
+    winsorUpperPercentile,
+    winsorExcludeImputed,
+    winsorIncludeImputed,
+    traceQuery,
+    traceValueLocation,
+    denominator,
     experiments,
     metricGroups,
     lastUsedInExperiment,

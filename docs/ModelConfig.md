@@ -18,6 +18,7 @@ Name | Type | Description | Notes
 **version** | **number** |  | [default to undefined]
 **costPerInputToken** | **number** | Cost per input token in USD | [optional] [default to undefined]
 **costPerOutputToken** | **number** | Cost per output token in USD | [optional] [default to undefined]
+**costPerCachedInputToken** | **number** | Cost per cached input token in USD | [optional] [default to undefined]
 **isRestricted** | **boolean** | Whether the model is restricted | [default to undefined]
 
 ## Example
@@ -39,6 +40,7 @@ const instance: ModelConfig = {
     version,
     costPerInputToken,
     costPerOutputToken,
+    costPerCachedInputToken,
     isRestricted,
 };
 ```
