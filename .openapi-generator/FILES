@@ -69,6 +69,12 @@ docs/AgentOptimizationResults.md
 docs/AgentOptimizationRun.md
 docs/AgentOptimizationRuns.md
 docs/AgentOptimizations.md
+docs/AgentSkill.md
+docs/AgentSkillPatch.md
+docs/AgentSkillPost.md
+docs/AgentSkillReference.md
+docs/AgentSkillReferences.md
+docs/AgentSkills.md
 docs/AiConfigsAccess.md
 docs/AiConfigsAccessAllowedReason.md
 docs/AiConfigsAccessAllowedRep.md
@@ -169,6 +175,7 @@ docs/ContextInstanceSearch.md
 docs/ContextInstanceSegmentMembership.md
 docs/ContextInstanceSegmentMemberships.md
 docs/ContextInstances.md
+docs/ContextKindEnvironmentObservation.md
 docs/ContextKindRep.md
 docs/ContextKindsCollectionRep.md
 docs/ContextRecord.md
@@ -348,6 +355,7 @@ docs/HoldoutsApi.md
 docs/HoldoutsCollectionRep.md
 docs/HunkRep.md
 docs/IPAllowlistBetaApi.md
+docs/IPAllowlistSelfLink.md
 docs/Import.md
 docs/InitiatorRep.md
 docs/InsightGroup.md
@@ -457,7 +465,9 @@ docs/MetricsSummary.md
 docs/MigrationSafetyIssueRep.md
 docs/MigrationSettingsPost.md
 docs/ModelConfig.md
+docs/ModelConfigPatch.md
 docs/ModelConfigPost.md
+docs/ModelConfigs.md
 docs/Modification.md
 docs/MultiEnvironmentDependentFlag.md
 docs/MultiEnvironmentDependentFlags.md
@@ -574,9 +584,14 @@ docs/RuleClause.md
 docs/SDKKeysBetaApi.md
 docs/ScheduledChangesApi.md
 docs/SdkKey.md
+docs/SdkKeyForPutSdkKeyViews.md
 docs/SdkKeyKind.md
+docs/SdkKeyListItem.md
 docs/SdkKeyPatch.md
 docs/SdkKeyPost.md
+docs/SdkKeysEnvironmentSummary.md
+docs/SdkKeysForGetSdkKeys.md
+docs/SdkKeysSelfLink.md
 docs/SdkListRep.md
 docs/SdkVersionDetailsRep.md
 docs/SdkVersionListRep.md
@@ -597,6 +612,7 @@ docs/SourceEnv.md
 docs/SourceFlag.md
 docs/StageInput.md
 docs/StageOutput.md
+docs/StaleFlagData.md
 docs/Statement.md
 docs/StatementPost.md
 docs/StatisticCollectionRep.md
@@ -665,6 +681,8 @@ docs/ValuePut.md
 docs/Variation.md
 docs/VariationEvalSummary.md
 docs/VariationOrRolloutRep.md
+docs/VariationSkill.md
+docs/VariationSkillPost.md
 docs/VariationSummary.md
 docs/VariationTool.md
 docs/VariationToolPost.md

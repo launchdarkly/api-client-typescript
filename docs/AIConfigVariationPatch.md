@@ -17,6 +17,7 @@ Name | Type | Description | Notes
 **state** | **string** | One of \&#39;archived\&#39;, \&#39;published\&#39; | [optional] [default to undefined]
 **tools** | [**Array&lt;VariationToolPost&gt;**](VariationToolPost.md) | List of tools to use for this variation. The latest version of the tool will be used. | [optional] [default to undefined]
 **toolKeys** | **Array&lt;string&gt;** | List of tool keys to use for this variation. The latest version of the tool will be used. | [optional] [default to undefined]
+**skills** | [**Array&lt;VariationSkillPost&gt;**](VariationSkillPost.md) | List of agent skills to attach to this variation. Replaces the current attachments. | [optional] [default to undefined]
 **judgeConfiguration** | [**JudgeConfiguration**](JudgeConfiguration.md) |  | [optional] [default to undefined]
 
 ## Example
@@ -37,6 +38,7 @@ const instance: AIConfigVariationPatch = {
     state,
     tools,
     toolKeys,
+    skills,
     judgeConfiguration,
 };
 ```

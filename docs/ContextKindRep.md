@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **creationDate** | **number** |  | [default to undefined]
 **lastModified** | **number** |  | [default to undefined]
 **lastSeen** | **number** |  | [optional] [default to undefined]
+**environmentObservations** | [**Array&lt;ContextKindEnvironmentObservation&gt;**](ContextKindEnvironmentObservation.md) | Recent environment observations retained from flag evaluations. This is not a complete historical record. | [optional] [default to undefined]
 **createdFrom** | **string** |  | [default to undefined]
 **hideInTargeting** | **boolean** | Alias for archived. | [optional] [default to undefined]
 **archived** | **boolean** | Whether the context kind is archived. Archived context kinds are unavailable for targeting. | [optional] [default to undefined]
@@ -30,6 +31,7 @@ const instance: ContextKindRep = {
     creationDate,
     lastModified,
     lastSeen,
+    environmentObservations,
     createdFrom,
     hideInTargeting,
     archived,

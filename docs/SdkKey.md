@@ -17,7 +17,6 @@ Name | Type | Description | Notes
 **_createdAt** | **number** |  | [default to undefined]
 **_updatedAt** | **number** |  | [default to undefined]
 **_version** | **number** | The auto-incremented version number of the SDK key. | [default to undefined]
-**viewSummaries** | [**Array&lt;ViewSummary&gt;**](ViewSummary.md) | Summaries of views associated with the SDK key. | [optional] [default to undefined]
 
 ## Example
 
@@ -37,7 +36,6 @@ const instance: SdkKey = {
     _createdAt,
     _updatedAt,
     _version,
-    viewSummaries,
 };
 ```
 

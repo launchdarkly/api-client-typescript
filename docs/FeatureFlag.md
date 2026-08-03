@@ -31,6 +31,7 @@ Name | Type | Description | Notes
 **defaults** | [**Defaults**](Defaults.md) |  | [optional] [default to undefined]
 **_purpose** | **string** |  | [optional] [default to undefined]
 **migrationSettings** | [**FlagMigrationSettingsRep**](FlagMigrationSettingsRep.md) |  | [optional] [default to undefined]
+**stale** | [**StaleFlagData**](StaleFlagData.md) |  | [optional] [default to undefined]
 **environments** | [**{ [key: string]: FeatureFlagConfig; }**](FeatureFlagConfig.md) | Details on the environments for this flag. Only returned if the request is filtered by environment, using the &lt;code&gt;filterEnv&lt;/code&gt; query parameter. | [optional] [default to undefined]
 
 ## Example
@@ -65,6 +66,7 @@ const instance: FeatureFlag = {
     defaults,
     _purpose,
     migrationSettings,
+    stale,
     environments,
 };
 ```

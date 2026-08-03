@@ -14,6 +14,8 @@ Name | Type | Description | Notes
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
 **isGroup** | **boolean** | Whether this is a metric group or a metric | [default to undefined]
 **metrics** | [**Array&lt;MetricInGroupRep&gt;**](MetricInGroupRep.md) | An ordered list of the metrics in this metric group | [optional] [default to undefined]
+**analysisType** | **string** | The method for analyzing metric events. Only set for individual metrics, not metric groups. | [optional] [default to undefined]
+**analysisUnit** | **string** | The context kind chosen as the analysis unit for this metric in the iteration. If null, analysis uses the iteration\&#39;s randomization unit. | [optional] [default to undefined]
 
 ## Example
 
@@ -30,6 +32,8 @@ const instance: DependentMetricOrMetricGroupRep = {
     _links,
     isGroup,
     metrics,
+    analysisType,
+    analysisUnit,
 };
 ```
 

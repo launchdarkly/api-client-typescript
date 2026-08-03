@@ -269,7 +269,7 @@ const apiInstance = new DataExportDestinationsApi(configuration);
 
 let projKey: string; //The project key (default to undefined)
 let envKey: string; //The environment key (default to undefined)
-let kind: string; //The destination kind (snowflake-v2, bigquery, clickhouse, redshift) (default to undefined)
+let kind: string; //The destination kind (snowflake-v2, bigquery, clickhouse, redshift, databricks) (default to undefined)
 let completeSetupPostBody: CompleteSetupPostBody; //
 
 const { status, data } = await apiInstance.postCompleteWarehouseDestinationSetup(
@@ -287,7 +287,7 @@ const { status, data } = await apiInstance.postCompleteWarehouseDestinationSetup
 | **completeSetupPostBody** | **CompleteSetupPostBody**|  | |
 | **projKey** | [**string**] | The project key | defaults to undefined|
 | **envKey** | [**string**] | The environment key | defaults to undefined|
-| **kind** | [**string**] | The destination kind (snowflake-v2, bigquery, clickhouse, redshift) | defaults to undefined|
+| **kind** | [**string**] | The destination kind (snowflake-v2, bigquery, clickhouse, redshift, databricks) | defaults to undefined|
 
 
 ### Return type

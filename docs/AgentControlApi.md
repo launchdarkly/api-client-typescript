@@ -10,6 +10,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**deleteAgentGraph**](#deleteagentgraph) | **DELETE** /api/v2/projects/{projectKey}/agent-graphs/{graphKey} | Delete agent graph|
 |[**deleteAgentOptimization**](#deleteagentoptimization) | **DELETE** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey} | Delete an agent optimization|
 |[**deleteAgentOptimizationRun**](#deleteagentoptimizationrun) | **DELETE** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/runs/{runId} | Delete an agent optimization run|
+|[**deleteAgentSkill**](#deleteagentskill) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey} | Delete an agent skill|
 |[**deleteModelConfig**](#deletemodelconfig) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Delete an AI model config|
 |[**deletePromptSnippet**](#deletepromptsnippet) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets/{snippetKey} | Delete a prompt snippet|
 |[**deleteRestrictedModels**](#deleterestrictedmodels) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/model-configs/restricted | Remove AI models from the restricted list|
@@ -23,6 +24,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getAITool**](#getaitool) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey} | Get AI tool|
 |[**getAgentGraph**](#getagentgraph) | **GET** /api/v2/projects/{projectKey}/agent-graphs/{graphKey} | Get agent graph|
 |[**getAgentOptimization**](#getagentoptimization) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey} | Get an agent optimization|
+|[**getAgentSkill**](#getagentskill) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey} | Get an agent skill|
 |[**getModelConfig**](#getmodelconfig) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Get AI model config|
 |[**getPromptSnippet**](#getpromptsnippet) | **GET** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets/{snippetKey} | Get a prompt snippet|
 |[**listAIToolVersions**](#listaitoolversions) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/versions | List AI tool versions|
@@ -31,7 +33,11 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**listAgentOptimizationResults**](#listagentoptimizationresults) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/results | List agent optimization runs|
 |[**listAgentOptimizationResultsByRunId**](#listagentoptimizationresultsbyrunid) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/runs/{runId}/results | List agent optimization results for a run|
 |[**listAgentOptimizations**](#listagentoptimizations) | **GET** /api/v2/projects/{projectKey}/agent-optimizations | List agent optimizations|
+|[**listAgentSkillReferences**](#listagentskillreferences) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/references | List agent skill references|
+|[**listAgentSkillVersions**](#listagentskillversions) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/versions | List agent skill versions|
+|[**listAgentSkills**](#listagentskills) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills | List agent skills|
 |[**listAllAgentOptimizationResults**](#listallagentoptimizationresults) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/all-results | List all agent optimization results across versions|
+|[**listModelConfigVersions**](#listmodelconfigversions) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey}/versions | List AI model config versions|
 |[**listModelConfigs**](#listmodelconfigs) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs | List AI model configs|
 |[**listPromptSnippetReferences**](#listpromptsnippetreferences) | **GET** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets/{snippetKey}/references | List prompt snippet references|
 |[**listPromptSnippetVersions**](#listpromptsnippetversions) | **GET** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets/{snippetKey}/versions | List prompt snippet versions|
@@ -43,6 +49,8 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**patchAgentGraph**](#patchagentgraph) | **PATCH** /api/v2/projects/{projectKey}/agent-graphs/{graphKey} | Update agent graph|
 |[**patchAgentOptimization**](#patchagentoptimization) | **PATCH** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey} | Update an agent optimization|
 |[**patchAgentOptimizationResult**](#patchagentoptimizationresult) | **PATCH** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/results/{resultId} | Update an agent optimization result|
+|[**patchAgentSkill**](#patchagentskill) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey} | Update an agent skill|
+|[**patchModelConfig**](#patchmodelconfig) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Update an AI model config|
 |[**patchPromptSnippet**](#patchpromptsnippet) | **PATCH** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets/{snippetKey} | Update a prompt snippet|
 |[**postAIConfig**](#postaiconfig) | **POST** /api/v2/projects/{projectKey}/ai-configs | Create new AI Config|
 |[**postAIConfigVariation**](#postaiconfigvariation) | **POST** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations | Create AI Config variation|
@@ -50,6 +58,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**postAgentGraph**](#postagentgraph) | **POST** /api/v2/projects/{projectKey}/agent-graphs | Create new agent graph|
 |[**postAgentOptimization**](#postagentoptimization) | **POST** /api/v2/projects/{projectKey}/agent-optimizations | Create agent optimization|
 |[**postAgentOptimizationResult**](#postagentoptimizationresult) | **POST** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/results | Create agent optimization result|
+|[**postAgentSkill**](#postagentskill) | **POST** /api/v2/projects/{projectKey}/ai-configs/skills | Create an agent skill|
 |[**postModelConfig**](#postmodelconfig) | **POST** /api/v2/projects/{projectKey}/ai-configs/model-configs | Create an AI model config|
 |[**postPromptSnippet**](#postpromptsnippet) | **POST** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets | Create a prompt snippet|
 |[**postRestrictedModels**](#postrestrictedmodels) | **POST** /api/v2/projects/{projectKey}/ai-configs/model-configs/restricted | Add AI models to the restricted list|
@@ -408,6 +417,64 @@ void (empty response body)
 |**204** | No content |  -  |
 |**403** | Forbidden |  -  |
 |**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deleteAgentSkill**
+> deleteAgentSkill()
+
+Delete an agent skill, including all of its versions.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let skillKey: string; // (default to undefined)
+
+const { status, data } = await apiInstance.deleteAgentSkill(
+    projectKey,
+    skillKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **skillKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**204** | No content |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**409** | Conflict |  -  |
 |**500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -1209,10 +1276,67 @@ const { status, data } = await apiInstance.getAgentOptimization(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getAgentSkill**
+> AgentSkill getAgentSkill()
+
+Retrieve a specific agent skill by its key.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let skillKey: string; // (default to undefined)
+
+const { status, data } = await apiInstance.getAgentSkill(
+    projectKey,
+    skillKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **skillKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**AgentSkill**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Agent skill found |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getModelConfig**
 > ModelConfig getModelConfig()
 
-Get an AI model config by key.
+Get an AI model config by key. Specify a version to retrieve a historical custom model config version. Global model configs accept version 0 or 1 and return their current representation.
 
 ### Example
 
@@ -1227,10 +1351,12 @@ const apiInstance = new AgentControlApi(configuration);
 
 let projectKey: string; // (default to undefined)
 let modelConfigKey: string; // (default to undefined)
+let version: number; //Specific model config version to return. Omit to return the latest version. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getModelConfig(
     projectKey,
-    modelConfigKey
+    modelConfigKey,
+    version
 );
 ```
 
@@ -1240,6 +1366,7 @@ const { status, data } = await apiInstance.getModelConfig(
 |------------- | ------------- | ------------- | -------------|
 | **projectKey** | [**string**] |  | defaults to undefined|
 | **modelConfigKey** | [**string**] |  | defaults to undefined|
+| **version** | [**number**] | Specific model config version to return. Omit to return the latest version. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -1709,6 +1836,197 @@ const { status, data } = await apiInstance.listAgentOptimizations(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listAgentSkillReferences**
+> AgentSkillReferences listAgentSkillReferences()
+
+Get all config variations that currently reference this agent skill.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let skillKey: string; // (default to undefined)
+let limit: number; //The number of resources to return. (optional) (default to undefined)
+let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.listAgentSkillReferences(
+    projectKey,
+    skillKey,
+    limit,
+    offset
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **skillKey** | [**string**] |  | defaults to undefined|
+| **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
+| **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**AgentSkillReferences**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Agent skill references |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listAgentSkillVersions**
+> AgentSkills listAgentSkillVersions()
+
+Get all versions of an agent skill in the given project, ordered by version descending.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let skillKey: string; // (default to undefined)
+let limit: number; //The number of resources to return. (optional) (default to undefined)
+let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.listAgentSkillVersions(
+    projectKey,
+    skillKey,
+    limit,
+    offset
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **skillKey** | [**string**] |  | defaults to undefined|
+| **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
+| **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**AgentSkills**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Successful response |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listAgentSkills**
+> AgentSkills listAgentSkills()
+
+Get a list of all agent skills in the given project.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let limit: number; //The number of resources to return. (optional) (default to undefined)
+let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
+let filter: string; //A filter to apply to the list. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.listAgentSkills(
+    projectKey,
+    limit,
+    offset,
+    filter
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
+| **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
+| **filter** | [**string**] | A filter to apply to the list. | (optional) defaults to undefined|
+
+
+### Return type
+
+**AgentSkills**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Agent skills list |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listAllAgentOptimizationResults**
 > AgentOptimizationResults listAllAgentOptimizationResults()
 
@@ -1766,6 +2084,70 @@ const { status, data } = await apiInstance.listAllAgentOptimizationResults(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | Agent optimization results list |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listModelConfigVersions**
+> ModelConfigs listModelConfigVersions()
+
+Get a paginated list of all available versions of an AI model config, ordered from newest to oldest. Global model configs return their single current representation.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let modelConfigKey: string; // (default to undefined)
+let limit: number; //The number of resources to return. (optional) (default to undefined)
+let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.listModelConfigVersions(
+    projectKey,
+    modelConfigKey,
+    limit,
+    offset
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **modelConfigKey** | [**string**] |  | defaults to undefined|
+| **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
+| **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**ModelConfigs**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Successful response |  -  |
+|**400** | Bad request |  -  |
 |**403** | Forbidden |  -  |
 |**404** | Not found |  -  |
 |**500** | Internal server error |  -  |
@@ -2465,6 +2847,131 @@ const { status, data } = await apiInstance.patchAgentOptimizationResult(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **patchAgentSkill**
+> AgentSkill patchAgentSkill(agentSkillPatch)
+
+Update an existing agent skill. Creates a new version of the skill.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration,
+    AgentSkillPatch
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let skillKey: string; // (default to undefined)
+let agentSkillPatch: AgentSkillPatch; //Agent skill fields to update
+
+const { status, data } = await apiInstance.patchAgentSkill(
+    projectKey,
+    skillKey,
+    agentSkillPatch
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **agentSkillPatch** | **AgentSkillPatch**| Agent skill fields to update | |
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **skillKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**AgentSkill**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Agent skill updated |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**409** | Conflict |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **patchModelConfig**
+> ModelConfig patchModelConfig(modelConfigPatch)
+
+Update an AI model config.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration,
+    ModelConfigPatch
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let modelConfigKey: string; // (default to undefined)
+let modelConfigPatch: ModelConfigPatch; //AI model config object to update
+
+const { status, data } = await apiInstance.patchModelConfig(
+    projectKey,
+    modelConfigKey,
+    modelConfigPatch
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **modelConfigPatch** | **ModelConfigPatch**| AI model config object to update | |
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **modelConfigKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**ModelConfig**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Successful response |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **patchPromptSnippet**
 > PromptSnippet patchPromptSnippet(promptSnippetPatch)
 
@@ -2888,6 +3395,66 @@ const { status, data } = await apiInstance.postAgentOptimizationResult(
 |**403** | Forbidden |  -  |
 |**409** | Conflict |  -  |
 |**429** | Rate Limited |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **postAgentSkill**
+> AgentSkill postAgentSkill(agentSkillPost)
+
+Create a new agent skill within the given project.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration,
+    AgentSkillPost
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let agentSkillPost: AgentSkillPost; //Agent skill object to create
+
+const { status, data } = await apiInstance.postAgentSkill(
+    projectKey,
+    agentSkillPost
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **agentSkillPost** | **AgentSkillPost**| Agent skill object to create | |
+| **projectKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**AgentSkill**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**201** | Agent skill created |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**409** | Conflict |  -  |
 |**500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

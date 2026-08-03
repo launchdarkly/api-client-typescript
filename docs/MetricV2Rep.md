@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **unitAggregationType** | **string** | The type of unit aggregation to use for the metric | [optional] [default to undefined]
 **analysisType** | **string** | The method for analyzing metric events | [optional] [default to undefined]
 **eventKey** | **string** | The event key sent with the metric. Only relevant for custom metrics. | [optional] [default to undefined]
+**analysisUnit** | **string** | The context kind used as the analysis unit for this metric in the experiment iteration | [optional] [default to undefined]
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
 
 ## Example
@@ -29,6 +30,7 @@ const instance: MetricV2Rep = {
     unitAggregationType,
     analysisType,
     eventKey,
+    analysisUnit,
     _links,
 };
 ```

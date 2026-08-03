@@ -23,6 +23,7 @@ Name | Type | Description | Notes
 **clickHouseIncludeHostRestriction** | **boolean** |  | [optional] [default to undefined]
 **clickHouseServiceRoleArn** | **string** |  | [optional] [default to undefined]
 **clickHousePassword** | **string** |  | [optional] [default to undefined]
+**s3BucketName** | **string** |  | [optional] [default to undefined]
 
 ## Example
 
@@ -48,6 +49,7 @@ const instance: WarehouseSetupScriptPostBody = {
     clickHouseIncludeHostRestriction,
     clickHouseServiceRoleArn,
     clickHousePassword,
+    s3BucketName,
 };
 ```
 

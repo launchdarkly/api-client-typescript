@@ -141,11 +141,24 @@ import {
 const configuration = new Configuration();
 const apiInstance = new IPAllowlistBetaApi(configuration);
 
-const { status, data } = await apiInstance.getIpAllowlist();
+let search: string; //A case-insensitive substring to filter entries by. Matches against the IP address or CIDR block and the description. (optional) (default to undefined)
+let limit: number; //The number of entries to return. When omitted, all matching entries are returned. Maximum is 100. (optional) (default to undefined)
+let offset: number; //The number of entries to skip. Used for pagination. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getIpAllowlist(
+    search,
+    limit,
+    offset
+);
 ```
 
 ### Parameters
-This endpoint does not have any parameters.
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **search** | [**string**] | A case-insensitive substring to filter entries by. Matches against the IP address or CIDR block and the description. | (optional) defaults to undefined|
+| **limit** | [**number**] | The number of entries to return. When omitted, all matching entries are returned. Maximum is 100. | (optional) defaults to undefined|
+| **offset** | [**number**] | The number of entries to skip. Used for pagination. | (optional) defaults to undefined|
 
 
 ### Return type

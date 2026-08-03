@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * LaunchDarkly REST API
- * This documentation describes LaunchDarkly\'s REST API. To access the complete OpenAPI spec directly, use [Get OpenAPI spec](https://launchdarkly.com/docs/api/other/get-openapi-spec).  To learn how to use LaunchDarkly using the user interface (UI) instead, read our [product documentation](https://launchdarkly.com/docs/home).  ## Authentication  LaunchDarkly\'s REST API uses the HTTPS protocol with a minimum TLS version of 1.2.  All REST API resources are authenticated with either [personal or service access tokens](https://launchdarkly.com/docs/home/account/api), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page in the LaunchDarkly UI.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and JavaScript-based SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations such as fetching feature flag settings.  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal or service access tokens](https://launchdarkly.com/docs/home/account/api) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export. | | SDK keys                                                                                        | Can only access read-only resources specific to server-side SDKs. Restricted to a single environment. | Server-side SDKs                     | | Mobile keys                                                                                     | Can only access read-only resources specific to mobile SDKs, and only for flags marked available to mobile keys. Restricted to a single environment.           | Mobile SDKs                                        | | Client-side ID                                                                                  | Can only access read-only resources specific to JavaScript-based client-side SDKs, and only for flags marked available to client-side. Restricted to a single environment.           | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Authentication using request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [**Authorization**](https://app.launchdarkly.com/settings/authorization) page.  ### Authentication using session cookie  For testing purposes, you can make API calls directly from your web browser. If you are logged in to the LaunchDarkly application, the API will use your existing session to authenticate calls.  Depending on the permissions granted as part of your [role](https://launchdarkly.com/docs/home/account/roles), you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, Cross-Origin Resource Sharing (CORS) extensions used during development can modify the Origin header and cause the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses also send a JSON body. To learn more about the error format of the API, read [Errors](https://launchdarkly.com/docs/api#errors).  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PATCH`, `POST`, and `PUT` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource, such as a single feature flag, you receive a _detailed representation_ of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Expanding responses  Sometimes the detailed representation of a resource does not include all of the attributes of the resource by default. If this is the case, the request method will clearly document this and describe which attributes you can include in an expanded response.  To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,maintainers` to the [Get team](https://launchdarkly.com/docs/api/teams/get-team) endpoint, the expanded response includes both of these attributes.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link  Each link has two attributes:  - An `href`, which contains the URL - A `type`, which describes the content type  For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb. Most resources support the [JSON patch](https://launchdarkly.com/docs/api#updates-using-json-patch) format. Some resources also support the [JSON merge patch](https://launchdarkly.com/docs/api#updates-using-json-merge-patch) format, and some resources support the [semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch) format, which is a way to specify the modifications to perform as a set of executable instructions. Each resource supports optional [comments](https://launchdarkly.com/docs/api#updates-with-comments) that you can submit with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  When a resource supports both JSON patch and semantic patch, we document both in the request method. However, the specific request body fields and descriptions included in our documentation only match one type of patch or the other.  ### Updates using JSON patch  [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. JSON patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. JSON patch documents are always arrays, where each element contains an operation, a path to the field to update, and the new value.  For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ``` You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that are not editable, such as a resource\'s `_links`, have names that start with an underscore.  ### Updates using JSON merge patch  [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) is another format for specifying the modifications to perform on a resource. JSON merge patch is less expressive than JSON patch. However, in many cases it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates using semantic patch  Some resources support the semantic patch format. A semantic patch is a way to specify the modifications to perform on a resource as a set of executable instructions.  Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, you can define semantic patch instructions independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header.  Here\'s how:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  The body of a semantic patch request takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some resources only) The environment key. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the instruction requires parameters, you must include those parameters as additional fields in the object. The documentation for each resource that supports semantic patch includes the available instructions and any additional parameters.  For example:  ```json {   \"comment\": \"optional comment\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  Semantic patches are not applied partially; either all of the instructions are applied or none of them are. If **any** instruction is invalid, the endpoint returns an error and will not change the resource. If all instructions are valid, the request succeeds and the resources are updated if necessary, or left unchanged if they are already in the state you request.  ### Updates with comments  You can submit optional comments with `PATCH` changes.  To submit a comment along with a JSON patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON merge patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  To submit a comment along with a semantic patch, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The `code` indicates the general class of error. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly Support to debug a problem with a specific API call.  ### HTTP status error response codes  | Code | Definition        | Description                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Invalid request       | The request cannot be understood.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Invalid access token      | Requestor is unauthorized or does not have permission for this API call.                                                | Ensure your API access token is valid and has the appropriate permissions.                                     | | 403  | Forbidden         | Requestor does not have access to this resource.                                                | Ensure that the account member or access token has proper permissions set. | | 404  | Invalid resource identifier | The requested resource is not valid. | Ensure that the resource is correctly identified by ID or key. | | 405  | Method not allowed | The request method is not allowed on this resource. | Ensure that the HTTP verb is correct. | | 409  | Conflict          | The API request can not be completed because it conflicts with a concurrent API request. | Retry your request.                                              | | 422  | Unprocessable entity | The API request can not be completed because the update description can not be understood. | Ensure that the request body is correct for the type of patch you are using, either JSON patch or semantic patch. | 429  | Too many requests | Read [Rate limiting](https://launchdarkly.com/docs/api#rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise the request returns a wildcard, `Access-Control-Allow-Origin: *`. For more information on CORS, read the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](https://launchdarkly.com/docs/api#authentication). If you are using session authentication, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted entities.  ## Rate limiting  We use several rate limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs return a `429` status code. Calls to our APIs include headers indicating the current rate limit status. The specific headers returned depend on the API route being called. The limits differ based on the route, authentication mechanism, and other factors. Routes that are not rate limited may not contain any of the headers described below.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that your account can make to the API per ten seconds. All service and personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits may return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Remaining` | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  We do not publicly document the specific number of calls that can be made globally. This limit may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limit.  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any service or personal access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Remaining` | The maximum number of requests to the current route the account is permitted to make per ten seconds. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.                         |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](https://launchdarkly.com/docs/api/environments/delete-environment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  We do not publicly document the specific number of calls that an account can make to each endpoint per ten seconds. These limits may change, and we encourage clients to program against the specification, relying on the two headers defined above, rather than hardcoding to the current limits.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger) and client libraries  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit the [collection of client libraries on GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories). Alternatively, you can use the specification to generate client libraries to interact with our REST API in your language of choice. Or, you can refer to our API endpoints\' documentation for guidance on how to make requests with a common HTTP library in your language of choice.  Our OpenAPI specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to explore our APIs.  ## Method overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `DELETE`, `PATCH`, and `PUT` verbs are inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `DELETE`, `PATCH`, and `PUT` requests using a `POST` request.  For example, to call a `PATCH` endpoint using a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](https://launchdarkly.com/docs/api#beta-resources). > > Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Federal and EU environments  In addition to the commercial versions, LaunchDarkly offers instances for federal agencies and those based in the European Union (EU).  ### Federal environments  The version of LaunchDarkly that is available on domains controlled by the United States government is different from the version of LaunchDarkly available to the general public. If you are an employee or contractor for a United States federal agency and use LaunchDarkly in your work, you likely use the federal instance of LaunchDarkly.  If you are working in the federal instance of LaunchDarkly, the base URI for each request is `https://app.launchdarkly.us`.  To learn more, read [LaunchDarkly in federal environments](https://launchdarkly.com/docs/home/infrastructure/federal).  ### EU environments  The version of LaunchDarkly that is available in the EU is different from the version of LaunchDarkly available to other regions. If you are based in the EU, you likely use the EU instance of LaunchDarkly. The LaunchDarkly EU instance complies with EU data residency principles, including the protection and confidentiality of EU customer information.  If you are working in the EU instance of LaunchDarkly, the base URI for each request is `https://app.eu.launchdarkly.com`.  To learn more, read [LaunchDarkly in the European Union (EU)](https://launchdarkly.com/docs/home/infrastructure/eu).  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20240415 ```  The header value is the version number of the API version you would like to request. The number for each version corresponds to the date the version was released in `yyyymmdd` format. In the example above the version `20240415` corresponds to April 15, 2024.  ### Setting the API version per access token  When you create an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426`, which is the version of the API that existed before the current versioning scheme, so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing.  ### API version changelog  <table>   <tr>     <th>Version</th>     <th>Changes</th>     <th>End of life (EOL)</th>   </tr>   <tr>     <td>`20240415`</td>     <td>       <ul><li>Changed several endpoints from unpaginated to paginated. Use the `limit` and `offset` query parameters to page through the results.</li> <li>Changed the [list access tokens](https://launchdarkly.com/docs/api/access-tokens/get-tokens) endpoint: <ul><li>Response is now paginated with a default limit of `25`</li></ul></li> <li>Changed the [list account members](https://launchdarkly.com/docs/api/account-members/get-members) endpoint: <ul><li>The `accessCheck` filter is no longer available</li></ul></li> <li>Changed the [list custom roles](https://launchdarkly.com/docs/api/custom-roles/get-custom-roles) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `environments` field is now only returned if the request is filtered by environment, using the `filterEnv` query parameter</li><li>The `followerId`, `hasDataExport`, `status`, `contextKindTargeted`, and `segmentTargeted` filters are no longer available</li><li>The `compare` query parameter is no longer available</li></ul></li> <li>Changed the [list segments](https://launchdarkly.com/docs/api/segments/get-segments) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list teams](https://launchdarkly.com/docs/api/teams/get-teams) endpoint: <ul><li>The `expand` parameter no longer supports including `projects` or `roles`</li><li>In paginated results, the maximum page size is now 100</li></ul></li> <li>Changed the [get workflows](https://launchdarkly.com/docs/api/workflows/get-workflows) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `_conflicts` field in the response is no longer available</li></ul></li> </ul>     </td>     <td>Current</td>   </tr>   <tr>     <td>`20220603`</td>     <td>       <ul><li>Changed the [list projects](https://launchdarkly.com/docs/api/projects/get-projects) return value:<ul><li>Response is now paginated with a default limit of `20`.</li><li>Added support for filter and sort.</li><li>The project `environments` field is now expandable. This field is omitted by default.</li></ul></li><li>Changed the [get project](https://launchdarkly.com/docs/api/projects/get-project) return value:<ul><li>The `environments` field is now expandable. This field is omitted by default.</li></ul></li></ul>     </td>     <td>2025-04-15</td>   </tr>   <tr>     <td>`20210729`</td>     <td>       <ul><li>Changed the [create approval request](https://launchdarkly.com/docs/api/approvals/post-approval-request) return value. It now returns HTTP Status Code `201` instead of `200`.</li><li> Changed the [get user](https://launchdarkly.com/docs/api/users/get-user) return value. It now returns a user record, not a user. </li><li>Added additional optional fields to environment, segments, flags, members, and segments, including the ability to create big segments. </li><li> Added default values for flag variations when new environments are created. </li><li>Added filtering and pagination for getting flags and members, including `limit`, `number`, `filter`, and `sort` query parameters. </li><li>Added endpoints for expiring user targets for flags and segments, scheduled changes, access tokens, Relay Proxy configuration, integrations and subscriptions, and approvals. </li></ul>     </td>     <td>2023-06-03</td>   </tr>   <tr>     <td>`20191212`</td>     <td>       <ul><li>[List feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) now defaults to sending summaries of feature flag configurations, equivalent to setting the query parameter `summary=true`. Summaries omit flag targeting rules and individual user targets from the payload. </li><li> Added endpoints for flags, flag status, projects, environments, audit logs, members, users, custom roles, segments, usage, streams, events, and data export. </li></ul>     </td>     <td>2022-07-29</td>   </tr>   <tr>     <td>`20160426`</td>     <td>       <ul><li>Initial versioning of API. Tokens created before versioning have their version set to this.</li></ul>     </td>     <td>2020-12-12</td>   </tr> </table>  To learn more about how EOL is determined, read LaunchDarkly\'s [End of Life (EOL) Policy](https://launchdarkly.com/policies/end-of-life-policy/). 
+ * This documentation describes LaunchDarkly\'s REST API. To access the complete OpenAPI spec directly, use [Get OpenAPI spec](https://launchdarkly.com/docs/api/other/get-openapi-spec).  To learn how to use LaunchDarkly using the user interface (UI) instead, read our [product documentation](https://launchdarkly.com/docs/home).  ## Authentication  LaunchDarkly\'s REST API uses the HTTPS protocol with a minimum TLS version of 1.2.  All REST API resources are authenticated with either [personal or service access tokens](https://launchdarkly.com/docs/home/account/api), or session cookies. Other authentication mechanisms are not supported. You can manage personal access tokens on your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page in the LaunchDarkly UI.  LaunchDarkly also has SDK keys, mobile keys, and client-side IDs that are used by our server-side SDKs, mobile SDKs, and JavaScript-based SDKs, respectively. **These keys cannot be used to access our REST API**. These keys are environment-specific, and can only perform read-only operations such as fetching feature flag settings.  | Auth mechanism                                                                                  | Allowed resources                                                                                     | Use cases                                          | | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | | [Personal or service access tokens](https://launchdarkly.com/docs/home/account/api) | Can be customized on a per-token basis                                                                | Building scripts, custom integrations, data export. | | SDK keys                                                                                        | Can only access read-only resources specific to server-side SDKs. Restricted to a single environment. | Server-side SDKs                     | | Mobile keys                                                                                     | Can only access read-only resources specific to mobile SDKs, and only for flags marked available to mobile keys. Restricted to a single environment.           | Mobile SDKs                                        | | Client-side ID                                                                                  | Can only access read-only resources specific to JavaScript-based client-side SDKs, and only for flags marked available to client-side. Restricted to a single environment.           | Client-side JavaScript                             |  > #### Keep your access tokens and SDK keys private > > Access tokens should _never_ be exposed in untrusted contexts. Never put an access token in client-side JavaScript, or embed it in a mobile application. LaunchDarkly has special mobile keys that you can embed in mobile apps. If you accidentally expose an access token or SDK key, you can reset it from your [**Authorization**](https://app.launchdarkly.com/settings/authorization) page. > > The client-side ID is safe to embed in untrusted contexts. It\'s designed for use in client-side JavaScript.  ### Authentication using request header  The preferred way to authenticate with the API is by adding an `Authorization` header containing your access token to your requests. The value of the `Authorization` header must be your access token.  Manage personal access tokens from the [**Authorization**](https://app.launchdarkly.com/settings/authorization) page.  ### Authentication using session cookie  For testing purposes, you can make API calls directly from your web browser. If you are logged in to the LaunchDarkly application, the API will use your existing session to authenticate calls.  Depending on the permissions granted as part of your [role](https://launchdarkly.com/docs/home/account/roles), you may not have permission to perform some API calls. You will receive a `401` response code in that case.  > ### Modifying the Origin header causes an error > > LaunchDarkly validates that the Origin header for any API request authenticated by a session cookie matches the expected Origin header. The expected Origin header is `https://app.launchdarkly.com`. > > If the Origin header does not match what\'s expected, LaunchDarkly returns an error. This error can prevent the LaunchDarkly app from working correctly. > > Any browser extension that intentionally changes the Origin header can cause this problem. For example, Cross-Origin Resource Sharing (CORS) extensions used during development can modify the Origin header and cause the app to fail. > > To prevent this error, do not modify your Origin header. > > LaunchDarkly does not require origin matching when authenticating with an access token, so this issue does not affect normal API usage.  ## Representations  All resources expect and return JSON response bodies. Error responses also send a JSON body. To learn more about the error format of the API, read [Errors](https://launchdarkly.com/docs/api#errors).  In practice this means that you always get a response with a `Content-Type` header set to `application/json`.  In addition, request bodies for `PATCH`, `POST`, and `PUT` requests must be encoded as JSON with a `Content-Type` header set to `application/json`.  ### Summary and detailed representations  When you fetch a list of resources, the response includes only the most important attributes of each resource. This is a _summary representation_ of the resource. When you fetch an individual resource, such as a single feature flag, you receive a _detailed representation_ of the resource.  The best way to find a detailed representation is to follow links. Every summary representation includes a link to its detailed representation.  ### Expanding responses  Sometimes the detailed representation of a resource does not include all of the attributes of the resource by default. If this is the case, the request method will clearly document this and describe which attributes you can include in an expanded response.  To include the additional attributes, append the `expand` request parameter to your request and add a comma-separated list of the attributes to include. For example, when you append `?expand=members,maintainers` to the [Get team](https://launchdarkly.com/docs/api/teams/get-team) endpoint, the expanded response includes both of these attributes.  ### Links and addressability  The best way to navigate the API is by following links. These are attributes in representations that link to other resources. The API always uses the same format for links:  - Links to other resources within the API are encapsulated in a `_links` object - If the resource has a corresponding link to HTML content on the site, it is stored in a special `_site` link  Each link has two attributes:  - An `href`, which contains the URL - A `type`, which describes the content type  For example, a feature resource might return the following:  ```json {   \"_links\": {     \"parent\": {       \"href\": \"/api/features\",       \"type\": \"application/json\"     },     \"self\": {       \"href\": \"/api/features/sort.order\",       \"type\": \"application/json\"     }   },   \"_site\": {     \"href\": \"/features/sort.order\",     \"type\": \"text/html\"   } } ```  From this, you can navigate to the parent collection of features by following the `parent` link, or navigate to the site page for the feature by following the `_site` link.  Collections are always represented as a JSON object with an `items` attribute containing an array of representations. Like all other representations, collections have `_links` defined at the top level.  Paginated collections include `first`, `last`, `next`, and `prev` links containing a URL with the respective set of elements in the collection.  ## Updates  Resources that accept partial updates use the `PATCH` verb. Most resources support the [JSON patch](https://launchdarkly.com/docs/api#updates-using-json-patch) format. Some resources also support the [JSON merge patch](https://launchdarkly.com/docs/api#updates-using-json-merge-patch) format, and some resources support the [semantic patch](https://launchdarkly.com/docs/api#updates-using-semantic-patch) format, which is a way to specify the modifications to perform as a set of executable instructions. Each resource supports optional [comments](https://launchdarkly.com/docs/api#updates-with-comments) that you can submit with updates. Comments appear in outgoing webhooks, the audit log, and other integrations.  When a resource supports both JSON patch and semantic patch, we document both in the request method. However, the specific request body fields and descriptions included in our documentation only match one type of patch or the other.  ### Updates using JSON patch  [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) is a way to specify the modifications to perform on a resource. JSON patch uses paths and a limited set of operations to describe how to transform the current state of the resource into a new state. JSON patch documents are always arrays, where each element contains an operation, a path to the field to update, and the new value.  For example, in this feature flag representation:  ```json {     \"name\": \"New recommendations engine\",     \"key\": \"engine.enable\",     \"description\": \"This is the description\",     ... } ``` You can change the feature flag\'s description with the following patch document:  ```json [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"This is the new description\" }] ```  You can specify multiple modifications to perform in a single request. You can also test that certain preconditions are met before applying the patch:  ```json [   { \"op\": \"test\", \"path\": \"/version\", \"value\": 10 },   { \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" } ] ```  The above patch request tests whether the feature flag\'s `version` is `10`, and if so, changes the feature flag\'s description.  Attributes that are not editable, such as a resource\'s `_links`, have names that start with an underscore.  ### Updates using JSON merge patch  [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) is another format for specifying the modifications to perform on a resource. JSON merge patch is less expressive than JSON patch. However, in many cases it is simpler to construct a merge patch document. For example, you can change a feature flag\'s description with the following merge patch document:  ```json {   \"description\": \"New flag description\" } ```  ### Updates using semantic patch  Some resources support the semantic patch format. A semantic patch is a way to specify the modifications to perform on a resource as a set of executable instructions.  Semantic patch allows you to be explicit about intent using precise, custom instructions. In many cases, you can define semantic patch instructions independently of the current state of the resource. This can be useful when defining a change that may be applied at a future date.  To make a semantic patch request, you must append `domain-model=launchdarkly.semanticpatch` to your `Content-Type` header.  Here\'s how:  ``` Content-Type: application/json; domain-model=launchdarkly.semanticpatch ```  If you call a semantic patch resource without this header, you will receive a `400` response because your semantic patch will be interpreted as a JSON patch.  The body of a semantic patch request takes the following properties:  * `comment` (string): (Optional) A description of the update. * `environmentKey` (string): (Required for some resources only) The environment key. * `instructions` (array): (Required) A list of actions the update should perform. Each action in the list must be an object with a `kind` property that indicates the instruction. If the instruction requires parameters, you must include those parameters as additional fields in the object. The documentation for each resource that supports semantic patch includes the available instructions and any additional parameters.  For example:  ```json {   \"comment\": \"optional comment\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  Semantic patches are not applied partially; either all of the instructions are applied or none of them are. If **any** instruction is invalid, the endpoint returns an error and will not change the resource. If all instructions are valid, the request succeeds and the resources are updated if necessary, or left unchanged if they are already in the state you request.  ### Updates with comments  You can submit optional comments with `PATCH` changes.  To submit a comment along with a JSON patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"patch\": [{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"The new description\" }] } ```  To submit a comment along with a JSON merge patch document, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"merge\": { \"description\": \"New flag description\" } } ```  To submit a comment along with a semantic patch, use the following format:  ```json {   \"comment\": \"This is a comment string\",   \"instructions\": [ {\"kind\": \"turnFlagOn\"} ] } ```  ## Errors  The API always returns errors in a common format. Here\'s an example:  ```json {   \"code\": \"invalid_request\",   \"message\": \"A feature with that key already exists\",   \"id\": \"30ce6058-87da-11e4-b116-123b93f75cba\" } ```  The `code` indicates the general class of error. The `message` is a human-readable explanation of what went wrong. The `id` is a unique identifier. Use it when you\'re working with LaunchDarkly Support to debug a problem with a specific API call.  ### HTTP status error response codes  | Code | Definition        | Description                                                                                       | Possible Solution                                                | | ---- | ----------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | | 400  | Invalid request       | The request cannot be understood.                                    | Ensure JSON syntax in request body is correct.                   | | 401  | Invalid access token      | Requestor is unauthorized or does not have permission for this API call.                                                | Ensure your API access token is valid and has the appropriate permissions.                                     | | 403  | Forbidden         | Requestor does not have access to this resource.                                                | Ensure that the account member or access token has proper permissions set. | | 404  | Invalid resource identifier | The requested resource is not valid. | Ensure that the resource is correctly identified by ID or key. | | 405  | Method not allowed | The request method is not allowed on this resource. | Ensure that the HTTP verb is correct. | | 409  | Conflict          | The API request can not be completed because it conflicts with a concurrent API request. | Retry your request.                                              | | 422  | Unprocessable entity | The API request can not be completed because the update description can not be understood. | Ensure that the request body is correct for the type of patch you are using, either JSON patch or semantic patch. | 429  | Too many requests | Read [Rate limiting](https://launchdarkly.com/docs/api#rate-limiting).                                               | Wait and try again later.                                        |  ## CORS  The LaunchDarkly API supports Cross Origin Resource Sharing (CORS) for AJAX requests from any origin. If an `Origin` header is given in a request, it will be echoed as an explicitly allowed origin. Otherwise the request returns a wildcard, `Access-Control-Allow-Origin: *`. For more information on CORS, read the [CORS W3C Recommendation](http://www.w3.org/TR/cors). Example CORS headers might look like:  ```http Access-Control-Allow-Headers: Accept, Content-Type, Content-Length, Accept-Encoding, Authorization Access-Control-Allow-Methods: OPTIONS, GET, DELETE, PATCH Access-Control-Allow-Origin: * Access-Control-Max-Age: 300 ```  You can make authenticated CORS calls just as you would make same-origin calls, using either [token or session-based authentication](https://launchdarkly.com/docs/api#authentication). If you are using session authentication, you should set the `withCredentials` property for your `xhr` request to `true`. You should never expose your access tokens to untrusted entities.  ## Rate limiting  We use several rate-limiting strategies to ensure the availability of our APIs. Rate-limited calls to our APIs return a `429` status code and include headers to indicate the current rate limit status. The specific headers returned depend on the API route that was called. Limits differ based on the route, authentication mechanism, and other factors.  Each set of headers below appears only when the corresponding limit is being enforced for your call. A given route may be subject to any combination of these limits, so a response can include one, several, or none of these headers. A missing header indicates that the limit was not applied to this specific call; it does not necessarily indicate that the limit does not exist. To reduce usage before hitting a `429` status, program against whichever rate limit headers are present rather than expecting a specific header.  We do not publicly document the specific number of calls permitted by any of these limits, and these limits may change. We encourage clients to program against the specification and rely on the headers described below, rather than hardcoding the current limits.  > ### Rate limiting and SDKs > > LaunchDarkly SDKs are never rate limited and do not use the API endpoints defined here. LaunchDarkly uses a different set of approaches, including streaming/server-sent events and a global CDN, to ensure availability to the routes used by LaunchDarkly SDKs.  ### Global rate limits  Authenticated requests are subject to a global limit. This is the maximum number of calls that your account can make to the API per ten seconds. All service and personal access tokens on the account share this limit, so exceeding the limit with one access token will impact other tokens. Calls that are subject to global rate limits may return the headers below:  | Header name                    | Description                                                                      | | ------------------------------ | -------------------------------------------------------------------------------- | | `X-Ratelimit-Global-Limit`     | The maximum number of requests the account is permitted to make per ten seconds. | | `X-Ratelimit-Global-Remaining` | The number of requests remaining in the current global rate limit window.        | | `X-Ratelimit-Reset`            | The time at which the current rate limit window resets in epoch milliseconds.    |  ### Route-level rate limits  Some authenticated routes have custom rate limits. These also reset every ten seconds. Any service or personal access tokens hitting the same route share this limit, so exceeding the limit with one access token may impact other tokens. Calls that are subject to route-level rate limits return the headers below:  | Header name                   | Description                                                                                           | | ----------------------------- | ----------------------------------------------------------------------------------------------------- | | `X-Ratelimit-Route-Limit`     | The maximum number of requests to the current route permitted per ten seconds.           | | `X-Ratelimit-Route-Remaining` | The number of requests remaining for the current route in the current rate limit window. | | `X-Ratelimit-Reset`           | The time at which the current rate limit window resets in epoch milliseconds.            |  A _route_ represents a specific URL pattern and verb. For example, the [Delete environment](https://launchdarkly.com/docs/api/environments/delete-environment) endpoint is considered a single route, and each call to delete an environment counts against your route-level rate limit for that route.  ### Access token rate limits  Some calls are rate limited per access token. Unlike the global and route-level limits, this limit applies to a single service or personal access token on its own. Exceeding a limit with one access token does not affect other tokens on the account. Calls that are subject to access token rate limits return these headers:  | Header name                        | Description                                                                             | | ---------------------------------- | --------------------------------------------------------------------------------------- | | `X-Ratelimit-Auth-Token-Limit`     | The maximum number of requests the access token can make per ten seconds.               | | `X-Ratelimit-Auth-Token-Remaining` | The number of requests remaining for the access token in the current rate limit window. | | `X-Ratelimit-Auth-Token-Reset`     | The time at which the current rate limit window resets in epoch milliseconds.           |  Unlike the other rate limits, access token rate limits report their own reset time in the `X-Ratelimit-Auth-Token-Reset` header instead of in `X-Ratelimit-Reset`.  ### IP-based rate limiting  We also employ IP-based rate limiting on some API routes. If you hit an IP-based rate limit, your API response will include a `Retry-After` header indicating how long to wait before re-trying the call. Clients must wait at least `Retry-After` seconds before making additional calls to our API, and should employ jitter and backoff strategies to avoid triggering rate limits again.  ## OpenAPI (Swagger) and client libraries  We have a [complete OpenAPI (Swagger) specification](https://app.launchdarkly.com/api/v2/openapi.json) for our API.  We auto-generate multiple client libraries based on our OpenAPI specification. To learn more, visit the [collection of client libraries on GitHub](https://github.com/search?q=topic%3Alaunchdarkly-api+org%3Alaunchdarkly&type=Repositories). Alternatively, you can use the specification to generate client libraries to interact with our REST API in your language of choice. Or, you can refer to our API endpoints\' documentation for guidance on how to make requests with a common HTTP library in your language of choice.  Our OpenAPI specification is supported by several API-based tools such as Postman and Insomnia. In many cases, you can directly import our specification to explore our APIs.  ## Method overriding  Some firewalls and HTTP clients restrict the use of verbs other than `GET` and `POST`. In those environments, our API endpoints that use `DELETE`, `PATCH`, and `PUT` verbs are inaccessible.  To avoid this issue, our API supports the `X-HTTP-Method-Override` header, allowing clients to \"tunnel\" `DELETE`, `PATCH`, and `PUT` requests using a `POST` request.  For example, to call a `PATCH` endpoint using a `POST` request, you can include `X-HTTP-Method-Override:PATCH` as a header.  ## Beta resources  We sometimes release new API resources in **beta** status before we release them with general availability.  Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  We try to promote resources into general availability as quickly as possible. This happens after sufficient testing and when we\'re satisfied that we no longer need to make backwards-incompatible changes.  We mark beta resources with a \"Beta\" callout in our documentation, pictured below:  > ### This feature is in beta > > To use this feature, pass in a header including the `LD-API-Version` key with value set to `beta`. Use this header with each call. To learn more, read [Beta resources](https://launchdarkly.com/docs/api#beta-resources). > > Resources that are in beta are still undergoing testing and development. They may change without notice, including becoming backwards incompatible.  ### Using beta resources  To use a beta resource, you must include a header in the request. If you call a beta resource without this header, you receive a `403` response.  Use this header:  ``` LD-API-Version: beta ```  ## Federal and EU environments  In addition to the commercial versions, LaunchDarkly offers instances for federal agencies and those based in the European Union (EU).  ### Federal environments  The version of LaunchDarkly that is available on domains controlled by the United States government is different from the version of LaunchDarkly available to the general public. If you are an employee or contractor for a United States federal agency and use LaunchDarkly in your work, you likely use the federal instance of LaunchDarkly.  If you are working in the federal instance of LaunchDarkly, the base URI for each request is `https://app.launchdarkly.us`.  To learn more, read [LaunchDarkly in federal environments](https://launchdarkly.com/docs/home/infrastructure/federal).  ### EU environments  The version of LaunchDarkly that is available in the EU is different from the version of LaunchDarkly available to other regions. If you are based in the EU, you likely use the EU instance of LaunchDarkly. The LaunchDarkly EU instance complies with EU data residency principles, including the protection and confidentiality of EU customer information.  If you are working in the EU instance of LaunchDarkly, the base URI for each request is `https://app.eu.launchdarkly.com`.  To learn more, read [LaunchDarkly in the European Union (EU)](https://launchdarkly.com/docs/home/infrastructure/eu).  ## Versioning  We try hard to keep our REST API backwards compatible, but we occasionally have to make backwards-incompatible changes in the process of shipping new features. These breaking changes can cause unexpected behavior if you don\'t prepare for them accordingly.  Updates to our REST API include support for the latest features in LaunchDarkly. We also release a new version of our REST API every time we make a breaking change. We provide simultaneous support for multiple API versions so you can migrate from your current API version to a new version at your own pace.  ### Setting the API version per request  You can set the API version on a specific request by sending an `LD-API-Version` header, as shown in the example below:  ``` LD-API-Version: 20240415 ```  The header value is the version number of the API version you would like to request. The number for each version corresponds to the date the version was released in `yyyymmdd` format. In the example above the version `20240415` corresponds to April 15, 2024.  ### Setting the API version per access token  When you create an access token, you must specify a specific version of the API to use. This ensures that integrations using this token cannot be broken by version changes.  Tokens created before versioning was released have their version set to `20160426`, which is the version of the API that existed before the current versioning scheme, so that they continue working the same way they did before versioning.  If you would like to upgrade your integration to use a new API version, you can explicitly set the header described above.  > ### Best practice: Set the header for every client or integration > > We recommend that you set the API version header explicitly in any client or integration you build. > > Only rely on the access token API version during manual testing.  ### API version changelog  <table>   <tr>     <th>Version</th>     <th>Changes</th>     <th>End of life (EOL)</th>   </tr>   <tr>     <td>`20240415`</td>     <td>       <ul><li>Changed several endpoints from unpaginated to paginated. Use the `limit` and `offset` query parameters to page through the results.</li> <li>Changed the [list access tokens](https://launchdarkly.com/docs/api/access-tokens/get-tokens) endpoint: <ul><li>Response is now paginated with a default limit of `25`</li></ul></li> <li>Changed the [list account members](https://launchdarkly.com/docs/api/account-members/get-members) endpoint: <ul><li>The `accessCheck` filter is no longer available</li></ul></li> <li>Changed the [list custom roles](https://launchdarkly.com/docs/api/custom-roles/get-custom-roles) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `environments` field is now only returned if the request is filtered by environment, using the `filterEnv` query parameter</li><li>The `followerId`, `hasDataExport`, `status`, `contextKindTargeted`, and `segmentTargeted` filters are no longer available</li><li>The `compare` query parameter is no longer available</li></ul></li> <li>Changed the [list segments](https://launchdarkly.com/docs/api/segments/get-segments) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li></ul></li> <li>Changed the [list teams](https://launchdarkly.com/docs/api/teams/get-teams) endpoint: <ul><li>The `expand` parameter no longer supports including `projects` or `roles`</li><li>In paginated results, the maximum page size is now 100</li></ul></li> <li>Changed the [get workflows](https://launchdarkly.com/docs/api/workflows/get-workflows) endpoint: <ul><li>Response is now paginated with a default limit of `20`</li><li>The `_conflicts` field in the response is no longer available</li></ul></li> </ul>     </td>     <td>Current</td>   </tr>   <tr>     <td>`20220603`</td>     <td>       <ul><li>Changed the [list projects](https://launchdarkly.com/docs/api/projects/get-projects) return value:<ul><li>Response is now paginated with a default limit of `20`.</li><li>Added support for filter and sort.</li><li>The project `environments` field is now expandable. This field is omitted by default.</li></ul></li><li>Changed the [get project](https://launchdarkly.com/docs/api/projects/get-project) return value:<ul><li>The `environments` field is now expandable. This field is omitted by default.</li></ul></li></ul>     </td>     <td>2025-04-15</td>   </tr>   <tr>     <td>`20210729`</td>     <td>       <ul><li>Changed the [create approval request](https://launchdarkly.com/docs/api/approvals/post-approval-request) return value. It now returns HTTP Status Code `201` instead of `200`.</li><li> Changed the [get user](https://launchdarkly.com/docs/api/users/get-user) return value. It now returns a user record, not a user. </li><li>Added additional optional fields to environment, segments, flags, members, and segments, including the ability to create big segments. </li><li> Added default values for flag variations when new environments are created. </li><li>Added filtering and pagination for getting flags and members, including `limit`, `number`, `filter`, and `sort` query parameters. </li><li>Added endpoints for expiring user targets for flags and segments, scheduled changes, access tokens, Relay Proxy configuration, integrations and subscriptions, and approvals. </li></ul>     </td>     <td>2023-06-03</td>   </tr>   <tr>     <td>`20191212`</td>     <td>       <ul><li>[List feature flags](https://launchdarkly.com/docs/api/feature-flags/get-feature-flags) now defaults to sending summaries of feature flag configurations, equivalent to setting the query parameter `summary=true`. Summaries omit flag targeting rules and individual user targets from the payload. </li><li> Added endpoints for flags, flag status, projects, environments, audit logs, members, users, custom roles, segments, usage, streams, events, and data export. </li></ul>     </td>     <td>2022-07-29</td>   </tr>   <tr>     <td>`20160426`</td>     <td>       <ul><li>Initial versioning of API. Tokens created before versioning have their version set to this.</li></ul>     </td>     <td>2020-12-12</td>   </tr> </table>  To learn more about how EOL is determined, read LaunchDarkly\'s [End of Life (EOL) Policy](https://launchdarkly.com/policies/end-of-life-policy/). 
  *
  * The version of the OpenAPI document: 2.0
  * Contact: support@launchdarkly.com
@@ -253,6 +253,7 @@ export interface AIConfigVariation {
     '_archivedAt'?: number;
     '_publishedAt'?: number;
     'tools'?: Array<VariationTool>;
+    'skills'?: Array<VariationSkill>;
     'judgeConfiguration'?: JudgeConfiguration;
     'judgingConfigKeys'?: Array<string>;
 }
@@ -290,6 +291,10 @@ export interface AIConfigVariationPatch {
      * List of tool keys to use for this variation. The latest version of the tool will be used.
      */
     'toolKeys'?: Array<string>;
+    /**
+     * List of agent skills to attach to this variation. Replaces the current attachments.
+     */
+    'skills'?: Array<VariationSkillPost>;
     'judgeConfiguration'?: JudgeConfiguration;
 }
 export interface AIConfigVariationPost {
@@ -322,6 +327,10 @@ export interface AIConfigVariationPost {
      * List of tool keys to use for this variation. The latest version of the tool will be used.
      */
     'toolKeys'?: Array<string>;
+    /**
+     * List of agent skills to attach to this variation.
+     */
+    'skills'?: Array<VariationSkillPost>;
     'judgeConfiguration'?: JudgeConfiguration;
 }
 export interface AIConfigVariationsResponse {
@@ -828,6 +837,94 @@ export interface AgentOptimizations {
     'items': Array<AgentOptimization>;
     'totalCount': number;
 }
+export interface AgentSkill {
+    'key': string;
+    '_access'?: AiConfigsAccess;
+    '_links'?: ParentAndSelfLinks;
+    '_maintainer'?: AIConfigMaintainer;
+    'name': string;
+    'description'?: string;
+    /**
+     * The verbatim SKILL.md content of the agent skill
+     */
+    'markdown': string;
+    'tags': Array<string>;
+    'version': number;
+    'createdAt': number;
+}
+export interface AgentSkillPatch {
+    'name'?: string;
+    'description'?: string;
+    /**
+     * The verbatim SKILL.md content of the agent skill
+     */
+    'markdown'?: string;
+    'maintainerId'?: string;
+    'maintainerTeamKey'?: string;
+    'tags'?: Array<string>;
+}
+export interface AgentSkillPost {
+    'key': string;
+    'name': string;
+    'description'?: string;
+    /**
+     * The verbatim SKILL.md content of the agent skill
+     */
+    'markdown': string;
+    'maintainerId'?: string;
+    'maintainerTeamKey'?: string;
+    'tags'?: Array<string>;
+}
+/**
+ * A usage of an agent skill in a specific config variation.
+ */
+export interface AgentSkillReference {
+    /**
+     * The key of the config with a variation that references this skill.
+     */
+    'aiConfigKey': string;
+    /**
+     * The name of the config with a variation that references this skill.
+     */
+    'aiConfigName': string;
+    /**
+     * The ID of the variation that references this skill.
+     */
+    'variationId': string;
+    /**
+     * The key of the config variation that references this skill.
+     */
+    'variationKey': string;
+    /**
+     * The name of the variation that references this skill.
+     */
+    'variationName': string;
+    /**
+     * The version of the skill being referenced.
+     */
+    'resourceVersion': number;
+}
+export interface AgentSkillReferences {
+    '_links'?: PaginatedLinks;
+    /**
+     * The key of the agent skill.
+     */
+    'resourceKey': string;
+    /**
+     * The type of the resource being referenced.
+     */
+    'resourceType': string;
+    'items': Array<AgentSkillReference>;
+    /**
+     * The total number of references.
+     */
+    'totalCount': number;
+}
+export interface AgentSkills {
+    '_links'?: PaginatedLinks;
+    'items': Array<AgentSkill>;
+    'totalCount': number;
+}
 export interface AiConfigsAccess {
     'denied': Array<AiConfigsAccessDenied>;
     'allowed': Array<AiConfigsAccessAllowedRep>;
@@ -1010,6 +1107,10 @@ export interface AiConfigsMetricDenominatorRep {
      * The column to count distinct values of; required when unitAggregationType is count_distinct
      */
     'unitAggregationField'?: string;
+    /**
+     * For a numeric denominator, the column holding the numeric value
+     */
+    'valueColumn'?: string;
     'dataSource'?: AiConfigsMetricDataSourceRefRep;
     'filters'?: AiConfigsFilter;
     /**
@@ -1028,10 +1129,6 @@ export interface AiConfigsMetricDenominatorRep {
      * Upper winsorization percentile in the open interval (0, 100)
      */
     'winsorUpperPercentile'?: number;
-    /**
-     * Deprecated and ignored. Use winsorIncludeImputed instead.
-     */
-    'winsorExcludeImputed'?: boolean;
     /**
      * When true, the percentile bound calculation includes imputed zeros
      */
@@ -1192,10 +1289,6 @@ export interface AiConfigsMetricListingRep {
      * Upper winsorization percentile, expressed as a percent in the open interval (0, 100). When both bounds are set, must be greater than winsorLowerPercentile.
      */
     'winsorUpperPercentile'?: number;
-    /**
-     * Deprecated and ignored. Use winsorIncludeImputed instead.
-     */
-    'winsorExcludeImputed'?: boolean;
     /**
      * When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\'t send events.
      */
@@ -2631,6 +2724,13 @@ export interface ContextInstances {
      */
     'items': Array<ContextInstanceRecord>;
 }
+export interface ContextKindEnvironmentObservation {
+    /**
+     * The environment key
+     */
+    'environmentKey': string;
+    'lastSeen': number;
+}
 export interface ContextKindRep {
     /**
      * The context kind key
@@ -2651,6 +2751,10 @@ export interface ContextKindRep {
     'creationDate': number;
     'lastModified': number;
     'lastSeen'?: number;
+    /**
+     * Recent environment observations retained from flag evaluations. This is not a complete historical record.
+     */
+    'environmentObservations'?: Array<ContextKindEnvironmentObservation>;
     'createdFrom': string;
     /**
      * Alias for archived.
@@ -3195,6 +3299,10 @@ export interface DenominatorPost {
      * The warehouse column to use for counting distinct values. Required when the unitAggregationType is count_distinct.
      */
     'unitAggregationField'?: string;
+    /**
+     * For a numeric denominator, the column holding the numeric value. Overrides the value column mapped on the denominator data source.
+     */
+    'valueColumn'?: string;
     'filters'?: EventFilter;
     /**
      * Start of the measurement window in milliseconds
@@ -3212,10 +3320,6 @@ export interface DenominatorPost {
      * Upper winsorization percentile in the open interval (0, 100)
      */
     'winsorUpperPercentile'?: number;
-    /**
-     * Deprecated and ignored. Use winsorIncludeImputed instead.
-     */
-    'winsorExcludeImputed'?: boolean;
     /**
      * When true, includes imputed zeros in the percentile bound calculation
      */
@@ -3414,6 +3518,14 @@ export interface DependentMetricOrMetricGroupRep {
      * An ordered list of the metrics in this metric group
      */
     'metrics'?: Array<MetricInGroupRep>;
+    /**
+     * The method for analyzing metric events. Only set for individual metrics, not metric groups.
+     */
+    'analysisType'?: DependentMetricOrMetricGroupRepAnalysisTypeEnum;
+    /**
+     * The context kind chosen as the analysis unit for this metric in the iteration. If null, analysis uses the iteration\'s randomization unit.
+     */
+    'analysisUnit'?: string;
 }
 
 export const DependentMetricOrMetricGroupRepKindEnum = {
@@ -3426,6 +3538,12 @@ export const DependentMetricOrMetricGroupRepKindEnum = {
 } as const;
 
 export type DependentMetricOrMetricGroupRepKindEnum = typeof DependentMetricOrMetricGroupRepKindEnum[keyof typeof DependentMetricOrMetricGroupRepKindEnum];
+export const DependentMetricOrMetricGroupRepAnalysisTypeEnum = {
+    Mean: 'mean',
+    Percentile: 'percentile'
+} as const;
+
+export type DependentMetricOrMetricGroupRepAnalysisTypeEnum = typeof DependentMetricOrMetricGroupRepAnalysisTypeEnum[keyof typeof DependentMetricOrMetricGroupRepAnalysisTypeEnum];
 
 export interface DeploymentCollectionRep {
     /**
@@ -4733,6 +4851,7 @@ export interface FeatureFlag {
     'defaults'?: Defaults;
     '_purpose'?: string;
     'migrationSettings'?: FlagMigrationSettingsRep;
+    'stale'?: StaleFlagData;
     /**
      * Details on the environments for this flag. Only returned if the request is filtered by environment, using the <code>filterEnv</code> query parameter.
      */
@@ -5885,6 +6004,9 @@ export interface HunkRep {
      */
     'aliases'?: Array<string>;
 }
+export interface IPAllowlistSelfLink {
+    'self': CoreLink;
+}
 export interface Import {
     /**
      * The import ID
@@ -6521,8 +6643,13 @@ export interface IpAllowlistEntryResponse {
     '_updatedAt': number;
 }
 export interface IpAllowlistResponse {
+    '_links'?: IPAllowlistSelfLink;
     'sessionAllowlistEnabled': boolean;
     'apiTokenAllowlistEnabled': boolean;
+    /**
+     * The total number of entries matching the query, before pagination.
+     */
+    'totalCount'?: number;
     'entries': Array<IpAllowlistEntryResponse>;
 }
 export interface IpList {
@@ -7108,6 +7235,10 @@ export interface MetricDenominatorRep {
      * The column to count distinct values of; required when unitAggregationType is count_distinct
      */
     'unitAggregationField'?: string;
+    /**
+     * For a numeric denominator, the column holding the numeric value
+     */
+    'valueColumn'?: string;
     'dataSource'?: MetricDataSourceRefRep;
     'filters'?: Filter;
     /**
@@ -7126,10 +7257,6 @@ export interface MetricDenominatorRep {
      * Upper winsorization percentile in the open interval (0, 100)
      */
     'winsorUpperPercentile'?: number;
-    /**
-     * Deprecated and ignored. Use winsorIncludeImputed instead.
-     */
-    'winsorExcludeImputed'?: boolean;
     /**
      * When true, the percentile bound calculation includes imputed zeros
      */
@@ -7291,6 +7418,10 @@ export interface MetricInGroupRep {
      */
     'eventKey'?: string;
     /**
+     * The context kind used as the analysis unit for this metric in the experiment iteration
+     */
+    'analysisUnit'?: string;
+    /**
      * The location and content type of related resources
      */
     '_links': { [key: string]: Link; };
@@ -7355,6 +7486,10 @@ export interface MetricInput {
      * @deprecated
      */
     'primary'?: boolean;
+    /**
+     * The analysis unit to use for this metric. If omitted, analysis uses the iteration\'s randomization unit.
+     */
+    'analysisUnit'?: string;
 }
 export interface MetricListingRep {
     /**
@@ -7494,10 +7629,6 @@ export interface MetricListingRep {
      */
     'winsorUpperPercentile'?: number;
     /**
-     * Deprecated and ignored. Use winsorIncludeImputed instead.
-     */
-    'winsorExcludeImputed'?: boolean;
-    /**
      * When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\'t send events.
      */
     'winsorIncludeImputed'?: boolean;
@@ -7630,10 +7761,6 @@ export interface MetricPost {
      */
     'winsorUpperPercentile'?: number;
     /**
-     * Deprecated and ignored. Use winsorIncludeImputed instead.
-     */
-    'winsorExcludeImputed'?: boolean;
-    /**
      * When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\'t send events.
      */
     'winsorIncludeImputed'?: boolean;
@@ -7649,6 +7776,10 @@ export interface MetricPost {
      * The warehouse column to use for counting distinct values. Required when the unitAggregationType is count_distinct.
      */
     'unitAggregationField'?: string;
+    /**
+     * For numeric warehouse-native metrics, the column holding the numeric value. Overrides the value column mapped on the data source.
+     */
+    'valueColumn'?: string;
     'denominator'?: DenominatorPost;
 }
 
@@ -7812,10 +7943,6 @@ export interface MetricRep {
      */
     'winsorUpperPercentile'?: number;
     /**
-     * Deprecated and ignored. Use winsorIncludeImputed instead.
-     */
-    'winsorExcludeImputed'?: boolean;
-    /**
      * When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\'t send events.
      */
     'winsorIncludeImputed'?: boolean;
@@ -7906,6 +8033,10 @@ export interface MetricV2Rep {
      * The event key sent with the metric. Only relevant for custom metrics.
      */
     'eventKey'?: string;
+    /**
+     * The context kind used as the analysis unit for this metric in the experiment iteration
+     */
+    'analysisUnit'?: string;
     /**
      * The location and content type of related resources
      */
@@ -8010,8 +8141,9 @@ export interface MigrationSettingsPost {
 }
 export interface ModelConfig {
     '_access'?: AiConfigsAccess;
+    '_maintainer'?: AIConfigMaintainer;
     /**
-     * Human readable name of the model
+     * Human-readable name of the model
      */
     'name': string;
     /**
@@ -8055,6 +8187,37 @@ export interface ModelConfig {
      */
     'isRestricted': boolean;
 }
+export interface ModelConfigPatch {
+    /**
+     * Immutable provider model identifier. To use a different model identifier, create a new model config.
+     */
+    'id'?: string;
+    /**
+     * Immutable model provider. To use a different provider, create a new model config.
+     */
+    'provider'?: string;
+    /**
+     * Human-readable name of the model
+     */
+    'name'?: string;
+    /**
+     * Cost per input token in USD
+     */
+    'costPerInputToken'?: number;
+    /**
+     * Cost per output token in USD
+     */
+    'costPerOutputToken'?: number;
+    /**
+     * Cost per cached input token in USD
+     */
+    'costPerCachedInputToken'?: number;
+    'params'?: object;
+    'customParams'?: object;
+    'tags'?: Array<string>;
+    'maintainerId'?: string;
+    'maintainerTeamKey'?: string;
+}
 export interface ModelConfigPost {
     /**
      * Human readable name of the model
@@ -8068,6 +8231,8 @@ export interface ModelConfigPost {
      * Identifier for the model, for use with third party providers
      */
     'id': string;
+    'maintainerId'?: string;
+    'maintainerTeamKey'?: string;
     /**
      * Icon for the model
      */
@@ -8091,6 +8256,11 @@ export interface ModelConfigPost {
      * Cost per cached input token in USD
      */
     'costPerCachedInputToken'?: number;
+}
+export interface ModelConfigs {
+    '_links'?: PaginatedLinks;
+    'items': Array<ModelConfig>;
+    'totalCount': number;
 }
 export interface ModelError {
     'message': string;
@@ -9395,6 +9565,7 @@ export interface ReleaseProgression {
      * The ID of the currently active release phase
      */
     'activePhaseId'?: string;
+    'activePhaseStatus'?: string;
     /**
      * The location and content type of related resources
      */
@@ -9729,6 +9900,43 @@ export interface SdkKey {
      * The auto-incremented version number of the SDK key.
      */
     '_version': number;
+}
+
+
+export interface SdkKeyForPutSdkKeyViews {
+    '_links'?: ParentAndSelfLinks;
+    'kind': SdkKeyKind;
+    /**
+     * The user-defined identifying key of the SDK key. This is used solely to identify an SDK key and is distinct from the value field, which is the actual SDK key value.
+     */
+    'key': string;
+    /**
+     * The human-readable name of the SDK key.
+     */
+    'name': string;
+    /**
+     * The optional description of the SDK key.
+     */
+    'description'?: string;
+    'expiry'?: number;
+    /**
+     * The string value of the SDK key. Use this when configuring your SDK.
+     */
+    'value': string;
+    /**
+     * Indicates if this SDK key is the system-defined default for the environment. There may also be an expiring default SDK key for the environment (not possible with mobile keys).
+     */
+    'isDefault': boolean;
+    /**
+     * The ID of the member who created the SDK key. This field is immutable.
+     */
+    '_createdByMemberId'?: string;
+    '_createdAt': number;
+    '_updatedAt': number;
+    /**
+     * The auto-incremented version number of the SDK key.
+     */
+    '_version': number;
     /**
      * Summaries of views associated with the SDK key.
      */
@@ -9746,6 +9954,44 @@ export const SdkKeyKind = {
 } as const;
 
 export type SdkKeyKind = typeof SdkKeyKind[keyof typeof SdkKeyKind];
+
+
+export interface SdkKeyListItem {
+    '_links'?: ParentAndSelfLinks;
+    'kind': SdkKeyKind;
+    /**
+     * The user-defined identifying key of the SDK key. This is used solely to identify an SDK key and is distinct from the value field, which is the actual SDK key value.
+     */
+    'key': string;
+    /**
+     * The human-readable name of the SDK key.
+     */
+    'name': string;
+    /**
+     * The optional description of the SDK key.
+     */
+    'description'?: string;
+    'expiry'?: number;
+    /**
+     * The string value of the SDK key. Use this when configuring your SDK.
+     */
+    'value': string;
+    /**
+     * Indicates if this SDK key is the system-defined default for the environment. There may also be an expiring default SDK key for the environment (not possible with mobile keys).
+     */
+    'isDefault': boolean;
+    /**
+     * The ID of the member who created the SDK key. This field is immutable.
+     */
+    '_createdByMemberId'?: string;
+    '_createdAt': number;
+    '_updatedAt': number;
+    /**
+     * The auto-incremented version number of the SDK key.
+     */
+    '_version': number;
+    'environmentSummary'?: SdkKeysEnvironmentSummary;
+}
 
 
 export interface SdkKeyPatch {
@@ -9786,6 +10032,35 @@ export const SdkKeyPostKindEnum = {
 
 export type SdkKeyPostKindEnum = typeof SdkKeyPostKindEnum[keyof typeof SdkKeyPostKindEnum];
 
+export interface SdkKeysEnvironmentSummary {
+    /**
+     * The location and content type of related resources
+     */
+    '_links': { [key: string]: Link; };
+    /**
+     * A project-unique key for the environment
+     */
+    'key': string;
+    /**
+     * A human-friendly name for the environment
+     */
+    'name': string;
+    /**
+     * The color used to indicate this environment in the UI
+     */
+    'color': string;
+}
+export interface SdkKeysForGetSdkKeys {
+    '_links'?: SdkKeysSelfLink;
+    'items': Array<SdkKey>;
+    /**
+     * The total number of SDK keys matching the query, before pagination.
+     */
+    'totalCount': number;
+}
+export interface SdkKeysSelfLink {
+    'self': CoreLink;
+}
 export interface SdkListRep {
     /**
      * The location and content type of related resources
@@ -9920,6 +10195,10 @@ export interface SeriesListRepFloat {
      * An array of data points with timestamps. Each element of the array is an object with a \'time\' field, whose value is the timestamp, and one or more key fields. If there are multiple key fields, they are labeled \'0\', \'1\', and so on, and are explained in the <code>metadata</code>.
      */
     'series': Array<{ [key: string]: number; }>;
+    /**
+     * Cumulative projected usage by day for the full billing period, when available. Each element matches the structure of <code>series</code>: an object with a \'time\' field and a \'0\' value field. The projected (non-actual) portion begins where the actual <code>series</code> ends.
+     */
+    'projectedSeries'?: Array<{ [key: string]: number; }>;
 }
 export interface SimpleHoldoutRep {
     '_id'?: string;
@@ -10025,6 +10304,20 @@ export interface StageOutput {
     'conditions': Array<ConditionOutput>;
     'action': ActionOutput;
     '_execution': ExecutionOutput;
+}
+export interface StaleFlagData {
+    /**
+     * Whether the flag is ready for code removal
+     */
+    'readyForCodeRemoval'?: boolean;
+    /**
+     * Whether the flag is ready to be archived
+     */
+    'readyToArchive'?: boolean;
+    /**
+     * If a third-party system helps clean up the flag, the ID from that system
+     */
+    'cleanupId'?: string;
 }
 export interface Statement {
     /**
@@ -11098,6 +11391,26 @@ export interface VariationOrRolloutRep {
     'variation'?: number;
     'rollout'?: Rollout;
 }
+export interface VariationSkill {
+    /**
+     * The key of the attached agent skill.
+     */
+    'key': string;
+    /**
+     * The pinned skill version.
+     */
+    'version': number;
+}
+export interface VariationSkillPost {
+    /**
+     * The key of the agent skill to attach.
+     */
+    'key': string;
+    /**
+     * The version of the skill to use.
+     */
+    'version': number;
+}
 export interface VariationSummary {
     'rules': number;
     'nullRules': number;
@@ -11194,11 +11507,6 @@ export interface View {
     'tags': Array<string>;
     'createdAt': number;
     'updatedAt': number;
-    /**
-     * Whether this view is archived
-     */
-    'archived': boolean;
-    'archivedAt'?: number;
     'deletedAt'?: number;
     /**
      * Whether this view is deleted
@@ -11331,10 +11639,6 @@ export interface ViewPatch {
      * Tags associated with this view
      */
     'tags'?: Array<string>;
-    /**
-     * Whether or not the view is archived
-     */
-    'archived'?: boolean;
 }
 export interface ViewPost {
     /**
@@ -11579,6 +11883,7 @@ export interface WarehouseSetupScriptPostBody {
     'clickHouseIncludeHostRestriction'?: boolean;
     'clickHouseServiceRoleArn'?: string;
     'clickHousePassword'?: string;
+    's3BucketName'?: string;
 }
 export interface Webhook {
     /**
@@ -11738,7 +12043,7 @@ export const AIConfigsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -11796,7 +12101,7 @@ export const AIConfigsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -11959,7 +12264,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12003,7 +12308,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12058,7 +12363,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12106,7 +12411,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12151,7 +12456,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12201,7 +12506,7 @@ export const AccessTokensApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12494,7 +12799,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12543,7 +12848,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12608,7 +12913,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12656,7 +12961,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12701,7 +13006,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12750,7 +13055,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -12795,7 +13100,7 @@ export const AccountMembersApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13178,7 +13483,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13268,7 +13573,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13358,7 +13663,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13453,7 +13758,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13533,7 +13838,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13600,7 +13905,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13654,7 +13959,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13739,7 +14044,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13819,7 +14124,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13904,7 +14209,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -13994,7 +14299,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14049,7 +14354,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14140,7 +14445,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14191,7 +14496,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14256,7 +14561,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14321,7 +14626,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14386,7 +14691,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14451,7 +14756,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14516,7 +14821,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14586,7 +14891,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14626,7 +14931,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14731,7 +15036,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14790,7 +15095,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14859,7 +15164,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14903,7 +15208,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -14968,7 +15273,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -15048,7 +15353,7 @@ export const AccountUsageBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16503,7 +16808,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16555,7 +16860,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16603,7 +16908,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16654,7 +16959,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -16705,7 +17010,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16760,12 +17065,60 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
                 localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
             }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete an agent skill, including all of its versions.
+         * @summary Delete an agent skill
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteAgentSkill: async (projectKey: string, skillKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('deleteAgentSkill', 'projectKey', projectKey)
+            // verify required parameter 'skillKey' is not null or undefined
+            assertParamExists('deleteAgentSkill', 'skillKey', skillKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"skillKey"}}`, encodeURIComponent(String(skillKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -16811,7 +17164,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16859,7 +17212,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16907,7 +17260,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -16956,7 +17309,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17035,7 +17388,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17114,7 +17467,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17165,7 +17518,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17213,7 +17566,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17265,7 +17618,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17329,7 +17682,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17377,7 +17730,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17428,7 +17781,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -17479,7 +17832,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17492,14 +17845,63 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Get an AI model config by key.
-         * @summary Get AI model config
+         * Retrieve a specific agent skill by its key.
+         * @summary Get an agent skill
          * @param {string} projectKey 
-         * @param {string} modelConfigKey 
+         * @param {string} skillKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getModelConfig: async (projectKey: string, modelConfigKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getAgentSkill: async (projectKey: string, skillKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getAgentSkill', 'projectKey', projectKey)
+            // verify required parameter 'skillKey' is not null or undefined
+            assertParamExists('getAgentSkill', 'skillKey', skillKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"skillKey"}}`, encodeURIComponent(String(skillKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get an AI model config by key. Specify a version to retrieve a historical custom model config version. Global model configs accept version 0 or 1 and return their current representation.
+         * @summary Get AI model config
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {number} [version] Specific model config version to return. Omit to return the latest version.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getModelConfig: async (projectKey: string, modelConfigKey: string, version?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getModelConfig', 'projectKey', projectKey)
             // verify required parameter 'modelConfigKey' is not null or undefined
@@ -17521,13 +17923,17 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            if (version !== undefined) {
+                localVarQueryParameter['version'] = version;
+            }
+
             localVarHeaderParameter['Accept'] = 'application/json';
 
             // CUSTOM-START
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17575,7 +17981,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17638,7 +18044,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17702,7 +18108,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17764,7 +18170,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -17825,7 +18231,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17877,7 +18283,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17936,7 +18342,182 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get all config variations that currently reference this agent skill.
+         * @summary List agent skill references
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentSkillReferences: async (projectKey: string, skillKey: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('listAgentSkillReferences', 'projectKey', projectKey)
+            // verify required parameter 'skillKey' is not null or undefined
+            assertParamExists('listAgentSkillReferences', 'skillKey', skillKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/references`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"skillKey"}}`, encodeURIComponent(String(skillKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get all versions of an agent skill in the given project, ordered by version descending.
+         * @summary List agent skill versions
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentSkillVersions: async (projectKey: string, skillKey: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('listAgentSkillVersions', 'projectKey', projectKey)
+            // verify required parameter 'skillKey' is not null or undefined
+            assertParamExists('listAgentSkillVersions', 'skillKey', skillKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/versions`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"skillKey"}}`, encodeURIComponent(String(skillKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a list of all agent skills in the given project.
+         * @summary List agent skills
+         * @param {string} projectKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {string} [filter] A filter to apply to the list.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentSkills: async (projectKey: string, limit?: number, offset?: number, filter?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('listAgentSkills', 'projectKey', projectKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/skills`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -17994,7 +18575,65 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a paginated list of all available versions of an AI model config, ordered from newest to oldest. Global model configs return their single current representation.
+         * @summary List AI model config versions
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listModelConfigVersions: async (projectKey: string, modelConfigKey: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('listModelConfigVersions', 'projectKey', projectKey)
+            // verify required parameter 'modelConfigKey' is not null or undefined
+            assertParamExists('listModelConfigVersions', 'modelConfigKey', modelConfigKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey}/versions`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"modelConfigKey"}}`, encodeURIComponent(String(modelConfigKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18043,7 +18682,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18101,7 +18740,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18159,7 +18798,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18218,7 +18857,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18268,7 +18907,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18319,7 +18958,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18374,7 +19013,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18425,7 +19064,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18479,7 +19118,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -18535,7 +19174,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18592,13 +19231,119 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(agentOptimizationResultPatch, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update an existing agent skill. Creates a new version of the skill.
+         * @summary Update an agent skill
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {AgentSkillPatch} agentSkillPatch Agent skill fields to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchAgentSkill: async (projectKey: string, skillKey: string, agentSkillPatch: AgentSkillPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchAgentSkill', 'projectKey', projectKey)
+            // verify required parameter 'skillKey' is not null or undefined
+            assertParamExists('patchAgentSkill', 'skillKey', skillKey)
+            // verify required parameter 'agentSkillPatch' is not null or undefined
+            assertParamExists('patchAgentSkill', 'agentSkillPatch', agentSkillPatch)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"skillKey"}}`, encodeURIComponent(String(skillKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(agentSkillPatch, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update an AI model config.
+         * @summary Update an AI model config
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {ModelConfigPatch} modelConfigPatch AI model config object to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchModelConfig: async (projectKey: string, modelConfigKey: string, modelConfigPatch: ModelConfigPatch, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('patchModelConfig', 'projectKey', projectKey)
+            // verify required parameter 'modelConfigKey' is not null or undefined
+            assertParamExists('patchModelConfig', 'modelConfigKey', modelConfigKey)
+            // verify required parameter 'modelConfigPatch' is not null or undefined
+            assertParamExists('patchModelConfig', 'modelConfigPatch', modelConfigPatch)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey}`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"modelConfigKey"}}`, encodeURIComponent(String(modelConfigKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(modelConfigPatch, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -18645,7 +19390,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18694,7 +19439,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18747,7 +19492,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18796,7 +19541,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18848,7 +19593,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -18900,7 +19645,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -18953,13 +19698,62 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(agentOptimizationResultPost, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Create a new agent skill within the given project.
+         * @summary Create an agent skill
+         * @param {string} projectKey 
+         * @param {AgentSkillPost} agentSkillPost Agent skill object to create
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postAgentSkill: async (projectKey: string, agentSkillPost: AgentSkillPost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('postAgentSkill', 'projectKey', projectKey)
+            // verify required parameter 'agentSkillPost' is not null or undefined
+            assertParamExists('postAgentSkill', 'agentSkillPost', agentSkillPost)
+            const localVarPath = `/api/v2/projects/{projectKey}/ai-configs/skills`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(agentSkillPost, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19002,7 +19796,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -19051,7 +19845,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -19100,7 +19894,7 @@ export const AgentControlApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -19208,6 +20002,20 @@ export const AgentControlApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAgentOptimizationRun(lDAPIVersion, projectKey, optimizationKey, runId, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AgentControlApi.deleteAgentOptimizationRun']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Delete an agent skill, including all of its versions.
+         * @summary Delete an agent skill
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteAgentSkill(projectKey: string, skillKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteAgentSkill(projectKey, skillKey, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.deleteAgentSkill']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -19408,15 +20216,30 @@ export const AgentControlApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Get an AI model config by key.
-         * @summary Get AI model config
+         * Retrieve a specific agent skill by its key.
+         * @summary Get an agent skill
          * @param {string} projectKey 
-         * @param {string} modelConfigKey 
+         * @param {string} skillKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfig>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getModelConfig(projectKey, modelConfigKey, options);
+        async getAgentSkill(projectKey: string, skillKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentSkill>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAgentSkill(projectKey, skillKey, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.getAgentSkill']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get an AI model config by key. Specify a version to retrieve a historical custom model config version. Global model configs accept version 0 or 1 and return their current representation.
+         * @summary Get AI model config
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {number} [version] Specific model config version to return. Omit to return the latest version.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getModelConfig(projectKey: string, modelConfigKey: string, version?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getModelConfig(projectKey, modelConfigKey, version, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AgentControlApi.getModelConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -19534,6 +20357,54 @@ export const AgentControlApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Get all config variations that currently reference this agent skill.
+         * @summary List agent skill references
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listAgentSkillReferences(projectKey: string, skillKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentSkillReferences>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listAgentSkillReferences(projectKey, skillKey, limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.listAgentSkillReferences']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get all versions of an agent skill in the given project, ordered by version descending.
+         * @summary List agent skill versions
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listAgentSkillVersions(projectKey: string, skillKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentSkills>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listAgentSkillVersions(projectKey, skillKey, limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.listAgentSkillVersions']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get a list of all agent skills in the given project.
+         * @summary List agent skills
+         * @param {string} projectKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {string} [filter] A filter to apply to the list.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listAgentSkills(projectKey: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentSkills>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listAgentSkills(projectKey, limit, offset, filter, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.listAgentSkills']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get all results across all versions of an agent optimization.
          * @summary List all agent optimization results across versions
          * @param {string} projectKey 
@@ -19547,6 +20418,22 @@ export const AgentControlApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.listAllAgentOptimizationResults(projectKey, optimizationKey, limit, offset, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AgentControlApi.listAllAgentOptimizationResults']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get a paginated list of all available versions of an AI model config, ordered from newest to oldest. Global model configs return their single current representation.
+         * @summary List AI model config versions
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listModelConfigVersions(projectKey: string, modelConfigKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfigs>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listModelConfigVersions(projectKey, modelConfigKey, limit, offset, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.listModelConfigVersions']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -19720,6 +20607,36 @@ export const AgentControlApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Update an existing agent skill. Creates a new version of the skill.
+         * @summary Update an agent skill
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {AgentSkillPatch} agentSkillPatch Agent skill fields to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchAgentSkill(projectKey: string, skillKey: string, agentSkillPatch: AgentSkillPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentSkill>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchAgentSkill(projectKey, skillKey, agentSkillPatch, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.patchAgentSkill']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update an AI model config.
+         * @summary Update an AI model config
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {ModelConfigPatch} modelConfigPatch AI model config object to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchModelConfig(projectKey: string, modelConfigKey: string, modelConfigPatch: ModelConfigPatch, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchModelConfig(projectKey, modelConfigKey, modelConfigPatch, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.patchModelConfig']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Update an existing prompt snippet. Creates a new version of the snippet.
          * @summary Update a prompt snippet
          * @param {string} projectKey 
@@ -19819,6 +20736,20 @@ export const AgentControlApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.postAgentOptimizationResult(projectKey, optimizationKey, agentOptimizationResultPost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AgentControlApi.postAgentOptimizationResult']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Create a new agent skill within the given project.
+         * @summary Create an agent skill
+         * @param {string} projectKey 
+         * @param {AgentSkillPost} agentSkillPost Agent skill object to create
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async postAgentSkill(projectKey: string, agentSkillPost: AgentSkillPost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AgentSkill>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.postAgentSkill(projectKey, agentSkillPost, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AgentControlApi.postAgentSkill']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -19941,6 +20872,17 @@ export const AgentControlApiFactory = function (configuration?: Configuration, b
          */
         deleteAgentOptimizationRun(lDAPIVersion: DeleteAgentOptimizationRunLDAPIVersionEnum, projectKey: string, optimizationKey: string, runId: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.deleteAgentOptimizationRun(lDAPIVersion, projectKey, optimizationKey, runId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete an agent skill, including all of its versions.
+         * @summary Delete an agent skill
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteAgentSkill(projectKey: string, skillKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteAgentSkill(projectKey, skillKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete an AI model config.
@@ -20101,15 +21043,27 @@ export const AgentControlApiFactory = function (configuration?: Configuration, b
             return localVarFp.getAgentOptimization(projectKey, optimizationKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get an AI model config by key.
-         * @summary Get AI model config
+         * Retrieve a specific agent skill by its key.
+         * @summary Get an agent skill
          * @param {string} projectKey 
-         * @param {string} modelConfigKey 
+         * @param {string} skillKey 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfig> {
-            return localVarFp.getModelConfig(projectKey, modelConfigKey, options).then((request) => request(axios, basePath));
+        getAgentSkill(projectKey: string, skillKey: string, options?: RawAxiosRequestConfig): AxiosPromise<AgentSkill> {
+            return localVarFp.getAgentSkill(projectKey, skillKey, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get an AI model config by key. Specify a version to retrieve a historical custom model config version. Global model configs accept version 0 or 1 and return their current representation.
+         * @summary Get AI model config
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {number} [version] Specific model config version to return. Omit to return the latest version.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getModelConfig(projectKey: string, modelConfigKey: string, version?: number, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfig> {
+            return localVarFp.getModelConfig(projectKey, modelConfigKey, version, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve a specific prompt snippet by its key.
@@ -20203,6 +21157,45 @@ export const AgentControlApiFactory = function (configuration?: Configuration, b
             return localVarFp.listAgentOptimizations(projectKey, limit, offset, filter, options).then((request) => request(axios, basePath));
         },
         /**
+         * Get all config variations that currently reference this agent skill.
+         * @summary List agent skill references
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentSkillReferences(projectKey: string, skillKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<AgentSkillReferences> {
+            return localVarFp.listAgentSkillReferences(projectKey, skillKey, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get all versions of an agent skill in the given project, ordered by version descending.
+         * @summary List agent skill versions
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentSkillVersions(projectKey: string, skillKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<AgentSkills> {
+            return localVarFp.listAgentSkillVersions(projectKey, skillKey, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a list of all agent skills in the given project.
+         * @summary List agent skills
+         * @param {string} projectKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {string} [filter] A filter to apply to the list.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listAgentSkills(projectKey: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig): AxiosPromise<AgentSkills> {
+            return localVarFp.listAgentSkills(projectKey, limit, offset, filter, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get all results across all versions of an agent optimization.
          * @summary List all agent optimization results across versions
          * @param {string} projectKey 
@@ -20214,6 +21207,19 @@ export const AgentControlApiFactory = function (configuration?: Configuration, b
          */
         listAllAgentOptimizationResults(projectKey: string, optimizationKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<AgentOptimizationResults> {
             return localVarFp.listAllAgentOptimizationResults(projectKey, optimizationKey, limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a paginated list of all available versions of an AI model config, ordered from newest to oldest. Global model configs return their single current representation.
+         * @summary List AI model config versions
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {number} [limit] The number of resources to return.
+         * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listModelConfigVersions(projectKey: string, modelConfigKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfigs> {
+            return localVarFp.listModelConfigVersions(projectKey, modelConfigKey, limit, offset, options).then((request) => request(axios, basePath));
         },
         /**
          * Get all AI model configs for a project.
@@ -20353,6 +21359,30 @@ export const AgentControlApiFactory = function (configuration?: Configuration, b
             return localVarFp.patchAgentOptimizationResult(projectKey, optimizationKey, resultId, agentOptimizationResultPatch, options).then((request) => request(axios, basePath));
         },
         /**
+         * Update an existing agent skill. Creates a new version of the skill.
+         * @summary Update an agent skill
+         * @param {string} projectKey 
+         * @param {string} skillKey 
+         * @param {AgentSkillPatch} agentSkillPatch Agent skill fields to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchAgentSkill(projectKey: string, skillKey: string, agentSkillPatch: AgentSkillPatch, options?: RawAxiosRequestConfig): AxiosPromise<AgentSkill> {
+            return localVarFp.patchAgentSkill(projectKey, skillKey, agentSkillPatch, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update an AI model config.
+         * @summary Update an AI model config
+         * @param {string} projectKey 
+         * @param {string} modelConfigKey 
+         * @param {ModelConfigPatch} modelConfigPatch AI model config object to update
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchModelConfig(projectKey: string, modelConfigKey: string, modelConfigPatch: ModelConfigPatch, options?: RawAxiosRequestConfig): AxiosPromise<ModelConfig> {
+            return localVarFp.patchModelConfig(projectKey, modelConfigKey, modelConfigPatch, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Update an existing prompt snippet. Creates a new version of the snippet.
          * @summary Update a prompt snippet
          * @param {string} projectKey 
@@ -20432,6 +21462,17 @@ export const AgentControlApiFactory = function (configuration?: Configuration, b
          */
         postAgentOptimizationResult(projectKey: string, optimizationKey: string, agentOptimizationResultPost: AgentOptimizationResultPost, options?: RawAxiosRequestConfig): AxiosPromise<AgentOptimizationResult> {
             return localVarFp.postAgentOptimizationResult(projectKey, optimizationKey, agentOptimizationResultPost, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Create a new agent skill within the given project.
+         * @summary Create an agent skill
+         * @param {string} projectKey 
+         * @param {AgentSkillPost} agentSkillPost Agent skill object to create
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        postAgentSkill(projectKey: string, agentSkillPost: AgentSkillPost, options?: RawAxiosRequestConfig): AxiosPromise<AgentSkill> {
+            return localVarFp.postAgentSkill(projectKey, agentSkillPost, options).then((request) => request(axios, basePath));
         },
         /**
          * Create an AI model config. You can use this in any variation for any config in your project.
@@ -20547,6 +21588,18 @@ export class AgentControlApi extends BaseAPI {
      */
     public deleteAgentOptimizationRun(lDAPIVersion: DeleteAgentOptimizationRunLDAPIVersionEnum, projectKey: string, optimizationKey: string, runId: string, options?: RawAxiosRequestConfig) {
         return AgentControlApiFp(this.configuration).deleteAgentOptimizationRun(lDAPIVersion, projectKey, optimizationKey, runId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete an agent skill, including all of its versions.
+     * @summary Delete an agent skill
+     * @param {string} projectKey 
+     * @param {string} skillKey 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteAgentSkill(projectKey: string, skillKey: string, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).deleteAgentSkill(projectKey, skillKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -20721,15 +21774,28 @@ export class AgentControlApi extends BaseAPI {
     }
 
     /**
-     * Get an AI model config by key.
-     * @summary Get AI model config
+     * Retrieve a specific agent skill by its key.
+     * @summary Get an agent skill
      * @param {string} projectKey 
-     * @param {string} modelConfigKey 
+     * @param {string} skillKey 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getModelConfig(projectKey: string, modelConfigKey: string, options?: RawAxiosRequestConfig) {
-        return AgentControlApiFp(this.configuration).getModelConfig(projectKey, modelConfigKey, options).then((request) => request(this.axios, this.basePath));
+    public getAgentSkill(projectKey: string, skillKey: string, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).getAgentSkill(projectKey, skillKey, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get an AI model config by key. Specify a version to retrieve a historical custom model config version. Global model configs accept version 0 or 1 and return their current representation.
+     * @summary Get AI model config
+     * @param {string} projectKey 
+     * @param {string} modelConfigKey 
+     * @param {number} [version] Specific model config version to return. Omit to return the latest version.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getModelConfig(projectKey: string, modelConfigKey: string, version?: number, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).getModelConfig(projectKey, modelConfigKey, version, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -20831,6 +21897,48 @@ export class AgentControlApi extends BaseAPI {
     }
 
     /**
+     * Get all config variations that currently reference this agent skill.
+     * @summary List agent skill references
+     * @param {string} projectKey 
+     * @param {string} skillKey 
+     * @param {number} [limit] The number of resources to return.
+     * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listAgentSkillReferences(projectKey: string, skillKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).listAgentSkillReferences(projectKey, skillKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get all versions of an agent skill in the given project, ordered by version descending.
+     * @summary List agent skill versions
+     * @param {string} projectKey 
+     * @param {string} skillKey 
+     * @param {number} [limit] The number of resources to return.
+     * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listAgentSkillVersions(projectKey: string, skillKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).listAgentSkillVersions(projectKey, skillKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a list of all agent skills in the given project.
+     * @summary List agent skills
+     * @param {string} projectKey 
+     * @param {number} [limit] The number of resources to return.
+     * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+     * @param {string} [filter] A filter to apply to the list.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listAgentSkills(projectKey: string, limit?: number, offset?: number, filter?: string, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).listAgentSkills(projectKey, limit, offset, filter, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Get all results across all versions of an agent optimization.
      * @summary List all agent optimization results across versions
      * @param {string} projectKey 
@@ -20842,6 +21950,20 @@ export class AgentControlApi extends BaseAPI {
      */
     public listAllAgentOptimizationResults(projectKey: string, optimizationKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
         return AgentControlApiFp(this.configuration).listAllAgentOptimizationResults(projectKey, optimizationKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a paginated list of all available versions of an AI model config, ordered from newest to oldest. Global model configs return their single current representation.
+     * @summary List AI model config versions
+     * @param {string} projectKey 
+     * @param {string} modelConfigKey 
+     * @param {number} [limit] The number of resources to return.
+     * @param {number} [offset] Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listModelConfigVersions(projectKey: string, modelConfigKey: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).listModelConfigVersions(projectKey, modelConfigKey, limit, offset, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -20993,6 +22115,32 @@ export class AgentControlApi extends BaseAPI {
     }
 
     /**
+     * Update an existing agent skill. Creates a new version of the skill.
+     * @summary Update an agent skill
+     * @param {string} projectKey 
+     * @param {string} skillKey 
+     * @param {AgentSkillPatch} agentSkillPatch Agent skill fields to update
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public patchAgentSkill(projectKey: string, skillKey: string, agentSkillPatch: AgentSkillPatch, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).patchAgentSkill(projectKey, skillKey, agentSkillPatch, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update an AI model config.
+     * @summary Update an AI model config
+     * @param {string} projectKey 
+     * @param {string} modelConfigKey 
+     * @param {ModelConfigPatch} modelConfigPatch AI model config object to update
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public patchModelConfig(projectKey: string, modelConfigKey: string, modelConfigPatch: ModelConfigPatch, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).patchModelConfig(projectKey, modelConfigKey, modelConfigPatch, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Update an existing prompt snippet. Creates a new version of the snippet.
      * @summary Update a prompt snippet
      * @param {string} projectKey 
@@ -21078,6 +22226,18 @@ export class AgentControlApi extends BaseAPI {
      */
     public postAgentOptimizationResult(projectKey: string, optimizationKey: string, agentOptimizationResultPost: AgentOptimizationResultPost, options?: RawAxiosRequestConfig) {
         return AgentControlApiFp(this.configuration).postAgentOptimizationResult(projectKey, optimizationKey, agentOptimizationResultPost, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Create a new agent skill within the given project.
+     * @summary Create an agent skill
+     * @param {string} projectKey 
+     * @param {AgentSkillPost} agentSkillPost Agent skill object to create
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public postAgentSkill(projectKey: string, agentSkillPost: AgentSkillPost, options?: RawAxiosRequestConfig) {
+        return AgentControlApiFp(this.configuration).postAgentSkill(projectKey, agentSkillPost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -21180,7 +22340,7 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21225,7 +22385,7 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21280,7 +22440,7 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21328,7 +22488,7 @@ export const AnnouncementsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21557,7 +22717,7 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21605,7 +22765,7 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21654,7 +22814,7 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21718,7 +22878,7 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21783,7 +22943,7 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21831,7 +22991,7 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -21884,7 +23044,7 @@ export const ApplicationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22239,7 +23399,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22295,7 +23455,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22351,7 +23511,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22400,7 +23560,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22460,7 +23620,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22512,7 +23672,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22556,7 +23716,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22605,7 +23765,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22666,7 +23826,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22723,7 +23883,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22772,7 +23932,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22833,7 +23993,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -22890,7 +24050,7 @@ export const ApprovalsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -23512,7 +24672,7 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -23563,7 +24723,7 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -23613,7 +24773,7 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -23673,7 +24833,7 @@ export const ApprovalsBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -23945,7 +25105,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -23989,7 +25149,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24051,7 +25211,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24113,7 +25273,7 @@ export const AuditLogApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24364,7 +25524,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24409,7 +25569,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24467,7 +25627,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24511,7 +25671,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24581,7 +25741,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24641,7 +25801,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24685,7 +25845,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24725,7 +25885,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24774,7 +25934,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24822,7 +25982,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24875,7 +26035,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24920,7 +26080,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -24973,7 +26133,7 @@ export const CodeReferencesApiAxiosParamCreator = function (configuration?: Conf
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -25564,7 +26724,7 @@ export const ContextSettingsApiAxiosParamCreator = function (configuration?: Con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -25699,7 +26859,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -25771,7 +26931,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -25830,7 +26990,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -25892,7 +27052,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -25969,7 +27129,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -25985,10 +27145,11 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
          * Get all context kinds for a given project.
          * @summary Get context kinds
          * @param {string} projectKey The project key
+         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Options: &#x60;environmentObservations&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getContextKindsByProjectKey: async (projectKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getContextKindsByProjectKey: async (projectKey: string, expand?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('getContextKindsByProjectKey', 'projectKey', projectKey)
             const localVarPath = `/api/v2/projects/{projectKey}/context-kinds`
@@ -26007,13 +27168,17 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            if (expand !== undefined) {
+                localVarQueryParameter['expand'] = expand;
+            }
+
             localVarHeaderParameter['Accept'] = 'application/json';
 
             // CUSTOM-START
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -26094,7 +27259,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -26146,7 +27311,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -26224,7 +27389,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -26302,7 +27467,7 @@ export const ContextsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -26415,11 +27580,12 @@ export const ContextsApiFp = function(configuration?: Configuration) {
          * Get all context kinds for a given project.
          * @summary Get context kinds
          * @param {string} projectKey The project key
+         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Options: &#x60;environmentObservations&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getContextKindsByProjectKey(projectKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ContextKindsCollectionRep>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getContextKindsByProjectKey(projectKey, options);
+        async getContextKindsByProjectKey(projectKey: string, expand?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ContextKindsCollectionRep>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getContextKindsByProjectKey(projectKey, expand, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ContextsApi.getContextKindsByProjectKey']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -26585,11 +27751,12 @@ export const ContextsApiFactory = function (configuration?: Configuration, baseP
          * Get all context kinds for a given project.
          * @summary Get context kinds
          * @param {string} projectKey The project key
+         * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Options: &#x60;environmentObservations&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getContextKindsByProjectKey(projectKey: string, options?: RawAxiosRequestConfig): AxiosPromise<ContextKindsCollectionRep> {
-            return localVarFp.getContextKindsByProjectKey(projectKey, options).then((request) => request(axios, basePath));
+        getContextKindsByProjectKey(projectKey: string, expand?: string, options?: RawAxiosRequestConfig): AxiosPromise<ContextKindsCollectionRep> {
+            return localVarFp.getContextKindsByProjectKey(projectKey, expand, options).then((request) => request(axios, basePath));
         },
         /**
          * Get contexts based on kind and key.
@@ -26743,11 +27910,12 @@ export class ContextsApi extends BaseAPI {
      * Get all context kinds for a given project.
      * @summary Get context kinds
      * @param {string} projectKey The project key
+     * @param {string} [expand] A comma-separated list of properties that can reveal additional information in the response. Options: &#x60;environmentObservations&#x60;.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getContextKindsByProjectKey(projectKey: string, options?: RawAxiosRequestConfig) {
-        return ContextsApiFp(this.configuration).getContextKindsByProjectKey(projectKey, options).then((request) => request(this.axios, this.basePath));
+    public getContextKindsByProjectKey(projectKey: string, expand?: string, options?: RawAxiosRequestConfig) {
+        return ContextsApiFp(this.configuration).getContextKindsByProjectKey(projectKey, expand, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -26858,7 +28026,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -26902,7 +28070,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -26952,7 +28120,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27000,7 +28168,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27045,7 +28213,7 @@ export const CustomRolesApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27307,7 +28475,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27359,7 +28527,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27399,7 +28567,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27455,7 +28623,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27473,7 +28641,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
          * @summary Complete warehouse destination setup
          * @param {string} projKey The project key
          * @param {string} envKey The environment key
-         * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift)
+         * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift, databricks)
          * @param {CompleteSetupPostBody} completeSetupPostBody 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -27512,7 +28680,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27565,7 +28733,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27614,7 +28782,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27662,7 +28830,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27702,7 +28870,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27756,7 +28924,7 @@ export const DataExportDestinationsApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -27841,7 +29009,7 @@ export const DataExportDestinationsApiFp = function(configuration?: Configuratio
          * @summary Complete warehouse destination setup
          * @param {string} projKey The project key
          * @param {string} envKey The environment key
-         * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift)
+         * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift, databricks)
          * @param {CompleteSetupPostBody} completeSetupPostBody 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -27983,7 +29151,7 @@ export const DataExportDestinationsApiFactory = function (configuration?: Config
          * @summary Complete warehouse destination setup
          * @param {string} projKey The project key
          * @param {string} envKey The environment key
-         * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift)
+         * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift, databricks)
          * @param {CompleteSetupPostBody} completeSetupPostBody 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -28109,7 +29277,7 @@ export class DataExportDestinationsApi extends BaseAPI {
      * @summary Complete warehouse destination setup
      * @param {string} projKey The project key
      * @param {string} envKey The environment key
-     * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift)
+     * @param {string} kind The destination kind (snowflake-v2, bigquery, clickhouse, redshift, databricks)
      * @param {CompleteSetupPostBody} completeSetupPostBody 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -28223,7 +29391,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28271,7 +29439,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28335,7 +29503,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28387,7 +29555,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28436,7 +29604,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28485,7 +29653,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28538,7 +29706,7 @@ export const EnvironmentsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28897,7 +30065,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -28955,7 +30123,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29013,7 +30181,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29057,7 +30225,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29130,7 +30298,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29199,7 +30367,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29255,7 +30423,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29304,7 +30472,7 @@ export const ExperimentsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29734,7 +30902,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29783,7 +30951,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29835,7 +31003,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29887,7 +31055,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29945,7 +31113,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -29997,7 +31165,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30050,7 +31218,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30098,7 +31266,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30192,7 +31360,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30248,7 +31416,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30305,7 +31473,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30368,7 +31536,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30422,7 +31590,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -30479,7 +31647,7 @@ export const FeatureFlagsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31157,7 +32325,7 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31209,7 +32377,7 @@ export const FeatureFlagsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31371,7 +32539,7 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31424,7 +32592,7 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31476,7 +32644,7 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31516,7 +32684,7 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31572,7 +32740,7 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31625,7 +32793,7 @@ export const FlagImportConfigurationsBetaApiAxiosParamCreator = function (config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31944,7 +33112,7 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -31997,7 +33165,7 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32045,7 +33213,7 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32101,7 +33269,7 @@ export const FlagLinksBetaApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32351,7 +33519,7 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32408,7 +33576,7 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32464,7 +33632,7 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32516,7 +33684,7 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32576,7 +33744,7 @@ export const FlagTriggersApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32881,7 +34049,7 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32933,7 +34101,7 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -32981,7 +34149,7 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33037,7 +34205,7 @@ export const FollowFlagsApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33291,7 +34459,7 @@ export const HoldoutsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33348,7 +34516,7 @@ export const HoldoutsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33400,7 +34568,7 @@ export const HoldoutsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33456,7 +34624,7 @@ export const HoldoutsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33509,7 +34677,7 @@ export const HoldoutsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33796,7 +34964,7 @@ export const IPAllowlistBetaApiAxiosParamCreator = function (configuration?: Con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33841,7 +35009,7 @@ export const IPAllowlistBetaApiAxiosParamCreator = function (configuration?: Con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33856,10 +35024,13 @@ export const IPAllowlistBetaApiAxiosParamCreator = function (configuration?: Con
         /**
          * Get the current IP allowlist configuration and entries.
          * @summary Get IP Allowlist
+         * @param {string} [search] A case-insensitive substring to filter entries by. Matches against the IP address or CIDR block and the description.
+         * @param {number} [limit] The number of entries to return. When omitted, all matching entries are returned. Maximum is 100.
+         * @param {number} [offset] The number of entries to skip. Used for pagination.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getIpAllowlist: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getIpAllowlist: async (search?: string, limit?: number, offset?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v2/account/ip-allowlist`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -33875,13 +35046,25 @@ export const IPAllowlistBetaApiAxiosParamCreator = function (configuration?: Con
             // authentication ApiKey required
             await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
 
+            if (search !== undefined) {
+                localVarQueryParameter['search'] = search;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
             localVarHeaderParameter['Accept'] = 'application/json';
 
             // CUSTOM-START
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33925,7 +35108,7 @@ export const IPAllowlistBetaApiAxiosParamCreator = function (configuration?: Con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -33974,7 +35157,7 @@ export const IPAllowlistBetaApiAxiosParamCreator = function (configuration?: Con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -34025,11 +35208,14 @@ export const IPAllowlistBetaApiFp = function(configuration?: Configuration) {
         /**
          * Get the current IP allowlist configuration and entries.
          * @summary Get IP Allowlist
+         * @param {string} [search] A case-insensitive substring to filter entries by. Matches against the IP address or CIDR block and the description.
+         * @param {number} [limit] The number of entries to return. When omitted, all matching entries are returned. Maximum is 100.
+         * @param {number} [offset] The number of entries to skip. Used for pagination.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getIpAllowlist(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IpAllowlistResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getIpAllowlist(options);
+        async getIpAllowlist(search?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IpAllowlistResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getIpAllowlist(search, limit, offset, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['IPAllowlistBetaApi.getIpAllowlist']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -34093,11 +35279,14 @@ export const IPAllowlistBetaApiFactory = function (configuration?: Configuration
         /**
          * Get the current IP allowlist configuration and entries.
          * @summary Get IP Allowlist
+         * @param {string} [search] A case-insensitive substring to filter entries by. Matches against the IP address or CIDR block and the description.
+         * @param {number} [limit] The number of entries to return. When omitted, all matching entries are returned. Maximum is 100.
+         * @param {number} [offset] The number of entries to skip. Used for pagination.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getIpAllowlist(options?: RawAxiosRequestConfig): AxiosPromise<IpAllowlistResponse> {
-            return localVarFp.getIpAllowlist(options).then((request) => request(axios, basePath));
+        getIpAllowlist(search?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<IpAllowlistResponse> {
+            return localVarFp.getIpAllowlist(search, limit, offset, options).then((request) => request(axios, basePath));
         },
         /**
          * Update sessionAllowlistEnabled and apiTokenAllowlistEnabled settings.
@@ -34152,11 +35341,14 @@ export class IPAllowlistBetaApi extends BaseAPI {
     /**
      * Get the current IP allowlist configuration and entries.
      * @summary Get IP Allowlist
+     * @param {string} [search] A case-insensitive substring to filter entries by. Matches against the IP address or CIDR block and the description.
+     * @param {number} [limit] The number of entries to return. When omitted, all matching entries are returned. Maximum is 100.
+     * @param {number} [offset] The number of entries to skip. Used for pagination.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public getIpAllowlist(options?: RawAxiosRequestConfig) {
-        return IPAllowlistBetaApiFp(this.configuration).getIpAllowlist(options).then((request) => request(this.axios, this.basePath));
+    public getIpAllowlist(search?: string, limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
+        return IPAllowlistBetaApiFp(this.configuration).getIpAllowlist(search, limit, offset, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -34267,7 +35459,7 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -34326,7 +35518,7 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -34413,7 +35605,7 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -34516,7 +35708,7 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -34595,7 +35787,7 @@ export const InsightsChartsBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -34944,7 +36136,7 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -34994,7 +36186,7 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -35093,7 +36285,7 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -35141,7 +36333,7 @@ export const InsightsDeploymentsBetaApiAxiosParamCreator = function (configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -35456,7 +36648,7 @@ export const InsightsFlagEventsBetaApiAxiosParamCreator = function (configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -35665,7 +36857,7 @@ export const InsightsPullRequestsBetaApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -35809,7 +37001,7 @@ export const InsightsRepositoriesBetaApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -35858,7 +37050,7 @@ export const InsightsRepositoriesBetaApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -35903,7 +37095,7 @@ export const InsightsRepositoriesBetaApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36085,7 +37277,7 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36130,7 +37322,7 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36179,7 +37371,7 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36244,7 +37436,7 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36303,7 +37495,7 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36351,7 +37543,7 @@ export const InsightsScoresBetaApiAxiosParamCreator = function (configuration?: 
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36661,7 +37853,7 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36710,7 +37902,7 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36758,7 +37950,7 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36802,7 +37994,7 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -36854,7 +38046,7 @@ export const IntegrationAuditLogSubscriptionsApiAxiosParamCreator = function (co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37129,7 +38321,7 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37186,7 +38378,7 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37234,7 +38426,7 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37290,7 +38482,7 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37330,7 +38522,7 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37390,7 +38582,7 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37447,7 +38639,7 @@ export const IntegrationDeliveryConfigurationsBetaApiAxiosParamCreator = functio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37814,7 +39006,7 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37859,7 +39051,7 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37903,7 +39095,7 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37947,7 +39139,7 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -37995,7 +39187,7 @@ export const IntegrationsBetaApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38253,7 +39445,7 @@ export const LayersApiAxiosParamCreator = function (configuration?: Configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38303,7 +39495,7 @@ export const LayersApiAxiosParamCreator = function (configuration?: Configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38355,7 +39547,7 @@ export const LayersApiAxiosParamCreator = function (configuration?: Configuratio
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38551,7 +39743,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38609,7 +39801,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38678,7 +39870,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38730,7 +39922,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -38779,7 +39971,7 @@ export const MetricsApiAxiosParamCreator = function (configuration?: Configurati
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39067,7 +40259,7 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39116,7 +40308,7 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39169,7 +40361,7 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39238,7 +40430,7 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39290,7 +40482,7 @@ export const MetricsBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39571,7 +40763,7 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39616,7 +40808,7 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39660,7 +40852,7 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39700,7 +40892,7 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39748,7 +40940,7 @@ export const OAuth2ClientsApiAxiosParamCreator = function (configuration?: Confi
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -39992,7 +41184,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40032,7 +41224,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40072,7 +41264,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40112,7 +41304,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40152,7 +41344,7 @@ export const OtherApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40396,7 +41588,7 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40453,7 +41645,7 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40509,7 +41701,7 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40549,7 +41741,7 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40609,7 +41801,7 @@ export const PersistentStoreIntegrationsBetaApiAxiosParamCreator = function (con
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40893,7 +42085,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40937,7 +42129,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -40986,7 +42178,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41051,7 +42243,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41099,7 +42291,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41148,7 +42340,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41193,7 +42385,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41242,7 +42434,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41616,7 +42808,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41660,7 +42852,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41700,7 +42892,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41748,7 +42940,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41793,7 +42985,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -41843,7 +43035,7 @@ export const RelayProxyConfigurationsApiAxiosParamCreator = function (configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -42131,7 +43323,7 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -42190,7 +43382,7 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -42253,7 +43445,7 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -42301,7 +43493,7 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -42349,7 +43541,7 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -42402,7 +43594,7 @@ export const ReleasePipelinesBetaApiAxiosParamCreator = function (configuration?
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -42727,7 +43919,7 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -42782,7 +43974,7 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -42836,7 +44028,7 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -42890,7 +44082,7 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -42945,7 +44137,7 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -43004,7 +44196,7 @@ export const ReleasePoliciesBetaApiAxiosParamCreator = function (configuration?:
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -43360,7 +44552,7 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -43409,7 +44601,7 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -43457,7 +44649,7 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -43509,7 +44701,7 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -43566,7 +44758,7 @@ export const ReleasesBetaApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -43852,7 +45044,7 @@ export const SDKKeysBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -43910,7 +45102,81 @@ export const SDKKeysBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
+            // CUSTOM-END
+
+            if (lDAPIVersion != null) {
+                localVarHeaderParameter['LD-API-Version'] = String(lDAPIVersion);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get all SDK keys for a given project and environment. Can filter by kind.
+         * @summary Get all environment SDK keys
+         * @param {GetSdkKeysLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} environmentKey 
+         * @param {string} [filter] A filter to apply to the list of SDK keys. Supports the following fields and operators: &#x60;kind&#x60; (equals \&quot;sdk\&quot; or \&quot;mobile\&quot;), &#x60;active&#x60; (equals true or false). Format: &#x60;field:value&#x60;. Example: &#x60;kind:sdk&#x60;.
+         * @param {number} [limit] The number of SDK keys to return. Defaults to 20. Maximum is 100.
+         * @param {number} [offset] The number of SDK keys to skip. Used for pagination.
+         * @param {GetSdkKeysSortEnum} [sort] A sort to apply to the list of SDK keys. Supported field: &#x60;createdAt&#x60;. Prefix the field with &#x60;-&#x60; to sort in descending order (for example, &#x60;-createdAt&#x60;).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSdkKeys: async (lDAPIVersion: GetSdkKeysLDAPIVersionEnum, projectKey: string, environmentKey: string, filter?: string, limit?: number, offset?: number, sort?: GetSdkKeysSortEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'lDAPIVersion' is not null or undefined
+            assertParamExists('getSdkKeys', 'lDAPIVersion', lDAPIVersion)
+            // verify required parameter 'projectKey' is not null or undefined
+            assertParamExists('getSdkKeys', 'projectKey', projectKey)
+            // verify required parameter 'environmentKey' is not null or undefined
+            assertParamExists('getSdkKeys', 'environmentKey', environmentKey)
+            const localVarPath = `/api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys`
+                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
+                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ApiKey required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (offset !== undefined) {
+                localVarQueryParameter['offset'] = offset;
+            }
+
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            // CUSTOM-START
+            // Set default API version.
+            localVarHeaderParameter['LD-API-Version'] = '20240415';
+            // Set a custom LaunchDarkly user agent header.
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -43977,7 +45243,7 @@ export const SDKKeysBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -44036,7 +45302,7 @@ export const SDKKeysBetaApiAxiosParamCreator = function (configuration?: Configu
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -44091,6 +45357,25 @@ export const SDKKeysBetaApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.getSdkKeyByKey(lDAPIVersion, projectKey, environmentKey, sdkKeyKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SDKKeysBetaApi.getSdkKeyByKey']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get all SDK keys for a given project and environment. Can filter by kind.
+         * @summary Get all environment SDK keys
+         * @param {GetSdkKeysLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} environmentKey 
+         * @param {string} [filter] A filter to apply to the list of SDK keys. Supports the following fields and operators: &#x60;kind&#x60; (equals \&quot;sdk\&quot; or \&quot;mobile\&quot;), &#x60;active&#x60; (equals true or false). Format: &#x60;field:value&#x60;. Example: &#x60;kind:sdk&#x60;.
+         * @param {number} [limit] The number of SDK keys to return. Defaults to 20. Maximum is 100.
+         * @param {number} [offset] The number of SDK keys to skip. Used for pagination.
+         * @param {GetSdkKeysSortEnum} [sort] A sort to apply to the list of SDK keys. Supported field: &#x60;createdAt&#x60;. Prefix the field with &#x60;-&#x60; to sort in descending order (for example, &#x60;-createdAt&#x60;).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getSdkKeys(lDAPIVersion: GetSdkKeysLDAPIVersionEnum, projectKey: string, environmentKey: string, filter?: string, limit?: number, offset?: number, sort?: GetSdkKeysSortEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SdkKeysForGetSdkKeys>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSdkKeys(lDAPIVersion, projectKey, environmentKey, filter, limit, offset, sort, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['SDKKeysBetaApi.getSdkKeys']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -44163,6 +45448,22 @@ export const SDKKeysBetaApiFactory = function (configuration?: Configuration, ba
             return localVarFp.getSdkKeyByKey(lDAPIVersion, projectKey, environmentKey, sdkKeyKey, options).then((request) => request(axios, basePath));
         },
         /**
+         * Get all SDK keys for a given project and environment. Can filter by kind.
+         * @summary Get all environment SDK keys
+         * @param {GetSdkKeysLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+         * @param {string} projectKey 
+         * @param {string} environmentKey 
+         * @param {string} [filter] A filter to apply to the list of SDK keys. Supports the following fields and operators: &#x60;kind&#x60; (equals \&quot;sdk\&quot; or \&quot;mobile\&quot;), &#x60;active&#x60; (equals true or false). Format: &#x60;field:value&#x60;. Example: &#x60;kind:sdk&#x60;.
+         * @param {number} [limit] The number of SDK keys to return. Defaults to 20. Maximum is 100.
+         * @param {number} [offset] The number of SDK keys to skip. Used for pagination.
+         * @param {GetSdkKeysSortEnum} [sort] A sort to apply to the list of SDK keys. Supported field: &#x60;createdAt&#x60;. Prefix the field with &#x60;-&#x60; to sort in descending order (for example, &#x60;-createdAt&#x60;).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSdkKeys(lDAPIVersion: GetSdkKeysLDAPIVersionEnum, projectKey: string, environmentKey: string, filter?: string, limit?: number, offset?: number, sort?: GetSdkKeysSortEnum, options?: RawAxiosRequestConfig): AxiosPromise<SdkKeysForGetSdkKeys> {
+            return localVarFp.getSdkKeys(lDAPIVersion, projectKey, environmentKey, filter, limit, offset, sort, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Update a an existing SDK key by its identifying key.
          * @summary Update SDK key
          * @param {PatchSdkKeyByKeyLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -44226,6 +45527,23 @@ export class SDKKeysBetaApi extends BaseAPI {
     }
 
     /**
+     * Get all SDK keys for a given project and environment. Can filter by kind.
+     * @summary Get all environment SDK keys
+     * @param {GetSdkKeysLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
+     * @param {string} projectKey 
+     * @param {string} environmentKey 
+     * @param {string} [filter] A filter to apply to the list of SDK keys. Supports the following fields and operators: &#x60;kind&#x60; (equals \&quot;sdk\&quot; or \&quot;mobile\&quot;), &#x60;active&#x60; (equals true or false). Format: &#x60;field:value&#x60;. Example: &#x60;kind:sdk&#x60;.
+     * @param {number} [limit] The number of SDK keys to return. Defaults to 20. Maximum is 100.
+     * @param {number} [offset] The number of SDK keys to skip. Used for pagination.
+     * @param {GetSdkKeysSortEnum} [sort] A sort to apply to the list of SDK keys. Supported field: &#x60;createdAt&#x60;. Prefix the field with &#x60;-&#x60; to sort in descending order (for example, &#x60;-createdAt&#x60;).
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getSdkKeys(lDAPIVersion: GetSdkKeysLDAPIVersionEnum, projectKey: string, environmentKey: string, filter?: string, limit?: number, offset?: number, sort?: GetSdkKeysSortEnum, options?: RawAxiosRequestConfig) {
+        return SDKKeysBetaApiFp(this.configuration).getSdkKeys(lDAPIVersion, projectKey, environmentKey, filter, limit, offset, sort, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Update a an existing SDK key by its identifying key.
      * @summary Update SDK key
      * @param {PatchSdkKeyByKeyLDAPIVersionEnum} lDAPIVersion Version of the endpoint.
@@ -44264,6 +45582,15 @@ export const GetSdkKeyByKeyLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
 export type GetSdkKeyByKeyLDAPIVersionEnum = typeof GetSdkKeyByKeyLDAPIVersionEnum[keyof typeof GetSdkKeyByKeyLDAPIVersionEnum];
+export const GetSdkKeysLDAPIVersionEnum = {
+    Beta: 'beta'
+} as const;
+export type GetSdkKeysLDAPIVersionEnum = typeof GetSdkKeysLDAPIVersionEnum[keyof typeof GetSdkKeysLDAPIVersionEnum];
+export const GetSdkKeysSortEnum = {
+    CreatedAt: 'createdAt',
+    CreatedAt2: '-createdAt'
+} as const;
+export type GetSdkKeysSortEnum = typeof GetSdkKeysSortEnum[keyof typeof GetSdkKeysSortEnum];
 export const PatchSdkKeyByKeyLDAPIVersionEnum = {
     Beta: 'beta'
 } as const;
@@ -44323,7 +45650,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -44379,7 +45706,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -44431,7 +45758,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -44496,7 +45823,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -44558,7 +45885,7 @@ export const ScheduledChangesApiAxiosParamCreator = function (configuration?: Co
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -44865,7 +46192,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -44934,7 +46261,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -44987,7 +46314,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45043,7 +46370,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45099,7 +46426,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45151,7 +46478,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45204,7 +46531,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45256,7 +46583,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45308,7 +46635,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45364,7 +46691,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45420,7 +46747,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45488,7 +46815,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45544,7 +46871,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45601,7 +46928,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45663,7 +46990,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45716,7 +47043,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45773,7 +47100,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -45830,7 +47157,7 @@ export const SegmentsApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -46702,7 +48029,7 @@ export const TagsApiAxiosParamCreator = function (configuration?: Configuration)
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -46828,7 +48155,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -46877,7 +48204,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -46931,7 +48258,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -46985,7 +48312,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47045,7 +48372,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47098,7 +48425,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47148,7 +48475,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47200,7 +48527,7 @@ export const TeamsApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47586,7 +48913,7 @@ export const TeamsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47707,7 +49034,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47764,7 +49091,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47817,7 +49144,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47874,7 +49201,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -47936,7 +49263,7 @@ export const UserSettingsApiAxiosParamCreator = function (configuration?: Config
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -48210,59 +49537,6 @@ export class UserSettingsApi extends BaseAPI {
 export const UsersApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Delete context instances](https://launchdarkly.com/docs/api/contexts/delete-context-instances) instead of this endpoint.  Delete a user by key. 
-         * @summary Delete user
-         * @param {string} projectKey The project key
-         * @param {string} environmentKey The environment key
-         * @param {string} userKey The user key
-         * @param {*} [options] Override http request option.
-         * @deprecated
-         * @throws {RequiredError}
-         */
-        deleteUser: async (projectKey: string, environmentKey: string, userKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'projectKey' is not null or undefined
-            assertParamExists('deleteUser', 'projectKey', projectKey)
-            // verify required parameter 'environmentKey' is not null or undefined
-            assertParamExists('deleteUser', 'environmentKey', environmentKey)
-            // verify required parameter 'userKey' is not null or undefined
-            assertParamExists('deleteUser', 'userKey', userKey)
-            const localVarPath = `/api/v2/users/{projectKey}/{environmentKey}/{userKey}`
-                .replace(`{${"projectKey"}}`, encodeURIComponent(String(projectKey)))
-                .replace(`{${"environmentKey"}}`, encodeURIComponent(String(environmentKey)))
-                .replace(`{${"userKey"}}`, encodeURIComponent(String(userKey)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication ApiKey required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            // CUSTOM-START
-            // Set default API version.
-            localVarHeaderParameter['LD-API-Version'] = '20240415';
-            // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
-            // CUSTOM-END
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
          * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Search for context instances](https://launchdarkly.com/docs/api/contexts/search-context-instances) instead of this endpoint.  Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](https://launchdarkly.com/docs/api#representations). 
          * @summary Find users
          * @param {string} projectKey The project key
@@ -48319,7 +49593,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -48372,7 +49646,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -48431,7 +49705,7 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -48452,22 +49726,6 @@ export const UsersApiAxiosParamCreator = function (configuration?: Configuration
 export const UsersApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = UsersApiAxiosParamCreator(configuration)
     return {
-        /**
-         * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Delete context instances](https://launchdarkly.com/docs/api/contexts/delete-context-instances) instead of this endpoint.  Delete a user by key. 
-         * @summary Delete user
-         * @param {string} projectKey The project key
-         * @param {string} environmentKey The environment key
-         * @param {string} userKey The user key
-         * @param {*} [options] Override http request option.
-         * @deprecated
-         * @throws {RequiredError}
-         */
-        async deleteUser(projectKey: string, environmentKey: string, userKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteUser(projectKey, environmentKey, userKey, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['UsersApi.deleteUser']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
         /**
          * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Search for context instances](https://launchdarkly.com/docs/api/contexts/search-context-instances) instead of this endpoint.  Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](https://launchdarkly.com/docs/api#representations). 
          * @summary Find users
@@ -48530,19 +49788,6 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
     const localVarFp = UsersApiFp(configuration)
     return {
         /**
-         * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Delete context instances](https://launchdarkly.com/docs/api/contexts/delete-context-instances) instead of this endpoint.  Delete a user by key. 
-         * @summary Delete user
-         * @param {string} projectKey The project key
-         * @param {string} environmentKey The environment key
-         * @param {string} userKey The user key
-         * @param {*} [options] Override http request option.
-         * @deprecated
-         * @throws {RequiredError}
-         */
-        deleteUser(projectKey: string, environmentKey: string, userKey: string, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.deleteUser(projectKey, environmentKey, userKey, options).then((request) => request(axios, basePath));
-        },
-        /**
          * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Search for context instances](https://launchdarkly.com/docs/api/contexts/search-context-instances) instead of this endpoint.  Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](https://launchdarkly.com/docs/api#representations). 
          * @summary Find users
          * @param {string} projectKey The project key
@@ -48592,20 +49837,6 @@ export const UsersApiFactory = function (configuration?: Configuration, basePath
  * UsersApi - object-oriented interface
  */
 export class UsersApi extends BaseAPI {
-    /**
-     * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Delete context instances](https://launchdarkly.com/docs/api/contexts/delete-context-instances) instead of this endpoint.  Delete a user by key. 
-     * @summary Delete user
-     * @param {string} projectKey The project key
-     * @param {string} environmentKey The environment key
-     * @param {string} userKey The user key
-     * @param {*} [options] Override http request option.
-     * @deprecated
-     * @throws {RequiredError}
-     */
-    public deleteUser(projectKey: string, environmentKey: string, userKey: string, options?: RawAxiosRequestConfig) {
-        return UsersApiFp(this.configuration).deleteUser(projectKey, environmentKey, userKey, options).then((request) => request(this.axios, this.basePath));
-    }
-
     /**
      * > ### Use contexts instead > > After you have upgraded your LaunchDarkly SDK to use contexts instead of users, you should use [Search for context instances](https://launchdarkly.com/docs/api/contexts/search-context-instances) instead of this endpoint.  Search users in LaunchDarkly based on their last active date, a user attribute filter set, or a search query.  An example user attribute filter set is `filter=firstName:Anna,activeTrial:false`. This matches users that have the user attribute `firstName` set to `Anna`, that also have the attribute `activeTrial` set to `false`.  To paginate through results, follow the `next` link in the `_links` object. To learn more, read [Representations](https://launchdarkly.com/docs/api#representations). 
      * @summary Find users
@@ -48699,7 +49930,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -48754,7 +49985,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -48842,7 +50073,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -48915,7 +50146,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -48994,7 +50225,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -49069,7 +50300,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -49131,7 +50362,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -49194,7 +50425,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -49253,7 +50484,7 @@ export const ViewsBetaApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             if (lDAPIVersion != null) {
@@ -49873,7 +51104,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -49913,7 +51144,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -49957,7 +51188,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50005,7 +51236,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50050,7 +51281,7 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50298,7 +51529,7 @@ export const WorkflowTemplatesApiAxiosParamCreator = function (configuration?: C
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50343,7 +51574,7 @@ export const WorkflowTemplatesApiAxiosParamCreator = function (configuration?: C
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50393,7 +51624,7 @@ export const WorkflowTemplatesApiAxiosParamCreator = function (configuration?: C
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50587,7 +51818,7 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50643,7 +51874,7 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50715,7 +51946,7 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -50781,7 +52012,7 @@ export const WorkflowsApiAxiosParamCreator = function (configuration?: Configura
             // Set default API version.
             localVarHeaderParameter['LD-API-Version'] = '20240415';
             // Set a custom LaunchDarkly user agent header.
-            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/23.0.0/typescript';
+            localVarHeaderParameter['X-LaunchDarkly-User-Agent'] = 'OpenAPI-Generator/24.0.0/typescript';
             // CUSTOM-END
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);

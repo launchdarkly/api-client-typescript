@@ -376,9 +376,11 @@ const configuration = new Configuration();
 const apiInstance = new ContextsApi(configuration);
 
 let projectKey: string; //The project key (default to undefined)
+let expand: string; //A comma-separated list of properties that can reveal additional information in the response. Options: `environmentObservations`. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getContextKindsByProjectKey(
-    projectKey
+    projectKey,
+    expand
 );
 ```
 
@@ -387,6 +389,7 @@ const { status, data } = await apiInstance.getContextKindsByProjectKey(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **projectKey** | [**string**] | The project key | defaults to undefined|
+| **expand** | [**string**] | A comma-separated list of properties that can reveal additional information in the response. Options: &#x60;environmentObservations&#x60;. | (optional) defaults to undefined|
 
 
 ### Return type

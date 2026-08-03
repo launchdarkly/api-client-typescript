@@ -8,6 +8,8 @@ Name | Type | Description | Notes
 **name** | **string** | Human readable name of the model | [default to undefined]
 **key** | **string** | Unique key for the model | [default to undefined]
 **id** | **string** | Identifier for the model, for use with third party providers | [default to undefined]
+**maintainerId** | **string** |  | [optional] [default to undefined]
+**maintainerTeamKey** | **string** |  | [optional] [default to undefined]
 **icon** | **string** | Icon for the model | [optional] [default to undefined]
 **provider** | **string** | Provider for the model | [optional] [default to undefined]
 **params** | **object** |  | [optional] [default to undefined]
@@ -26,6 +28,8 @@ const instance: ModelConfigPost = {
     name,
     key,
     id,
+    maintainerId,
+    maintainerTeamKey,
     icon,
     provider,
     params,

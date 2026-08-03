@@ -10,7 +10,6 @@ Name | Type | Description | Notes
 **maintainerId** | **string** | Member ID of the maintainer for this view. Only one of &#x60;maintainerId&#x60; or &#x60;maintainerTeamKey&#x60; can be specified. | [optional] [default to undefined]
 **maintainerTeamKey** | **string** | Key of the maintainer team for this view. Only one of &#x60;maintainerId&#x60; or &#x60;maintainerTeamKey&#x60; can be specified. | [optional] [default to undefined]
 **tags** | **Array&lt;string&gt;** | Tags associated with this view | [optional] [default to undefined]
-**archived** | **boolean** | Whether or not the view is archived | [optional] [default to undefined]
 
 ## Example
 
@@ -23,7 +22,6 @@ const instance: ViewPatch = {
     maintainerId,
     maintainerTeamKey,
     tags,
-    archived,
 };
 ```
 

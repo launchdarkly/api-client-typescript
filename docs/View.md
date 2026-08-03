@@ -20,8 +20,6 @@ Name | Type | Description | Notes
 **tags** | **Array&lt;string&gt;** | Tags associated with this view | [default to undefined]
 **createdAt** | **number** |  | [default to undefined]
 **updatedAt** | **number** |  | [default to undefined]
-**archived** | **boolean** | Whether this view is archived | [default to false]
-**archivedAt** | **number** |  | [optional] [default to undefined]
 **deletedAt** | **number** |  | [optional] [default to undefined]
 **deleted** | **boolean** | Whether this view is deleted | [default to false]
 **maintainer** | [**Maintainer**](Maintainer.md) |  | [optional] [default to undefined]
@@ -57,8 +55,6 @@ const instance: View = {
     tags,
     createdAt,
     updatedAt,
-    archived,
-    archivedAt,
     deletedAt,
     deleted,
     maintainer,

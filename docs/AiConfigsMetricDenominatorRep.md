@@ -9,13 +9,13 @@ Name | Type | Description | Notes
 **isNumeric** | **boolean** | Whether the denominator aggregates a numeric value | [optional] [default to undefined]
 **unitAggregationType** | **string** | How individual unit values are aggregated for the denominator | [optional] [default to undefined]
 **unitAggregationField** | **string** | The column to count distinct values of; required when unitAggregationType is count_distinct | [optional] [default to undefined]
+**valueColumn** | **string** | For a numeric denominator, the column holding the numeric value | [optional] [default to undefined]
 **dataSource** | [**AiConfigsMetricDataSourceRefRep**](AiConfigsMetricDataSourceRefRep.md) |  | [optional] [default to undefined]
 **filters** | [**AiConfigsFilter**](AiConfigsFilter.md) |  | [optional] [default to undefined]
 **windowStartOffset** | **number** | Start of the measurement window in milliseconds | [optional] [default to undefined]
 **windowEndOffset** | **number** | End of the measurement window in milliseconds | [optional] [default to undefined]
 **winsorLowerPercentile** | **number** | Lower winsorization percentile in the open interval (0, 100) | [optional] [default to undefined]
 **winsorUpperPercentile** | **number** | Upper winsorization percentile in the open interval (0, 100) | [optional] [default to undefined]
-**winsorExcludeImputed** | **boolean** | Deprecated and ignored. Use winsorIncludeImputed instead. | [optional] [default to undefined]
 **winsorIncludeImputed** | **boolean** | When true, the percentile bound calculation includes imputed zeros | [optional] [default to undefined]
 
 ## Example
@@ -28,13 +28,13 @@ const instance: AiConfigsMetricDenominatorRep = {
     isNumeric,
     unitAggregationType,
     unitAggregationField,
+    valueColumn,
     dataSource,
     filters,
     windowStartOffset,
     windowEndOffset,
     winsorLowerPercentile,
     winsorUpperPercentile,
-    winsorExcludeImputed,
     winsorIncludeImputed,
 };
 ```

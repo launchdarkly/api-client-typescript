@@ -9,6 +9,7 @@ Name | Type | Description | Notes
 **_completedAt** | **number** |  | [optional] [default to undefined]
 **flagKey** | **string** | The flag key | [default to undefined]
 **activePhaseId** | **string** | The ID of the currently active release phase | [optional] [default to undefined]
+**activePhaseStatus** | **string** |  | [optional] [default to undefined]
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
 
 ## Example
@@ -21,6 +22,7 @@ const instance: ReleaseProgression = {
     _completedAt,
     flagKey,
     activePhaseId,
+    activePhaseStatus,
     _links,
 };
 ```

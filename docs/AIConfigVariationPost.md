@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **outputFormat** | **{ [key: string]: any; }** | JSON Schema defining the structured output format for the variation. | [optional] [default to undefined]
 **tools** | [**Array&lt;VariationToolPost&gt;**](VariationToolPost.md) | List of tools to use for this variation. The latest version of the tool will be used. | [optional] [default to undefined]
 **toolKeys** | **Array&lt;string&gt;** | List of tool keys to use for this variation. The latest version of the tool will be used. | [optional] [default to undefined]
+**skills** | [**Array&lt;VariationSkillPost&gt;**](VariationSkillPost.md) | List of agent skills to attach to this variation. | [optional] [default to undefined]
 **judgeConfiguration** | [**JudgeConfiguration**](JudgeConfiguration.md) |  | [optional] [default to undefined]
 
 ## Example
@@ -35,6 +36,7 @@ const instance: AIConfigVariationPost = {
     outputFormat,
     tools,
     toolKeys,
+    skills,
     judgeConfiguration,
 };
 ```

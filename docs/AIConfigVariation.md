@@ -23,6 +23,7 @@ Name | Type | Description | Notes
 **_archivedAt** | **number** |  | [optional] [default to undefined]
 **_publishedAt** | **number** |  | [optional] [default to undefined]
 **tools** | [**Array&lt;VariationTool&gt;**](VariationTool.md) |  | [optional] [default to undefined]
+**skills** | [**Array&lt;VariationSkill&gt;**](VariationSkill.md) |  | [optional] [default to undefined]
 **judgeConfiguration** | [**JudgeConfiguration**](JudgeConfiguration.md) |  | [optional] [default to undefined]
 **judgingConfigKeys** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
 
@@ -50,6 +51,7 @@ const instance: AIConfigVariation = {
     _archivedAt,
     _publishedAt,
     tools,
+    skills,
     judgeConfiguration,
     judgingConfigKeys,
 };

@@ -6,6 +6,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |------------- | ------------- | -------------|
 |[**deleteSdkKeyByKey**](#deletesdkkeybykey) | **DELETE** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys/{sdkKeyKey} | Delete SDK key|
 |[**getSdkKeyByKey**](#getsdkkeybykey) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys/{sdkKeyKey} | Get SDK key|
+|[**getSdkKeys**](#getsdkkeys) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys | Get all environment SDK keys|
 |[**patchSdkKeyByKey**](#patchsdkkeybykey) | **PATCH** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys/{sdkKeyKey} | Update SDK key|
 |[**postSdkKey**](#postsdkkey) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys | Create SDK key|
 
@@ -116,6 +117,79 @@ const { status, data } = await apiInstance.getSdkKeyByKey(
 ### Return type
 
 **SdkKey**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Successful response |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getSdkKeys**
+> SdkKeysForGetSdkKeys getSdkKeys()
+
+Get all SDK keys for a given project and environment. Can filter by kind.
+
+### Example
+
+```typescript
+import {
+    SDKKeysBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new SDKKeysBetaApi(configuration);
+
+let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
+let projectKey: string; // (default to undefined)
+let environmentKey: string; // (default to undefined)
+let filter: string; //A filter to apply to the list of SDK keys. Supports the following fields and operators: `kind` (equals \"sdk\" or \"mobile\"), `active` (equals true or false). Format: `field:value`. Example: `kind:sdk`. (optional) (default to undefined)
+let limit: number; //The number of SDK keys to return. Defaults to 20. Maximum is 100. (optional) (default to undefined)
+let offset: number; //The number of SDK keys to skip. Used for pagination. (optional) (default to undefined)
+let sort: 'createdAt' | '-createdAt'; //A sort to apply to the list of SDK keys. Supported field: `createdAt`. Prefix the field with `-` to sort in descending order (for example, `-createdAt`). (optional) (default to undefined)
+
+const { status, data } = await apiInstance.getSdkKeys(
+    lDAPIVersion,
+    projectKey,
+    environmentKey,
+    filter,
+    limit,
+    offset,
+    sort
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **environmentKey** | [**string**] |  | defaults to undefined|
+| **filter** | [**string**] | A filter to apply to the list of SDK keys. Supports the following fields and operators: &#x60;kind&#x60; (equals \&quot;sdk\&quot; or \&quot;mobile\&quot;), &#x60;active&#x60; (equals true or false). Format: &#x60;field:value&#x60;. Example: &#x60;kind:sdk&#x60;. | (optional) defaults to undefined|
+| **limit** | [**number**] | The number of SDK keys to return. Defaults to 20. Maximum is 100. | (optional) defaults to undefined|
+| **offset** | [**number**] | The number of SDK keys to skip. Used for pagination. | (optional) defaults to undefined|
+| **sort** | [**&#39;createdAt&#39; | &#39;-createdAt&#39;**]**Array<&#39;createdAt&#39; &#124; &#39;-createdAt&#39;>** | A sort to apply to the list of SDK keys. Supported field: &#x60;createdAt&#x60;. Prefix the field with &#x60;-&#x60; to sort in descending order (for example, &#x60;-createdAt&#x60;). | (optional) defaults to undefined|
+
+
+### Return type
+
+**SdkKeysForGetSdkKeys**
 
 ### Authorization
 

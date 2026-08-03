@@ -6,7 +6,8 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **_access** | [**AiConfigsAccess**](AiConfigsAccess.md) |  | [optional] [default to undefined]
-**name** | **string** | Human readable name of the model | [default to undefined]
+**_maintainer** | [**AIConfigMaintainer**](AIConfigMaintainer.md) |  | [optional] [default to undefined]
+**name** | **string** | Human-readable name of the model | [default to undefined]
 **key** | **string** | Unique key for the model | [default to undefined]
 **id** | **string** | Identifier for the model, for use with third party providers | [default to undefined]
 **icon** | **string** | Icon for the model | [optional] [default to undefined]
@@ -28,6 +29,7 @@ import { ModelConfig } from 'launchdarkly-api-typescript';
 
 const instance: ModelConfig = {
     _access,
+    _maintainer,
     name,
     key,
     id,

@@ -10,12 +10,12 @@ Name | Type | Description | Notes
 **dataSource** | [**MetricDataSourceRefRep**](MetricDataSourceRefRep.md) |  | [optional] [default to undefined]
 **unitAggregationType** | **string** | How individual unit values are aggregated. One of: average, sum, count_distinct | [optional] [default to undefined]
 **unitAggregationField** | **string** | The warehouse column to use for counting distinct values. Required when the unitAggregationType is count_distinct. | [optional] [default to undefined]
+**valueColumn** | **string** | For a numeric denominator, the column holding the numeric value. Overrides the value column mapped on the denominator data source. | [optional] [default to undefined]
 **filters** | [**EventFilter**](EventFilter.md) |  | [optional] [default to undefined]
 **windowStartOffset** | **number** | Start of the measurement window in milliseconds | [optional] [default to undefined]
 **windowEndOffset** | **number** | End of the measurement window in milliseconds | [optional] [default to undefined]
 **winsorLowerPercentile** | **number** | Lower winsorization percentile in the open interval (0, 100) | [optional] [default to undefined]
 **winsorUpperPercentile** | **number** | Upper winsorization percentile in the open interval (0, 100) | [optional] [default to undefined]
-**winsorExcludeImputed** | **boolean** | Deprecated and ignored. Use winsorIncludeImputed instead. | [optional] [default to undefined]
 **winsorIncludeImputed** | **boolean** | When true, includes imputed zeros in the percentile bound calculation | [optional] [default to undefined]
 
 ## Example
@@ -29,12 +29,12 @@ const instance: DenominatorPost = {
     dataSource,
     unitAggregationType,
     unitAggregationField,
+    valueColumn,
     filters,
     windowStartOffset,
     windowEndOffset,
     winsorLowerPercentile,
     winsorUpperPercentile,
-    winsorExcludeImputed,
     winsorIncludeImputed,
 };
 ```
