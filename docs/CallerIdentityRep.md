@@ -13,6 +13,9 @@ Name | Type | Description | Notes
 **authKind** | **string** |  | [optional] [default to undefined]
 **tokenKind** | **string** |  | [optional] [default to undefined]
 **clientId** | **string** |  | [optional] [default to undefined]
+**clientName** | **string** | The registered name of the OAuth client the access token was issued to. Only present for OAuth access tokens, and omitted when the client\&#39;s name can\&#39;t be resolved. | [optional] [default to undefined]
+**audience** | **Array&lt;string&gt;** | The resources (RFC 8707) the OAuth access token was issued for. Only present for OAuth access tokens issued for a specific resource. | [optional] [default to undefined]
+**expiresAt** | **number** |  | [optional] [default to undefined]
 **tokenName** | **string** |  | [optional] [default to undefined]
 **tokenId** | **string** |  | [optional] [default to undefined]
 **memberId** | **string** |  | [optional] [default to undefined]
@@ -33,6 +36,9 @@ const instance: CallerIdentityRep = {
     authKind,
     tokenKind,
     clientId,
+    clientName,
+    audience,
+    expiresAt,
     tokenName,
     tokenId,
     memberId,

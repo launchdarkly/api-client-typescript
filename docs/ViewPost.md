@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**key** | **string** | Unique key for the view within the account/project | [default to undefined]
+**key** | **string** | Unique key for the view within the account/project. The key is converted to lowercase when the view is created, so use the lowercase form to reference the view afterward. | [default to undefined]
 **name** | **string** | Human-readable name for the view | [default to undefined]
 **description** | **string** | Optional detailed description of the view | [optional] [default to '']
 **maintainerId** | **string** | Member ID of the maintainer for this view. Only one of &#x60;maintainerId&#x60; or &#x60;maintainerTeamKey&#x60; can be specified. | [optional] [default to undefined]

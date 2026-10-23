@@ -5,10 +5,10 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**activeConfigs** | **number** |  | [default to undefined]
-**activeExperiments** | **number** |  | [default to undefined]
-**averageSatisfaction7D** | **number** |  | [optional] [default to undefined]
-**spendMonthToDate** | **number** |  | [optional] [default to undefined]
+**activeConfigs** | **number** | Number of active AI Configs | [default to undefined]
+**activeExperiments** | **number** | Number of active experiments on AI Configs | [default to undefined]
+**averageSatisfaction7D** | **number** | Average satisfaction rating over the last 7 days | [optional] [default to undefined]
+**spendMonthToDate** | **number** | Spend so far this month | [optional] [default to undefined]
 
 ## Example
 

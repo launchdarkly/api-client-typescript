@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 **variation** | **number** | The index of the variation, from the array of variations for this flag | [optional] [default to undefined]
 **rollout** | [**Rollout**](Rollout.md) |  | [optional] [default to undefined]
 **clauses** | [**Array&lt;Clause&gt;**](Clause.md) | An array of clauses used for individual targeting based on attributes | [default to undefined]
-**trackEvents** | **boolean** | Whether LaunchDarkly tracks events for this rule | [default to undefined]
+**trackEvents** | **boolean** | Whether the SDK sends a detailed event for every evaluation of this rule, instead of only summary counts. Required for Data Export, but doesn\&#39;t enable Data Export on its own. | [default to undefined]
 **description** | **string** | The rule description | [optional] [default to undefined]
 **ref** | **string** |  | [optional] [default to undefined]
 

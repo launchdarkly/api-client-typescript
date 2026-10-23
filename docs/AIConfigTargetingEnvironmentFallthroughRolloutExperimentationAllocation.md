@@ -5,9 +5,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**canReshuffle** | **boolean** |  | [default to undefined]
-**defaultVariation** | **number** |  | [default to undefined]
-**type** | **string** |  | [default to undefined]
+**canReshuffle** | **boolean** | Whether contexts can be reassigned to new buckets | [default to undefined]
+**defaultVariation** | **number** | Index of the default variation | [default to undefined]
+**type** | **string** | The allocation type | [default to undefined]
 
 ## Example
 

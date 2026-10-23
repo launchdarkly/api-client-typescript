@@ -5,8 +5,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**clauses** | [**Array&lt;AIConfigTargetingEnvironmentRuleClause&gt;**](AIConfigTargetingEnvironmentRuleClause.md) |  | [default to undefined]
-**trackEvents** | **boolean** |  | [default to undefined]
+**clauses** | [**Array&lt;AIConfigTargetingEnvironmentRuleClause&gt;**](AIConfigTargetingEnvironmentRuleClause.md) | The clauses a context must match | [default to undefined]
+**trackEvents** | **boolean** | Whether to send detailed events for evaluations that match this rule | [default to undefined]
 
 ## Example
 

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**variation** | **number** |  | [optional] [default to undefined]
+**variation** | **number** | Index of the variation served by the default rule | [optional] [default to undefined]
 **rollout** | [**AIConfigTargetingEnvironmentFallthroughRollout**](AIConfigTargetingEnvironmentFallthroughRollout.md) |  | [optional] [default to undefined]
 
 ## Example

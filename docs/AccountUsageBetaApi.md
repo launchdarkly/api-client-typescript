@@ -9,6 +9,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getContextsServersideUsage**](#getcontextsserversideusage) | **GET** /api/v2/usage/serverside-contexts | Get contexts serverside usage|
 |[**getContextsTotalUsage**](#getcontextstotalusage) | **GET** /api/v2/usage/total-contexts | Get contexts total usage|
 |[**getDataExportEventsUsage**](#getdataexporteventsusage) | **GET** /api/v2/usage/data-export-events | Get data export events usage|
+|[**getDataExportProjectRanking**](#getdataexportprojectranking) | **GET** /api/v2/usage/data-export-events/projects/ranking | Rank Streaming usage by project|
 |[**getEvaluationsUsage**](#getevaluationsusage) | **GET** /api/v2/usage/evaluations/{projectKey}/{environmentKey}/{featureFlagKey} | Get evaluations usage|
 |[**getEventsUsage**](#geteventsusage) | **GET** /api/v2/usage/events/{type} | Get events usage|
 |[**getExperimentationEventsUsage**](#getexperimentationeventsusage) | **GET** /api/v2/usage/experimentation-events | Get experimentation events usage|
@@ -368,9 +369,9 @@ const { status, data } = await apiInstance.getContextsTotalUsage(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getDataExportEventsUsage**
-> SeriesListRep getDataExportEventsUsage()
+> DataExportSeriesListRep getDataExportEventsUsage()
 
-Get a time series array showing the number of data export events from your account. The supported granularity varies by aggregation type. The maximum time range is 365 days.
+Get a time series array showing the number of data export events from your account. The supported granularity varies by aggregation type. The maximum time range is 365 days. `groupBy=projectId` resolves legacy rows through the account\'s current environment-to-project mapping and returns `409` instead of a partial series when any successful row remains unattributed. Plain project filtering keeps its current-environment compatibility behavior.
 
 ### Example
 
@@ -385,10 +386,11 @@ const apiInstance = new AccountUsageBetaApi(configuration);
 
 let from: string; //The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. (optional) (default to undefined)
 let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
-let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Without `groupBy=projectId`, filters to the project\'s current environments so retained pre-materialization usage remains visible. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
 let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
 let eventKind: string; //An event kind to filter results by. Can be specified multiple times, one query parameter per event kind. (optional) (default to undefined)
-let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `environmentId`, `eventKind`. (optional) (default to undefined)
+let destinationKind: string; //A Streaming configuration kind to filter results by. Values preserve raw product identity; `snowflake` is legacy Streaming Snowflake and is distinct from Warehouse `snowflake-v2`. Can be specified multiple times.<br/>Valid values: `kinesis`, `google-pubsub`, `mparticle`, `segment`, `azure-event-hubs`, `snowflake`, `unknown`. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension. `projectId` requires one or more explicit `projectKey` filters and is capped at 100 selected projects. `destinationId` returns one series per streaming destination with `destinationName` metadata, plus `destinationViewable` when the destination is in the current configuration. The destination\'s own kind is added as `destinationKind` only when you can view the destination. A kind requested with `groupBy=destinationKind` is returned unchanged. A destination ID absent from the current configuration is named `Unknown historical destination`. Destinations you cannot view are reported together in one `Unknown destination` series with `destinationId` `hidden` and `destinationViewable` `false`, one per combination of the other requested dimensions, such as `destinationKind`. Usage without a destination ID is one series with an empty `destinationId` named `Unattributed`.<br/>Valid values: `projectId`, `environmentId`, `eventKind`, `destinationKind`, `destinationId`. (optional) (default to undefined)
 let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`. (optional) (default to undefined)
 let granularity: string; //Specifies the data granularity. Defaults to `daily`. `monthly` granularity is only supported with the **month_to_date** aggregation type.<br/>Valid values: `daily`, `hourly`, `monthly`. (optional) (default to undefined)
 
@@ -398,6 +400,7 @@ const { status, data } = await apiInstance.getDataExportEventsUsage(
     projectKey,
     environmentKey,
     eventKind,
+    destinationKind,
     groupBy,
     aggregationType,
     granularity
@@ -410,17 +413,18 @@ const { status, data } = await apiInstance.getDataExportEventsUsage(
 |------------- | ------------- | ------------- | -------------|
 | **from** | [**string**] | The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
 | **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
-| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Without &#x60;groupBy&#x3D;projectId&#x60;, filters to the project\&#39;s current environments so retained pre-materialization usage remains visible. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
 | **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
 | **eventKind** | [**string**] | An event kind to filter results by. Can be specified multiple times, one query parameter per event kind. | (optional) defaults to undefined|
-| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;environmentId&#x60;, &#x60;eventKind&#x60;. | (optional) defaults to undefined|
+| **destinationKind** | [**string**] | A Streaming configuration kind to filter results by. Values preserve raw product identity; &#x60;snowflake&#x60; is legacy Streaming Snowflake and is distinct from Warehouse &#x60;snowflake-v2&#x60;. Can be specified multiple times.&lt;br/&gt;Valid values: &#x60;kinesis&#x60;, &#x60;google-pubsub&#x60;, &#x60;mparticle&#x60;, &#x60;segment&#x60;, &#x60;azure-event-hubs&#x60;, &#x60;snowflake&#x60;, &#x60;unknown&#x60;. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension. &#x60;projectId&#x60; requires one or more explicit &#x60;projectKey&#x60; filters and is capped at 100 selected projects. &#x60;destinationId&#x60; returns one series per streaming destination with &#x60;destinationName&#x60; metadata, plus &#x60;destinationViewable&#x60; when the destination is in the current configuration. The destination\&#39;s own kind is added as &#x60;destinationKind&#x60; only when you can view the destination. A kind requested with &#x60;groupBy&#x3D;destinationKind&#x60; is returned unchanged. A destination ID absent from the current configuration is named &#x60;Unknown historical destination&#x60;. Destinations you cannot view are reported together in one &#x60;Unknown destination&#x60; series with &#x60;destinationId&#x60; &#x60;hidden&#x60; and &#x60;destinationViewable&#x60; &#x60;false&#x60;, one per combination of the other requested dimensions, such as &#x60;destinationKind&#x60;. Usage without a destination ID is one series with an empty &#x60;destinationId&#x60; named &#x60;Unattributed&#x60;.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;eventKind&#x60;, &#x60;destinationKind&#x60;, &#x60;destinationId&#x60;. | (optional) defaults to undefined|
 | **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;. | (optional) defaults to undefined|
 | **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. &#x60;monthly&#x60; granularity is only supported with the **month_to_date** aggregation type.&lt;br/&gt;Valid values: &#x60;daily&#x60;, &#x60;hourly&#x60;, &#x60;monthly&#x60;. | (optional) defaults to undefined|
 
 
 ### Return type
 
-**SeriesListRep**
+**DataExportSeriesListRep**
 
 ### Authorization
 
@@ -439,15 +443,94 @@ const { status, data } = await apiInstance.getDataExportEventsUsage(
 |**400** | Invalid request |  -  |
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |
+|**409** | Project identity is incomplete for the requested range |  -  |
 |**429** | Rate limited |  -  |
 |**503** | Service unavailable |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getDataExportProjectRanking**
+> DataExportProjectRankingRep getDataExportProjectRanking()
+
+Rank projects with usage in the requested range by successful Streaming transfers. Legacy rows are attributed through the account\'s complete current environment-to-project mapping. If any successful row remains unattributed after resolution, the operation returns `409` instead of a partial ranking. The result limit does not cap the account-wide project universe or environment mapping. This source-specific operation does not provide Combined or Warehouse ranking.
+
+### Example
+
+```typescript
+import {
+    AccountUsageBetaApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AccountUsageBetaApi(configuration);
+
+let from: number; //Inclusive UTC range start in Unix milliseconds. (default to undefined)
+let to: number; //Exclusive UTC range end in Unix milliseconds. (default to undefined)
+let source: string; //The source scope. Only `streaming` is supported. (optional) (default to 'streaming')
+let dimension: string; //The ranking dimension. Only `project` is supported. (optional) (default to 'project')
+let projectKey: Array<string>; //A canonical project key to include. Can be specified multiple times, with at most 100 unique explicit selections; duplicates do not consume the limit. When omitted, all account projects with usage in the requested range are ranked. (optional) (default to undefined)
+let search: string; //A case-insensitive substring matched against canonical project keys before querying usage. Project names are not searched. (optional) (default to undefined)
+let cursor: string; //An opaque cursor returned by a previous response. Cursors are bound to the account and ranking inputs. (optional) (default to undefined)
+let limit: number; //The maximum number of ranked projects to return. This bounds response rows and look-ahead, not the account-wide candidate universe. (optional) (default to 5)
+
+const { status, data } = await apiInstance.getDataExportProjectRanking(
+    from,
+    to,
+    source,
+    dimension,
+    projectKey,
+    search,
+    cursor,
+    limit
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **from** | [**number**] | Inclusive UTC range start in Unix milliseconds. | defaults to undefined|
+| **to** | [**number**] | Exclusive UTC range end in Unix milliseconds. | defaults to undefined|
+| **source** | [**string**] | The source scope. Only &#x60;streaming&#x60; is supported. | (optional) defaults to 'streaming'|
+| **dimension** | [**string**] | The ranking dimension. Only &#x60;project&#x60; is supported. | (optional) defaults to 'project'|
+| **projectKey** | **Array&lt;string&gt;** | A canonical project key to include. Can be specified multiple times, with at most 100 unique explicit selections; duplicates do not consume the limit. When omitted, all account projects with usage in the requested range are ranked. | (optional) defaults to undefined|
+| **search** | [**string**] | A case-insensitive substring matched against canonical project keys before querying usage. Project names are not searched. | (optional) defaults to undefined|
+| **cursor** | [**string**] | An opaque cursor returned by a previous response. Cursors are bound to the account and ranking inputs. | (optional) defaults to undefined|
+| **limit** | [**number**] | The maximum number of ranked projects to return. This bounds response rows and look-ahead, not the account-wide candidate universe. | (optional) defaults to 5|
+
+
+### Return type
+
+**DataExportProjectRankingRep**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Bounded project ranking |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**409** | Current account metadata cannot attribute every successful usage row in the requested range to a project |  -  |
+|**429** | Rate limited |  -  |
+|**500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getEvaluationsUsage**
 > SeriesListRep getEvaluationsUsage()
 
-Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the data depends on the age of the data requested. If the requested range is within the past two hours, minutely data is returned. If it is within the last two days, hourly data is returned. Otherwise, daily data is returned.
+Get time-series arrays of the number of times a flag is evaluated, broken down by the variation that resulted from that evaluation. The granularity of the returned data depends on the length of the requested time range: ranges shorter than two hours return minutely data, ranges shorter than two days return hourly data, and ranges of two days or longer return daily data. Minutely data is retained for 70 days; a range shorter than two hours that starts before then is returned at hourly granularity instead, with the start of the range widened to the containing hour. Ranges that predate available data return an empty series list. If a flag has served many distinct variation values in the requested range, the least recently seen values may be aggregated into a single additional series labeled \"Other Variations\".
 
 ### Example
 
@@ -595,7 +678,7 @@ const apiInstance = new AccountUsageBetaApi(configuration);
 
 let from: string; //The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. (optional) (default to undefined)
 let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
-let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Without `environmentKey`, filters to the project\'s current environments. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
 let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
 let eventKey: string; //An event key to filter results by. Can be specified multiple times, one query parameter per event key. (optional) (default to undefined)
 let eventKind: string; //An event kind to filter results by. Can be specified multiple times, one query parameter per event kind. (optional) (default to undefined)
@@ -622,7 +705,7 @@ const { status, data } = await apiInstance.getExperimentationEventsUsage(
 |------------- | ------------- | ------------- | -------------|
 | **from** | [**string**] | The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
 | **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
-| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Without &#x60;environmentKey&#x60;, filters to the project\&#39;s current environments. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
 | **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
 | **eventKey** | [**string**] | An event key to filter results by. Can be specified multiple times, one query parameter per event key. | (optional) defaults to undefined|
 | **eventKind** | [**string**] | An event kind to filter results by. Can be specified multiple times, one query parameter per event kind. | (optional) defaults to undefined|
@@ -675,7 +758,7 @@ const apiInstance = new AccountUsageBetaApi(configuration);
 
 let from: string; //The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. (optional) (default to undefined)
 let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
-let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
+let projectKey: string; //A project key to filter results by. Without `environmentKey`, filters by project, including projects that currently have no environments. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
 let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
 let experimentId: string; //An experiment ID to filter results by. Can be specified multiple times, one query parameter per experiment ID. (optional) (default to undefined)
 let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `experimentId`. (optional) (default to undefined)
@@ -700,7 +783,7 @@ const { status, data } = await apiInstance.getExperimentationKeysUsage(
 |------------- | ------------- | ------------- | -------------|
 | **from** | [**string**] | The series of data returned starts from this timestamp (Unix milliseconds). Defaults to the beginning of the current month. | (optional) defaults to undefined|
 | **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
-| **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
+| **projectKey** | [**string**] | A project key to filter results by. Without &#x60;environmentKey&#x60;, filters by project, including projects that currently have no environments. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
 | **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
 | **experimentId** | [**string**] | An experiment ID to filter results by. Can be specified multiple times, one query parameter per experiment ID. | (optional) defaults to undefined|
 | **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;experimentId&#x60;. | (optional) defaults to undefined|
@@ -1583,9 +1666,9 @@ let connectionType: string; //A connection type to filter results by. Can be spe
 let relayVersion: string; //A relay version to filter results by. Can be specified multiple times, one query parameter per relay version. (optional) (default to undefined)
 let sdkName: string; //An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. (optional) (default to undefined)
 let sdkVersion: string; //An SDK version to filter results by. Can be specified multiple times, one query parameter per SDK version. (optional) (default to undefined)
-let sdkType: string; //An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. (optional) (default to undefined)
+let sdkType: string; //Deprecated. This endpoint reports server-side connections only, so `server` is the only value that returns data and omitting the parameter is equivalent. Any other value returns an empty series. To report client-side connections, use `GET /api/v2/usage/streams/{source}`. (optional) (default to undefined)
 let sdkAppId: string; //An SDK app ID to filter results by. Can be specified multiple times, one query parameter per SDK app ID. (optional) (default to undefined)
-let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `connectionType`, `relayVersion`, `sdkName`, `sdkVersion`, `sdkType`, `sdkAppId`. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `connectionType`, `relayVersion`, `sdkName`, `sdkVersion`, `sdkAppId`.<br/>`sdkType` is no longer offered: this endpoint reports server-side connections only, so grouping by it returns a single group. It is still accepted, for compatibility. (optional) (default to undefined)
 let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`. (optional) (default to undefined)
 let granularity: string; //Specifies the data granularity. Defaults to `daily`. `monthly` granularity is only supported with the **month_to_date** aggregation type.<br/>Valid values: `daily`, `hourly`, `monthly`. (optional) (default to undefined)
 
@@ -1618,9 +1701,9 @@ const { status, data } = await apiInstance.getServiceConnectionsUsage(
 | **relayVersion** | [**string**] | A relay version to filter results by. Can be specified multiple times, one query parameter per relay version. | (optional) defaults to undefined|
 | **sdkName** | [**string**] | An SDK name to filter results by. Can be specified multiple times, one query parameter per SDK name. | (optional) defaults to undefined|
 | **sdkVersion** | [**string**] | An SDK version to filter results by. Can be specified multiple times, one query parameter per SDK version. | (optional) defaults to undefined|
-| **sdkType** | [**string**] | An SDK type to filter results by. Can be specified multiple times, one query parameter per SDK type. | (optional) defaults to undefined|
+| **sdkType** | [**string**] | Deprecated. This endpoint reports server-side connections only, so &#x60;server&#x60; is the only value that returns data and omitting the parameter is equivalent. Any other value returns an empty series. To report client-side connections, use &#x60;GET /api/v2/usage/streams/{source}&#x60;. | (optional) defaults to undefined|
 | **sdkAppId** | [**string**] | An SDK app ID to filter results by. Can be specified multiple times, one query parameter per SDK app ID. | (optional) defaults to undefined|
-| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;connectionType&#x60;, &#x60;relayVersion&#x60;, &#x60;sdkName&#x60;, &#x60;sdkVersion&#x60;, &#x60;sdkType&#x60;, &#x60;sdkAppId&#x60;. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;connectionType&#x60;, &#x60;relayVersion&#x60;, &#x60;sdkName&#x60;, &#x60;sdkVersion&#x60;, &#x60;sdkAppId&#x60;.&lt;br/&gt;&#x60;sdkType&#x60; is no longer offered: this endpoint reports server-side connections only, so grouping by it returns a single group. It is still accepted, for compatibility. | (optional) defaults to undefined|
 | **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;. | (optional) defaults to undefined|
 | **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. &#x60;monthly&#x60; granularity is only supported with the **month_to_date** aggregation type.&lt;br/&gt;Valid values: &#x60;daily&#x60;, &#x60;hourly&#x60;, &#x60;monthly&#x60;. | (optional) defaults to undefined|
 
@@ -1910,7 +1993,7 @@ const { status, data } = await apiInstance.getVegaAIUsage(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getWarehouseExportUsage**
-> SeriesListRep getWarehouseExportUsage()
+> DataExportSeriesListRep getWarehouseExportUsage()
 
 Get a time series array showing the number of rows exported to your warehouse Data Export destinations. The supported granularity varies by aggregation type. The maximum time range is 365 days.
 
@@ -1929,8 +2012,9 @@ let from: string; //The series of data returned starts from this timestamp (Unix
 let to: string; //The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. (optional) (default to undefined)
 let projectKey: string; //A project key to filter results by. Can be specified multiple times, one query parameter per project key. (optional) (default to undefined)
 let environmentKey: string; //An environment key to filter results by. If specified, exactly one `projectKey` must be provided. Can be specified multiple times, one query parameter per environment key. (optional) (default to undefined)
-let destination: string; //A destination kind to filter results by. Can be specified multiple times, one query parameter per destination kind.<br/>Valid values: `snowflake-v2`, `databricks`, `bigquery`, `redshift`, `clickhouse`. (optional) (default to undefined)
-let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.<br/>Valid values: `projectId`, `environmentId`, `destination`. (optional) (default to undefined)
+let destinationKind: string; //A Warehouse configuration kind to filter results by. Cannot be combined with `destination`. Can be specified multiple times.<br/>Valid values: `snowflake-v2`, `databricks`, `bigquery`, `redshift`, `clickhouse`, `s3`. (optional) (default to undefined)
+let destination: string; //A Warehouse configuration kind to filter results by. Cannot be combined with `destinationKind`. Existing behavior is unchanged. Can be specified multiple times.<br/>Valid values: `snowflake-v2`, `databricks`, `bigquery`, `redshift`, `clickhouse`. (optional) (default to undefined)
+let groupBy: string; //If specified, returns data for each distinct value of the given field. Can be specified multiple times.<br/>Valid values: `projectId`, `environmentId`, `destination`, `destinationKind`, `destinationId`. `destination` and `destinationKind` return the same raw Warehouse configuration kinds. `destinationId` returns one series per warehouse destination with `destinationName` metadata. When a current destination you can view matches, its `destinationId` is the LaunchDarkly destination ID, with `destinationViewable`. Otherwise, it is the warehouse provider\'s destination ID, named `Unknown destination`. The destination\'s own kind is added as `destinationKind` only when you can view the destination. A kind requested with `groupBy=destinationKind` is returned unchanged. Destinations you cannot view are reported together in one `Unknown destination` series with `destinationId` `hidden` and `destinationViewable` `false`, one per combination of the other requested dimensions, such as `destinationKind`. Usage without a destination ID is one series with an empty `destinationId` named `Unattributed`. (optional) (default to undefined)
 let aggregationType: string; //Specifies the aggregation method. Defaults to `month_to_date`.<br/>Valid values: `month_to_date`, `incremental`. (optional) (default to undefined)
 let granularity: string; //Specifies the data granularity. Defaults to `daily`. `monthly` granularity is only supported with the **month_to_date** aggregation type.<br/>Valid values: `daily`, `hourly`, `monthly`. (optional) (default to undefined)
 
@@ -1939,6 +2023,7 @@ const { status, data } = await apiInstance.getWarehouseExportUsage(
     to,
     projectKey,
     environmentKey,
+    destinationKind,
     destination,
     groupBy,
     aggregationType,
@@ -1954,15 +2039,16 @@ const { status, data } = await apiInstance.getWarehouseExportUsage(
 | **to** | [**string**] | The series of data returned ends at this timestamp (Unix milliseconds). Defaults to the current time. | (optional) defaults to undefined|
 | **projectKey** | [**string**] | A project key to filter results by. Can be specified multiple times, one query parameter per project key. | (optional) defaults to undefined|
 | **environmentKey** | [**string**] | An environment key to filter results by. If specified, exactly one &#x60;projectKey&#x60; must be provided. Can be specified multiple times, one query parameter per environment key. | (optional) defaults to undefined|
-| **destination** | [**string**] | A destination kind to filter results by. Can be specified multiple times, one query parameter per destination kind.&lt;br/&gt;Valid values: &#x60;snowflake-v2&#x60;, &#x60;databricks&#x60;, &#x60;bigquery&#x60;, &#x60;redshift&#x60;, &#x60;clickhouse&#x60;. | (optional) defaults to undefined|
-| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times to group data by multiple dimensions, one query parameter per dimension.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;destination&#x60;. | (optional) defaults to undefined|
+| **destinationKind** | [**string**] | A Warehouse configuration kind to filter results by. Cannot be combined with &#x60;destination&#x60;. Can be specified multiple times.&lt;br/&gt;Valid values: &#x60;snowflake-v2&#x60;, &#x60;databricks&#x60;, &#x60;bigquery&#x60;, &#x60;redshift&#x60;, &#x60;clickhouse&#x60;, &#x60;s3&#x60;. | (optional) defaults to undefined|
+| **destination** | [**string**] | A Warehouse configuration kind to filter results by. Cannot be combined with &#x60;destinationKind&#x60;. Existing behavior is unchanged. Can be specified multiple times.&lt;br/&gt;Valid values: &#x60;snowflake-v2&#x60;, &#x60;databricks&#x60;, &#x60;bigquery&#x60;, &#x60;redshift&#x60;, &#x60;clickhouse&#x60;. | (optional) defaults to undefined|
+| **groupBy** | [**string**] | If specified, returns data for each distinct value of the given field. Can be specified multiple times.&lt;br/&gt;Valid values: &#x60;projectId&#x60;, &#x60;environmentId&#x60;, &#x60;destination&#x60;, &#x60;destinationKind&#x60;, &#x60;destinationId&#x60;. &#x60;destination&#x60; and &#x60;destinationKind&#x60; return the same raw Warehouse configuration kinds. &#x60;destinationId&#x60; returns one series per warehouse destination with &#x60;destinationName&#x60; metadata. When a current destination you can view matches, its &#x60;destinationId&#x60; is the LaunchDarkly destination ID, with &#x60;destinationViewable&#x60;. Otherwise, it is the warehouse provider\&#39;s destination ID, named &#x60;Unknown destination&#x60;. The destination\&#39;s own kind is added as &#x60;destinationKind&#x60; only when you can view the destination. A kind requested with &#x60;groupBy&#x3D;destinationKind&#x60; is returned unchanged. Destinations you cannot view are reported together in one &#x60;Unknown destination&#x60; series with &#x60;destinationId&#x60; &#x60;hidden&#x60; and &#x60;destinationViewable&#x60; &#x60;false&#x60;, one per combination of the other requested dimensions, such as &#x60;destinationKind&#x60;. Usage without a destination ID is one series with an empty &#x60;destinationId&#x60; named &#x60;Unattributed&#x60;. | (optional) defaults to undefined|
 | **aggregationType** | [**string**] | Specifies the aggregation method. Defaults to &#x60;month_to_date&#x60;.&lt;br/&gt;Valid values: &#x60;month_to_date&#x60;, &#x60;incremental&#x60;. | (optional) defaults to undefined|
 | **granularity** | [**string**] | Specifies the data granularity. Defaults to &#x60;daily&#x60;. &#x60;monthly&#x60; granularity is only supported with the **month_to_date** aggregation type.&lt;br/&gt;Valid values: &#x60;daily&#x60;, &#x60;hourly&#x60;, &#x60;monthly&#x60;. | (optional) defaults to undefined|
 
 
 ### Return type
 
-**SeriesListRep**
+**DataExportSeriesListRep**
 
 ### Authorization
 

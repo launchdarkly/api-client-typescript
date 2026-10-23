@@ -5,8 +5,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**key** | **string** |  | [default to undefined]
-**threshold** | **number** |  | [default to undefined]
+**key** | **string** | The key of the judge AI Config | [default to undefined]
+**threshold** | **number** | The minimum score needed to pass | [default to undefined]
 
 ## Example
 

@@ -6,7 +6,7 @@ This REST API is for custom integrations, data export, or automating your featur
 This client library is only compatible with the latest version of our REST API. Previous versions of this client library are compatible with earlier versions of our REST API. When you create an access token, you can set the REST API version associated with the token. By default, API requests you send using the token will use the specified API version. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).
 View our [sample code](#sample-code) for example usage.
 
-## launchdarkly-api-typescript@24.0.0
+## launchdarkly-api-typescript@25.0.0
 
 This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
 
@@ -44,7 +44,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@24.0.0 --save
+npm install launchdarkly-api-typescript@25.0.0 --save
 ```
 
 _unPublished (not recommended):_
@@ -59,14 +59,12 @@ All URIs are relative to *https://app.launchdarkly.com*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*AIConfigsApi* | [**listAIToolReferences**](docs/AIConfigsApi.md#listaitoolreferences) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/references | List AI tool references
-*AIConfigsApi* | [**listAgentOptimizationRuns**](docs/AIConfigsApi.md#listagentoptimizationruns) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/runs | List agent optimization runs
 *AccessTokensApi* | [**deleteToken**](docs/AccessTokensApi.md#deletetoken) | **DELETE** /api/v2/tokens/{id} | Delete access token
 *AccessTokensApi* | [**getToken**](docs/AccessTokensApi.md#gettoken) | **GET** /api/v2/tokens/{id} | Get access token
 *AccessTokensApi* | [**getTokens**](docs/AccessTokensApi.md#gettokens) | **GET** /api/v2/tokens | List access tokens
 *AccessTokensApi* | [**patchToken**](docs/AccessTokensApi.md#patchtoken) | **PATCH** /api/v2/tokens/{id} | Patch access token
 *AccessTokensApi* | [**postToken**](docs/AccessTokensApi.md#posttoken) | **POST** /api/v2/tokens | Create access token
-*AccessTokensApi* | [**resetToken**](docs/AccessTokensApi.md#resettoken) | **POST** /api/v2/tokens/{id}/reset | Reset access token
+*AccessTokensApi* | [**resetToken**](docs/AccessTokensApi.md#resettoken) | **POST** /api/v2/tokens/{id}/reset | Reset access token (legacy)
 *AccountMembersApi* | [**deleteMember**](docs/AccountMembersApi.md#deletemember) | **DELETE** /api/v2/members/{id} | Delete account member
 *AccountMembersApi* | [**getMember**](docs/AccountMembersApi.md#getmember) | **GET** /api/v2/members/{id} | Get account member
 *AccountMembersApi* | [**getMembers**](docs/AccountMembersApi.md#getmembers) | **GET** /api/v2/members | List account members
@@ -79,6 +77,7 @@ Class | Method | HTTP request | Description
 *AccountUsageBetaApi* | [**getContextsServersideUsage**](docs/AccountUsageBetaApi.md#getcontextsserversideusage) | **GET** /api/v2/usage/serverside-contexts | Get contexts serverside usage
 *AccountUsageBetaApi* | [**getContextsTotalUsage**](docs/AccountUsageBetaApi.md#getcontextstotalusage) | **GET** /api/v2/usage/total-contexts | Get contexts total usage
 *AccountUsageBetaApi* | [**getDataExportEventsUsage**](docs/AccountUsageBetaApi.md#getdataexporteventsusage) | **GET** /api/v2/usage/data-export-events | Get data export events usage
+*AccountUsageBetaApi* | [**getDataExportProjectRanking**](docs/AccountUsageBetaApi.md#getdataexportprojectranking) | **GET** /api/v2/usage/data-export-events/projects/ranking | Rank Streaming usage by project
 *AccountUsageBetaApi* | [**getEvaluationsUsage**](docs/AccountUsageBetaApi.md#getevaluationsusage) | **GET** /api/v2/usage/evaluations/{projectKey}/{environmentKey}/{featureFlagKey} | Get evaluations usage
 *AccountUsageBetaApi* | [**getEventsUsage**](docs/AccountUsageBetaApi.md#geteventsusage) | **GET** /api/v2/usage/events/{type} | Get events usage
 *AccountUsageBetaApi* | [**getExperimentationEventsUsage**](docs/AccountUsageBetaApi.md#getexperimentationeventsusage) | **GET** /api/v2/usage/experimentation-events | Get experimentation events usage
@@ -101,6 +100,13 @@ Class | Method | HTTP request | Description
 *AccountUsageBetaApi* | [**getStreamUsageSdkversion**](docs/AccountUsageBetaApi.md#getstreamusagesdkversion) | **GET** /api/v2/usage/streams/{source}/sdkversions | Get stream usage SDK versions
 *AccountUsageBetaApi* | [**getVegaAIUsage**](docs/AccountUsageBetaApi.md#getvegaaiusage) | **GET** /api/v2/usage/vega-ai | Get Vega AI usage
 *AccountUsageBetaApi* | [**getWarehouseExportUsage**](docs/AccountUsageBetaApi.md#getwarehouseexportusage) | **GET** /api/v2/usage/warehouse-export | Get warehouse Data Export usage
+*AdaptiveTriggersApi* | [**deleteAdaptiveTrigger**](docs/AdaptiveTriggersApi.md#deleteadaptivetrigger) | **DELETE** /api/v2/projects/{projectKey}/environments/{environmentKey}/adaptive-triggers/{triggerID} | Delete an adaptive trigger
+*AdaptiveTriggersApi* | [**getAdaptiveTrigger**](docs/AdaptiveTriggersApi.md#getadaptivetrigger) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/adaptive-triggers/{triggerID} | Get an adaptive trigger
+*AdaptiveTriggersApi* | [**listAdaptiveTriggers**](docs/AdaptiveTriggersApi.md#listadaptivetriggers) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/adaptive-triggers | List adaptive triggers
+*AdaptiveTriggersApi* | [**patchAdaptiveTrigger**](docs/AdaptiveTriggersApi.md#patchadaptivetrigger) | **PATCH** /api/v2/projects/{projectKey}/environments/{environmentKey}/adaptive-triggers/{triggerID} | Update an adaptive trigger
+*AdaptiveTriggersApi* | [**postAdaptiveTrigger**](docs/AdaptiveTriggersApi.md#postadaptivetrigger) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/adaptive-triggers | Create an adaptive trigger
+*AdaptiveTriggersApi* | [**postDisableAdaptiveTrigger**](docs/AdaptiveTriggersApi.md#postdisableadaptivetrigger) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/adaptive-triggers/{triggerID}/disable | Disable an adaptive trigger
+*AdaptiveTriggersApi* | [**postEnableAdaptiveTrigger**](docs/AdaptiveTriggersApi.md#postenableadaptivetrigger) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/adaptive-triggers/{triggerID}/enable | Enable an adaptive trigger
 *AgentControlApi* | [**deleteAIConfig**](docs/AgentControlApi.md#deleteaiconfig) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/{configKey} | Delete AI Config
 *AgentControlApi* | [**deleteAIConfigVariation**](docs/AgentControlApi.md#deleteaiconfigvariation) | **DELETE** /api/v2/projects/{projectKey}/ai-configs/{configKey}/variations/{variationKey} | Delete AI Config variation
 *AgentControlApi* | [**deleteAITool**](docs/AgentControlApi.md#deleteaitool) | **DELETE** /api/v2/projects/{projectKey}/ai-tools/{toolKey} | Delete AI tool
@@ -124,11 +130,13 @@ Class | Method | HTTP request | Description
 *AgentControlApi* | [**getAgentSkill**](docs/AgentControlApi.md#getagentskill) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey} | Get an agent skill
 *AgentControlApi* | [**getModelConfig**](docs/AgentControlApi.md#getmodelconfig) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Get AI model config
 *AgentControlApi* | [**getPromptSnippet**](docs/AgentControlApi.md#getpromptsnippet) | **GET** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets/{snippetKey} | Get a prompt snippet
+*AgentControlApi* | [**listAIToolReferences**](docs/AgentControlApi.md#listaitoolreferences) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/references | List AI tool references
 *AgentControlApi* | [**listAIToolVersions**](docs/AgentControlApi.md#listaitoolversions) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/versions | List AI tool versions
 *AgentControlApi* | [**listAITools**](docs/AgentControlApi.md#listaitools) | **GET** /api/v2/projects/{projectKey}/ai-tools | List AI tools
 *AgentControlApi* | [**listAgentGraphs**](docs/AgentControlApi.md#listagentgraphs) | **GET** /api/v2/projects/{projectKey}/agent-graphs | List agent graphs
-*AgentControlApi* | [**listAgentOptimizationResults**](docs/AgentControlApi.md#listagentoptimizationresults) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/results | List agent optimization runs
+*AgentControlApi* | [**listAgentOptimizationResults**](docs/AgentControlApi.md#listagentoptimizationresults) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/results | List latest agent optimization result per run
 *AgentControlApi* | [**listAgentOptimizationResultsByRunId**](docs/AgentControlApi.md#listagentoptimizationresultsbyrunid) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/runs/{runId}/results | List agent optimization results for a run
+*AgentControlApi* | [**listAgentOptimizationRuns**](docs/AgentControlApi.md#listagentoptimizationruns) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/runs | List agent optimization runs
 *AgentControlApi* | [**listAgentOptimizations**](docs/AgentControlApi.md#listagentoptimizations) | **GET** /api/v2/projects/{projectKey}/agent-optimizations | List agent optimizations
 *AgentControlApi* | [**listAgentSkillReferences**](docs/AgentControlApi.md#listagentskillreferences) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/references | List agent skill references
 *AgentControlApi* | [**listAgentSkillVersions**](docs/AgentControlApi.md#listagentskillversions) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/versions | List agent skill versions
@@ -205,15 +213,12 @@ Class | Method | HTTP request | Description
 *CodeReferencesApi* | [**postRepository**](docs/CodeReferencesApi.md#postrepository) | **POST** /api/v2/code-refs/repositories | Create repository
 *CodeReferencesApi* | [**putBranch**](docs/CodeReferencesApi.md#putbranch) | **PUT** /api/v2/code-refs/repositories/{repo}/branches/{branch} | Upsert branch
 *ContextSettingsApi* | [**putContextFlagSetting**](docs/ContextSettingsApi.md#putcontextflagsetting) | **PUT** /api/v2/projects/{projectKey}/environments/{environmentKey}/contexts/{contextKind}/{contextKey}/flags/{featureFlagKey} | Update flag settings for context
-*ContextsApi* | [**deleteContextInstances**](docs/ContextsApi.md#deletecontextinstances) | **DELETE** /api/v2/projects/{projectKey}/environments/{environmentKey}/context-instances/{id} | Delete context instances
 *ContextsApi* | [**evaluateContextInstance**](docs/ContextsApi.md#evaluatecontextinstance) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/flags/evaluate | Evaluate flags for context instance
 *ContextsApi* | [**getContextAttributeNames**](docs/ContextsApi.md#getcontextattributenames) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/context-attributes | Get context attribute names
 *ContextsApi* | [**getContextAttributeValues**](docs/ContextsApi.md#getcontextattributevalues) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/context-attributes/{attributeName} | Get context attribute values
-*ContextsApi* | [**getContextInstances**](docs/ContextsApi.md#getcontextinstances) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/context-instances/{id} | Get context instances
 *ContextsApi* | [**getContextKindsByProjectKey**](docs/ContextsApi.md#getcontextkindsbyprojectkey) | **GET** /api/v2/projects/{projectKey}/context-kinds | Get context kinds
 *ContextsApi* | [**getContexts**](docs/ContextsApi.md#getcontexts) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/contexts/{kind}/{key} | Get contexts
 *ContextsApi* | [**putContextKind**](docs/ContextsApi.md#putcontextkind) | **PUT** /api/v2/projects/{projectKey}/context-kinds/{key} | Create or update context kind
-*ContextsApi* | [**searchContextInstances**](docs/ContextsApi.md#searchcontextinstances) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/context-instances/search | Search for context instances
 *ContextsApi* | [**searchContexts**](docs/ContextsApi.md#searchcontexts) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/contexts/search | Search for contexts
 *CustomRolesApi* | [**deleteCustomRole**](docs/CustomRolesApi.md#deletecustomrole) | **DELETE** /api/v2/roles/{customRoleKey} | Delete custom role
 *CustomRolesApi* | [**getCustomRole**](docs/CustomRolesApi.md#getcustomrole) | **GET** /api/v2/roles/{customRoleKey} | Get custom role
@@ -230,6 +235,10 @@ Class | Method | HTTP request | Description
 *DataExportDestinationsApi* | [**postGenerateTrustPolicy**](docs/DataExportDestinationsApi.md#postgeneratetrustpolicy) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/generate-trust-policy | Generate trust policy
 *DataExportDestinationsApi* | [**postGenerateWarehouseDestinationKeyPair**](docs/DataExportDestinationsApi.md#postgeneratewarehousedestinationkeypair) | **POST** /api/v2/destinations/generate-warehouse-destination-key-pair | Generate Snowflake destination key pair
 *DataExportDestinationsApi* | [**postGenerateWarehouseDestinationSetupScript**](docs/DataExportDestinationsApi.md#postgeneratewarehousedestinationsetupscript) | **POST** /api/v2/destinations/projects/{projKey}/environments/{envKey}/kinds/{kind}/setup | Generate warehouse destination setup script
+*EnvironmentReleasesBetaApi* | [**getEnvironmentRelease**](docs/EnvironmentReleasesBetaApi.md#getenvironmentrelease) | **GET** /api/v2/projects/{projectKey}/flags/{flagKey}/environments/{environmentKey}/releases/{releaseId} | Get an environment release
+*EnvironmentReleasesBetaApi* | [**listEnvironmentReleases**](docs/EnvironmentReleasesBetaApi.md#listenvironmentreleases) | **GET** /api/v2/projects/{projectKey}/flags/{flagKey}/environments/{environmentKey}/releases | List environment releases
+*EnvironmentReleasesBetaApi* | [**startEnvironmentRelease**](docs/EnvironmentReleasesBetaApi.md#startenvironmentrelease) | **POST** /api/v2/projects/{projectKey}/flags/{flagKey}/environments/{environmentKey}/releases | Start an environment release
+*EnvironmentReleasesBetaApi* | [**stopEnvironmentRelease**](docs/EnvironmentReleasesBetaApi.md#stopenvironmentrelease) | **PUT** /api/v2/projects/{projectKey}/flags/{flagKey}/environments/{environmentKey}/releases/{releaseId}/stop | Stop an environment release
 *EnvironmentsApi* | [**deleteEnvironment**](docs/EnvironmentsApi.md#deleteenvironment) | **DELETE** /api/v2/projects/{projectKey}/environments/{environmentKey} | Delete environment
 *EnvironmentsApi* | [**getEnvironment**](docs/EnvironmentsApi.md#getenvironment) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey} | Get environment
 *EnvironmentsApi* | [**getEnvironmentsByProject**](docs/EnvironmentsApi.md#getenvironmentsbyproject) | **GET** /api/v2/projects/{projectKey}/environments | List environments
@@ -369,28 +378,30 @@ Class | Method | HTTP request | Description
 *RelayProxyConfigurationsApi* | [**patchRelayAutoConfig**](docs/RelayProxyConfigurationsApi.md#patchrelayautoconfig) | **PATCH** /api/v2/account/relay-auto-configs/{id} | Update a Relay Proxy config
 *RelayProxyConfigurationsApi* | [**postRelayAutoConfig**](docs/RelayProxyConfigurationsApi.md#postrelayautoconfig) | **POST** /api/v2/account/relay-auto-configs | Create a new Relay Proxy config
 *RelayProxyConfigurationsApi* | [**resetRelayAutoConfig**](docs/RelayProxyConfigurationsApi.md#resetrelayautoconfig) | **POST** /api/v2/account/relay-auto-configs/{id}/reset | Reset Relay Proxy configuration key
-*ReleasePipelinesBetaApi* | [**deleteReleasePipeline**](docs/ReleasePipelinesBetaApi.md#deletereleasepipeline) | **DELETE** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey} | Delete release pipeline
-*ReleasePipelinesBetaApi* | [**getAllReleasePipelines**](docs/ReleasePipelinesBetaApi.md#getallreleasepipelines) | **GET** /api/v2/projects/{projectKey}/release-pipelines | Get all release pipelines
-*ReleasePipelinesBetaApi* | [**getAllReleaseProgressionsForReleasePipeline**](docs/ReleasePipelinesBetaApi.md#getallreleaseprogressionsforreleasepipeline) | **GET** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey}/releases | Get release progressions for release pipeline
-*ReleasePipelinesBetaApi* | [**getReleasePipelineByKey**](docs/ReleasePipelinesBetaApi.md#getreleasepipelinebykey) | **GET** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey} | Get release pipeline by key
-*ReleasePipelinesBetaApi* | [**postReleasePipeline**](docs/ReleasePipelinesBetaApi.md#postreleasepipeline) | **POST** /api/v2/projects/{projectKey}/release-pipelines | Create a release pipeline
-*ReleasePipelinesBetaApi* | [**putReleasePipeline**](docs/ReleasePipelinesBetaApi.md#putreleasepipeline) | **PUT** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey} | Update a release pipeline
+*ReleasePipelinesDeprecatedApi* | [**createReleaseForFlag**](docs/ReleasePipelinesDeprecatedApi.md#createreleaseforflag) | **PUT** /api/v2/projects/{projectKey}/flags/{flagKey}/release | Create a new release for flag
+*ReleasePipelinesDeprecatedApi* | [**deleteReleaseByFlagKey**](docs/ReleasePipelinesDeprecatedApi.md#deletereleasebyflagkey) | **DELETE** /api/v2/flags/{projectKey}/{flagKey}/release | Delete a release for flag
+*ReleasePipelinesDeprecatedApi* | [**deleteReleasePipeline**](docs/ReleasePipelinesDeprecatedApi.md#deletereleasepipeline) | **DELETE** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey} | Delete release pipeline
+*ReleasePipelinesDeprecatedApi* | [**getAllReleasePipelines**](docs/ReleasePipelinesDeprecatedApi.md#getallreleasepipelines) | **GET** /api/v2/projects/{projectKey}/release-pipelines | Get all release pipelines
+*ReleasePipelinesDeprecatedApi* | [**getAllReleaseProgressionsForReleasePipeline**](docs/ReleasePipelinesDeprecatedApi.md#getallreleaseprogressionsforreleasepipeline) | **GET** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey}/releases | Get release progressions for release pipeline
+*ReleasePipelinesDeprecatedApi* | [**getReleaseByFlagKey**](docs/ReleasePipelinesDeprecatedApi.md#getreleasebyflagkey) | **GET** /api/v2/flags/{projectKey}/{flagKey}/release | Get release for flag
+*ReleasePipelinesDeprecatedApi* | [**getReleasePipelineByKey**](docs/ReleasePipelinesDeprecatedApi.md#getreleasepipelinebykey) | **GET** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey} | Get release pipeline by key
+*ReleasePipelinesDeprecatedApi* | [**patchReleaseByFlagKey**](docs/ReleasePipelinesDeprecatedApi.md#patchreleasebyflagkey) | **PATCH** /api/v2/flags/{projectKey}/{flagKey}/release | Patch release for flag
+*ReleasePipelinesDeprecatedApi* | [**postReleasePipeline**](docs/ReleasePipelinesDeprecatedApi.md#postreleasepipeline) | **POST** /api/v2/projects/{projectKey}/release-pipelines | Create a release pipeline
+*ReleasePipelinesDeprecatedApi* | [**putReleasePipeline**](docs/ReleasePipelinesDeprecatedApi.md#putreleasepipeline) | **PUT** /api/v2/projects/{projectKey}/release-pipelines/{pipelineKey} | Update a release pipeline
+*ReleasePipelinesDeprecatedApi* | [**updatePhaseStatus**](docs/ReleasePipelinesDeprecatedApi.md#updatephasestatus) | **PUT** /api/v2/projects/{projectKey}/flags/{flagKey}/release/phases/{phaseId} | Update phase status for release
 *ReleasePoliciesBetaApi* | [**deleteReleasePolicy**](docs/ReleasePoliciesBetaApi.md#deletereleasepolicy) | **DELETE** /api/v2/projects/{projectKey}/release-policies/{policyKey} | Delete a release policy
 *ReleasePoliciesBetaApi* | [**getReleasePolicies**](docs/ReleasePoliciesBetaApi.md#getreleasepolicies) | **GET** /api/v2/projects/{projectKey}/release-policies | List release policies
 *ReleasePoliciesBetaApi* | [**getReleasePolicy**](docs/ReleasePoliciesBetaApi.md#getreleasepolicy) | **GET** /api/v2/projects/{projectKey}/release-policies/{policyKey} | Get a release policy by key
 *ReleasePoliciesBetaApi* | [**postReleasePoliciesOrder**](docs/ReleasePoliciesBetaApi.md#postreleasepoliciesorder) | **POST** /api/v2/projects/{projectKey}/release-policies/order | Update the order of existing release policies
 *ReleasePoliciesBetaApi* | [**postReleasePolicy**](docs/ReleasePoliciesBetaApi.md#postreleasepolicy) | **POST** /api/v2/projects/{projectKey}/release-policies | Create a release policy
 *ReleasePoliciesBetaApi* | [**putReleasePolicy**](docs/ReleasePoliciesBetaApi.md#putreleasepolicy) | **PUT** /api/v2/projects/{projectKey}/release-policies/{policyKey} | Update a release policy
-*ReleasesBetaApi* | [**createReleaseForFlag**](docs/ReleasesBetaApi.md#createreleaseforflag) | **PUT** /api/v2/projects/{projectKey}/flags/{flagKey}/release | Create a new release for flag
-*ReleasesBetaApi* | [**deleteReleaseByFlagKey**](docs/ReleasesBetaApi.md#deletereleasebyflagkey) | **DELETE** /api/v2/flags/{projectKey}/{flagKey}/release | Delete a release for flag
-*ReleasesBetaApi* | [**getReleaseByFlagKey**](docs/ReleasesBetaApi.md#getreleasebyflagkey) | **GET** /api/v2/flags/{projectKey}/{flagKey}/release | Get release for flag
-*ReleasesBetaApi* | [**patchReleaseByFlagKey**](docs/ReleasesBetaApi.md#patchreleasebyflagkey) | **PATCH** /api/v2/flags/{projectKey}/{flagKey}/release | Patch release for flag
-*ReleasesBetaApi* | [**updatePhaseStatus**](docs/ReleasesBetaApi.md#updatephasestatus) | **PUT** /api/v2/projects/{projectKey}/flags/{flagKey}/release/phases/{phaseId} | Update phase status for release
 *SDKKeysBetaApi* | [**deleteSdkKeyByKey**](docs/SDKKeysBetaApi.md#deletesdkkeybykey) | **DELETE** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys/{sdkKeyKey} | Delete SDK key
+*SDKKeysBetaApi* | [**getProjectSdkKeys**](docs/SDKKeysBetaApi.md#getprojectsdkkeys) | **GET** /api/v2/projects/{projectKey}/sdk-keys | Get all project SDK keys
 *SDKKeysBetaApi* | [**getSdkKeyByKey**](docs/SDKKeysBetaApi.md#getsdkkeybykey) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys/{sdkKeyKey} | Get SDK key
 *SDKKeysBetaApi* | [**getSdkKeys**](docs/SDKKeysBetaApi.md#getsdkkeys) | **GET** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys | Get all environment SDK keys
 *SDKKeysBetaApi* | [**patchSdkKeyByKey**](docs/SDKKeysBetaApi.md#patchsdkkeybykey) | **PATCH** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys/{sdkKeyKey} | Update SDK key
 *SDKKeysBetaApi* | [**postSdkKey**](docs/SDKKeysBetaApi.md#postsdkkey) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys | Create SDK key
+*SDKKeysBetaApi* | [**putSdkKeyViews**](docs/SDKKeysBetaApi.md#putsdkkeyviews) | **PUT** /api/v2/projects/{projectKey}/environments/{environmentKey}/sdk-keys/{sdkKeyKey}/views | Replace SDK key views
 *ScheduledChangesApi* | [**deleteFlagConfigScheduledChanges**](docs/ScheduledChangesApi.md#deleteflagconfigscheduledchanges) | **DELETE** /api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/scheduled-changes/{id} | Delete scheduled changes workflow
 *ScheduledChangesApi* | [**getFeatureFlagScheduledChange**](docs/ScheduledChangesApi.md#getfeatureflagscheduledchange) | **GET** /api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/scheduled-changes/{id} | Get a scheduled change
 *ScheduledChangesApi* | [**getFlagConfigScheduledChanges**](docs/ScheduledChangesApi.md#getflagconfigscheduledchanges) | **GET** /api/v2/projects/{projectKey}/flags/{featureFlagKey}/environments/{environmentKey}/scheduled-changes | List scheduled changes
@@ -432,15 +443,15 @@ Class | Method | HTTP request | Description
 *UsersApi* | [**getSearchUsers**](docs/UsersApi.md#getsearchusers) | **GET** /api/v2/user-search/{projectKey}/{environmentKey} | Find users
 *UsersApi* | [**getUser**](docs/UsersApi.md#getuser) | **GET** /api/v2/users/{projectKey}/{environmentKey}/{userKey} | Get user
 *UsersApi* | [**getUsers**](docs/UsersApi.md#getusers) | **GET** /api/v2/users/{projectKey}/{environmentKey} | List users
-*ViewsBetaApi* | [**createView**](docs/ViewsBetaApi.md#createview) | **POST** /api/v2/projects/{projectKey}/views | Create view
-*ViewsBetaApi* | [**deleteView**](docs/ViewsBetaApi.md#deleteview) | **DELETE** /api/v2/projects/{projectKey}/views/{viewKey} | Delete view
-*ViewsBetaApi* | [**getLinkedResources**](docs/ViewsBetaApi.md#getlinkedresources) | **GET** /api/v2/projects/{projectKey}/views/{viewKey}/linked/{resourceType} | Get linked resources
-*ViewsBetaApi* | [**getLinkedViews**](docs/ViewsBetaApi.md#getlinkedviews) | **GET** /api/v2/projects/{projectKey}/view-associations/{resourceType}/{resourceKey} | Get linked views for a given resource
-*ViewsBetaApi* | [**getView**](docs/ViewsBetaApi.md#getview) | **GET** /api/v2/projects/{projectKey}/views/{viewKey} | Get view
-*ViewsBetaApi* | [**getViews**](docs/ViewsBetaApi.md#getviews) | **GET** /api/v2/projects/{projectKey}/views | List views
-*ViewsBetaApi* | [**linkResource**](docs/ViewsBetaApi.md#linkresource) | **POST** /api/v2/projects/{projectKey}/views/{viewKey}/link/{resourceType} | Link resource
-*ViewsBetaApi* | [**unlinkResource**](docs/ViewsBetaApi.md#unlinkresource) | **DELETE** /api/v2/projects/{projectKey}/views/{viewKey}/link/{resourceType} | Unlink resource
-*ViewsBetaApi* | [**updateView**](docs/ViewsBetaApi.md#updateview) | **PATCH** /api/v2/projects/{projectKey}/views/{viewKey} | Update view
+*ViewsApi* | [**createView**](docs/ViewsApi.md#createview) | **POST** /api/v2/projects/{projectKey}/views | Create view
+*ViewsApi* | [**deleteView**](docs/ViewsApi.md#deleteview) | **DELETE** /api/v2/projects/{projectKey}/views/{viewKey} | Delete view
+*ViewsApi* | [**getLinkedResources**](docs/ViewsApi.md#getlinkedresources) | **GET** /api/v2/projects/{projectKey}/views/{viewKey}/linked/{resourceType} | Get linked resources
+*ViewsApi* | [**getLinkedViews**](docs/ViewsApi.md#getlinkedviews) | **GET** /api/v2/projects/{projectKey}/view-associations/{resourceType}/{resourceKey} | Get linked views for a given resource
+*ViewsApi* | [**getView**](docs/ViewsApi.md#getview) | **GET** /api/v2/projects/{projectKey}/views/{viewKey} | Get view
+*ViewsApi* | [**getViews**](docs/ViewsApi.md#getviews) | **GET** /api/v2/projects/{projectKey}/views | List views
+*ViewsApi* | [**linkResource**](docs/ViewsApi.md#linkresource) | **POST** /api/v2/projects/{projectKey}/views/{viewKey}/link/{resourceType} | Link resource
+*ViewsApi* | [**unlinkResource**](docs/ViewsApi.md#unlinkresource) | **DELETE** /api/v2/projects/{projectKey}/views/{viewKey}/link/{resourceType} | Unlink resource
+*ViewsApi* | [**updateView**](docs/ViewsApi.md#updateview) | **PATCH** /api/v2/projects/{projectKey}/views/{viewKey} | Update view
 *WebhooksApi* | [**deleteWebhook**](docs/WebhooksApi.md#deletewebhook) | **DELETE** /api/v2/webhooks/{id} | Delete webhook
 *WebhooksApi* | [**getAllWebhooks**](docs/WebhooksApi.md#getallwebhooks) | **GET** /api/v2/webhooks | List webhooks
 *WebhooksApi* | [**getWebhook**](docs/WebhooksApi.md#getwebhook) | **GET** /api/v2/webhooks/{id} | Get webhook
@@ -494,6 +505,12 @@ Class | Method | HTTP request | Description
  - [AccessTokenPost](docs/AccessTokenPost.md)
  - [ActionInput](docs/ActionInput.md)
  - [ActionOutput](docs/ActionOutput.md)
+ - [AdaptiveTrigger](docs/AdaptiveTrigger.md)
+ - [AdaptiveTriggerInstruction](docs/AdaptiveTriggerInstruction.md)
+ - [AdaptiveTriggerResourceKind](docs/AdaptiveTriggerResourceKind.md)
+ - [AdaptiveTriggerTask](docs/AdaptiveTriggerTask.md)
+ - [AdaptiveTriggers](docs/AdaptiveTriggers.md)
+ - [AdaptiveTriggersPaginatedLinks](docs/AdaptiveTriggersPaginatedLinks.md)
  - [AgentGraph](docs/AgentGraph.md)
  - [AgentGraphEdge](docs/AgentGraphEdge.md)
  - [AgentGraphEdgePost](docs/AgentGraphEdgePost.md)
@@ -590,7 +607,9 @@ Class | Method | HTTP request | Description
  - [CallerIdentityRep](docs/CallerIdentityRep.md)
  - [CapabilityConfigPost](docs/CapabilityConfigPost.md)
  - [CapabilityConfigRep](docs/CapabilityConfigRep.md)
+ - [Classifier](docs/Classifier.md)
  - [Clause](docs/Clause.md)
+ - [CleanupBehavior](docs/CleanupBehavior.md)
  - [Client](docs/Client.md)
  - [ClientCollection](docs/ClientCollection.md)
  - [ClientSideAvailability](docs/ClientSideAvailability.md)
@@ -610,11 +629,8 @@ Class | Method | HTTP request | Description
  - [ContextInstanceEvaluation](docs/ContextInstanceEvaluation.md)
  - [ContextInstanceEvaluationReason](docs/ContextInstanceEvaluationReason.md)
  - [ContextInstanceEvaluations](docs/ContextInstanceEvaluations.md)
- - [ContextInstanceRecord](docs/ContextInstanceRecord.md)
- - [ContextInstanceSearch](docs/ContextInstanceSearch.md)
  - [ContextInstanceSegmentMembership](docs/ContextInstanceSegmentMembership.md)
  - [ContextInstanceSegmentMemberships](docs/ContextInstanceSegmentMemberships.md)
- - [ContextInstances](docs/ContextInstances.md)
  - [ContextKindEnvironmentObservation](docs/ContextKindEnvironmentObservation.md)
  - [ContextKindRep](docs/ContextKindRep.md)
  - [ContextKindsCollectionRep](docs/ContextKindsCollectionRep.md)
@@ -626,13 +642,14 @@ Class | Method | HTTP request | Description
  - [CountBucket](docs/CountBucket.md)
  - [CountBucketsResult](docs/CountBucketsResult.md)
  - [CovariateInfoRep](docs/CovariateInfoRep.md)
+ - [CreateAdaptiveTriggerRequest](docs/CreateAdaptiveTriggerRequest.md)
  - [CreateAnnouncementBody](docs/CreateAnnouncementBody.md)
  - [CreateApprovalRequestRequest](docs/CreateApprovalRequestRequest.md)
  - [CreateCopyFlagConfigApprovalRequestRequest](docs/CreateCopyFlagConfigApprovalRequestRequest.md)
  - [CreateFlagConfigApprovalRequestRequest](docs/CreateFlagConfigApprovalRequestRequest.md)
  - [CreateIpAllowlistEntryRequest](docs/CreateIpAllowlistEntryRequest.md)
  - [CreatePhaseInput](docs/CreatePhaseInput.md)
- - [CreateReleaseInput](docs/CreateReleaseInput.md)
+ - [CreatePipelineReleaseInput](docs/CreatePipelineReleaseInput.md)
  - [CreateReleasePipelineInput](docs/CreateReleasePipelineInput.md)
  - [CreateWorkflowTemplateInput](docs/CreateWorkflowTemplateInput.md)
  - [CustomProperty](docs/CustomProperty.md)
@@ -644,6 +661,14 @@ Class | Method | HTTP request | Description
  - [CustomWorkflowOutput](docs/CustomWorkflowOutput.md)
  - [CustomWorkflowStageMeta](docs/CustomWorkflowStageMeta.md)
  - [CustomWorkflowsListingOutput](docs/CustomWorkflowsListingOutput.md)
+ - [DataExportProjectIdentityIncompleteError](docs/DataExportProjectIdentityIncompleteError.md)
+ - [DataExportProjectIdentityIncompleteErrorRep](docs/DataExportProjectIdentityIncompleteErrorRep.md)
+ - [DataExportProjectRankComponentsRep](docs/DataExportProjectRankComponentsRep.md)
+ - [DataExportProjectRankRep](docs/DataExportProjectRankRep.md)
+ - [DataExportProjectRankingPageRep](docs/DataExportProjectRankingPageRep.md)
+ - [DataExportProjectRankingRep](docs/DataExportProjectRankingRep.md)
+ - [DataExportProjectRankingScopeRep](docs/DataExportProjectRankingScopeRep.md)
+ - [DataExportSeriesListRep](docs/DataExportSeriesListRep.md)
  - [DefaultClientSideAvailability](docs/DefaultClientSideAvailability.md)
  - [DefaultClientSideAvailabilityPost](docs/DefaultClientSideAvailabilityPost.md)
  - [Defaults](docs/Defaults.md)
@@ -652,20 +677,42 @@ Class | Method | HTTP request | Description
  - [DependentFlag](docs/DependentFlag.md)
  - [DependentFlagEnvironment](docs/DependentFlagEnvironment.md)
  - [DependentFlagsByEnvironment](docs/DependentFlagsByEnvironment.md)
- - [DependentMeasuredRolloutRep](docs/DependentMeasuredRolloutRep.md)
  - [DependentMetricGroupRep](docs/DependentMetricGroupRep.md)
  - [DependentMetricGroupRepWithMetrics](docs/DependentMetricGroupRepWithMetrics.md)
  - [DependentMetricOrMetricGroupRep](docs/DependentMetricOrMetricGroupRep.md)
+ - [DependentReleasePhaseRep](docs/DependentReleasePhaseRep.md)
  - [DeploymentCollectionRep](docs/DeploymentCollectionRep.md)
  - [DeploymentRep](docs/DeploymentRep.md)
  - [Destination](docs/Destination.md)
  - [DestinationPost](docs/DestinationPost.md)
  - [Destinations](docs/Destinations.md)
+ - [DynamicOptionFiltersItems](docs/DynamicOptionFiltersItems.md)
  - [DynamicOptions](docs/DynamicOptions.md)
  - [DynamicOptionsParser](docs/DynamicOptionsParser.md)
+ - [DynamicOptionsSource](docs/DynamicOptionsSource.md)
  - [Endpoint](docs/Endpoint.md)
  - [Environment](docs/Environment.md)
  - [EnvironmentPost](docs/EnvironmentPost.md)
+ - [EnvironmentRelease](docs/EnvironmentRelease.md)
+ - [EnvironmentReleaseAdvancementMode](docs/EnvironmentReleaseAdvancementMode.md)
+ - [EnvironmentReleaseClause](docs/EnvironmentReleaseClause.md)
+ - [EnvironmentReleaseCollection](docs/EnvironmentReleaseCollection.md)
+ - [EnvironmentReleaseExistingRulePhaseInput](docs/EnvironmentReleaseExistingRulePhaseInput.md)
+ - [EnvironmentReleaseLink](docs/EnvironmentReleaseLink.md)
+ - [EnvironmentReleaseMetricInput](docs/EnvironmentReleaseMetricInput.md)
+ - [EnvironmentReleaseNewRulePhaseInput](docs/EnvironmentReleaseNewRulePhaseInput.md)
+ - [EnvironmentReleasePhase](docs/EnvironmentReleasePhase.md)
+ - [EnvironmentReleasePhaseInput](docs/EnvironmentReleasePhaseInput.md)
+ - [EnvironmentReleaseResolution](docs/EnvironmentReleaseResolution.md)
+ - [EnvironmentReleaseStepInput](docs/EnvironmentReleaseStepInput.md)
+ - [EnvironmentReleasesAccess](docs/EnvironmentReleasesAccess.md)
+ - [EnvironmentReleasesAccessAllowedRep](docs/EnvironmentReleasesAccessAllowedRep.md)
+ - [EnvironmentReleasesAccessDenied](docs/EnvironmentReleasesAccessDenied.md)
+ - [EnvironmentReleasesFilter](docs/EnvironmentReleasesFilter.md)
+ - [EnvironmentReleasesMemberSummary](docs/EnvironmentReleasesMemberSummary.md)
+ - [EnvironmentReleasesMetricDenominatorRep](docs/EnvironmentReleasesMetricDenominatorRep.md)
+ - [EnvironmentReleasesMetricListingRep](docs/EnvironmentReleasesMetricListingRep.md)
+ - [EnvironmentReleasesModification](docs/EnvironmentReleasesModification.md)
  - [EnvironmentSummary](docs/EnvironmentSummary.md)
  - [Environments](docs/Environments.md)
  - [EvaluationReason](docs/EvaluationReason.md)
@@ -702,6 +749,7 @@ Class | Method | HTTP request | Description
  - [ExperimentInfoRep](docs/ExperimentInfoRep.md)
  - [ExperimentPatchInput](docs/ExperimentPatchInput.md)
  - [ExperimentPost](docs/ExperimentPost.md)
+ - [ExperimentationLink](docs/ExperimentationLink.md)
  - [ExpiringTarget](docs/ExpiringTarget.md)
  - [ExpiringTargetError](docs/ExpiringTargetError.md)
  - [ExpiringTargetGetResponse](docs/ExpiringTargetGetResponse.md)
@@ -890,6 +938,7 @@ Class | Method | HTTP request | Description
  - [NewMemberForm](docs/NewMemberForm.md)
  - [NotFoundErrorRep](docs/NotFoundErrorRep.md)
  - [OauthClientPost](docs/OauthClientPost.md)
+ - [ObservabilityAlertSource](docs/ObservabilityAlertSource.md)
  - [OptionsArray](docs/OptionsArray.md)
  - [PaginatedLinks](docs/PaginatedLinks.md)
  - [ParameterDefault](docs/ParameterDefault.md)
@@ -911,6 +960,14 @@ Class | Method | HTTP request | Description
  - [PermissionGrantInput](docs/PermissionGrantInput.md)
  - [Phase](docs/Phase.md)
  - [PhaseInfo](docs/PhaseInfo.md)
+ - [PipelineRelease](docs/PipelineRelease.md)
+ - [PipelineReleaseAudience](docs/PipelineReleaseAudience.md)
+ - [PipelineReleaseAudienceConfigInput](docs/PipelineReleaseAudienceConfigInput.md)
+ - [PipelineReleaseGuardianConfiguration](docs/PipelineReleaseGuardianConfiguration.md)
+ - [PipelineReleaseGuardianConfigurationInput](docs/PipelineReleaseGuardianConfigurationInput.md)
+ - [PipelineReleasePhase](docs/PipelineReleasePhase.md)
+ - [PipelineReleaseProgression](docs/PipelineReleaseProgression.md)
+ - [PipelineReleaseProgressionCollection](docs/PipelineReleaseProgressionCollection.md)
  - [PostApprovalRequestApplyRequest](docs/PostApprovalRequestApplyRequest.md)
  - [PostApprovalRequestReviewRequest](docs/PostApprovalRequestReviewRequest.md)
  - [PostDeploymentEventInput](docs/PostDeploymentEventInput.md)
@@ -950,12 +1007,11 @@ Class | Method | HTTP request | Description
  - [RelayAutoConfigCollectionRep](docs/RelayAutoConfigCollectionRep.md)
  - [RelayAutoConfigPost](docs/RelayAutoConfigPost.md)
  - [RelayAutoConfigRep](docs/RelayAutoConfigRep.md)
- - [Release](docs/Release.md)
- - [ReleaseAudience](docs/ReleaseAudience.md)
- - [ReleaseGuardianConfiguration](docs/ReleaseGuardianConfiguration.md)
- - [ReleaseGuardianConfigurationInput](docs/ReleaseGuardianConfigurationInput.md)
+ - [ReleaseHealthCheckFailure](docs/ReleaseHealthCheckFailure.md)
+ - [ReleaseHealthCheckKind](docs/ReleaseHealthCheckKind.md)
  - [ReleaseMethod](docs/ReleaseMethod.md)
- - [ReleasePhase](docs/ReleasePhase.md)
+ - [ReleaseMetric](docs/ReleaseMetric.md)
+ - [ReleaseMetricStatus](docs/ReleaseMetricStatus.md)
  - [ReleasePipeline](docs/ReleasePipeline.md)
  - [ReleasePipelineCollection](docs/ReleasePipelineCollection.md)
  - [ReleasePoliciesAccess](docs/ReleasePoliciesAccess.md)
@@ -968,9 +1024,10 @@ Class | Method | HTTP request | Description
  - [ReleasePolicy](docs/ReleasePolicy.md)
  - [ReleasePolicyScope](docs/ReleasePolicyScope.md)
  - [ReleasePolicyStage](docs/ReleasePolicyStage.md)
- - [ReleaseProgression](docs/ReleaseProgression.md)
- - [ReleaseProgressionCollection](docs/ReleaseProgressionCollection.md)
- - [ReleaserAudienceConfigInput](docs/ReleaserAudienceConfigInput.md)
+ - [ReleaseStatus](docs/ReleaseStatus.md)
+ - [ReleaseStatusReason](docs/ReleaseStatusReason.md)
+ - [ReleaseStep](docs/ReleaseStep.md)
+ - [ReleaseType](docs/ReleaseType.md)
  - [RepositoryCollectionRep](docs/RepositoryCollectionRep.md)
  - [RepositoryPost](docs/RepositoryPost.md)
  - [RepositoryRep](docs/RepositoryRep.md)
@@ -993,6 +1050,8 @@ Class | Method | HTTP request | Description
  - [SdkKeyListItem](docs/SdkKeyListItem.md)
  - [SdkKeyPatch](docs/SdkKeyPatch.md)
  - [SdkKeyPost](docs/SdkKeyPost.md)
+ - [SdkKeyViewsPut](docs/SdkKeyViewsPut.md)
+ - [SdkKeys](docs/SdkKeys.md)
  - [SdkKeysEnvironmentSummary](docs/SdkKeysEnvironmentSummary.md)
  - [SdkKeysForGetSdkKeys](docs/SdkKeysForGetSdkKeys.md)
  - [SdkKeysSelfLink](docs/SdkKeysSelfLink.md)
@@ -1016,6 +1075,8 @@ Class | Method | HTTP request | Description
  - [StageInput](docs/StageInput.md)
  - [StageOutput](docs/StageOutput.md)
  - [StaleFlagData](docs/StaleFlagData.md)
+ - [StartEnvironmentReleaseBadRequest](docs/StartEnvironmentReleaseBadRequest.md)
+ - [StartEnvironmentReleaseRequest](docs/StartEnvironmentReleaseRequest.md)
  - [Statement](docs/Statement.md)
  - [StatementPost](docs/StatementPost.md)
  - [StatisticCollectionRep](docs/StatisticCollectionRep.md)
@@ -1024,6 +1085,7 @@ Class | Method | HTTP request | Description
  - [StatusConflictErrorRep](docs/StatusConflictErrorRep.md)
  - [StatusResponse](docs/StatusResponse.md)
  - [StatusServiceUnavailable](docs/StatusServiceUnavailable.md)
+ - [StopEnvironmentReleaseRequest](docs/StopEnvironmentReleaseRequest.md)
  - [StoreIntegrationError](docs/StoreIntegrationError.md)
  - [SubjectDataRep](docs/SubjectDataRep.md)
  - [SubscriptionPost](docs/SubscriptionPost.md)
@@ -1058,6 +1120,7 @@ Class | Method | HTTP request | Description
  - [TrustPolicyStatement](docs/TrustPolicyStatement.md)
  - [UnauthorizedErrorRep](docs/UnauthorizedErrorRep.md)
  - [UnlinkResourceSuccessResponse](docs/UnlinkResourceSuccessResponse.md)
+ - [UpdateAdaptiveTriggerRequest](docs/UpdateAdaptiveTriggerRequest.md)
  - [UpdatePhaseStatusInput](docs/UpdatePhaseStatusInput.md)
  - [UpdateReleasePipelineInput](docs/UpdateReleasePipelineInput.md)
  - [UpsertContextKindPayload](docs/UpsertContextKindPayload.md)

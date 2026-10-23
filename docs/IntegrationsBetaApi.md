@@ -143,10 +143,12 @@ import {
 const configuration = new Configuration();
 const apiInstance = new IntegrationsBetaApi(configuration);
 
-let integrationKey: string; //Integration key (default to undefined)
+let integrationKey: string; //A key that corresponds to the third-party integration you are configuring. For example, `mezmo`. (default to undefined)
+let includePending: boolean; //When `true`, includes pending two-step setup drafts that were created using `/setup` but are not yet finalized. Defaults to `false`, which returns only active configurations. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getAllIntegrationConfigurations(
-    integrationKey
+    integrationKey,
+    includePending
 );
 ```
 
@@ -154,7 +156,8 @@ const { status, data } = await apiInstance.getAllIntegrationConfigurations(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **integrationKey** | [**string**] | Integration key | defaults to undefined|
+| **integrationKey** | [**string**] | A key that corresponds to the third-party integration you are configuring. For example, &#x60;mezmo&#x60;. | defaults to undefined|
+| **includePending** | [**boolean**] | When &#x60;true&#x60;, includes pending two-step setup drafts that were created using &#x60;/setup&#x60; but are not yet finalized. Defaults to &#x60;false&#x60;, which returns only active configurations. | (optional) defaults to undefined|
 
 
 ### Return type

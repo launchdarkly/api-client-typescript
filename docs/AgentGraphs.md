@@ -7,8 +7,8 @@ A collection of agent graphs
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **_links** | [**PaginatedLinks**](PaginatedLinks.md) |  | [optional] [default to undefined]
-**items** | [**Array&lt;AgentGraph&gt;**](AgentGraph.md) |  | [default to undefined]
-**totalCount** | **number** |  | [default to undefined]
+**items** | [**Array&lt;AgentGraph&gt;**](AgentGraph.md) | The items on this page | [default to undefined]
+**totalCount** | **number** | The total number of items | [default to undefined]
 
 ## Example
 

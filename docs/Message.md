@@ -5,8 +5,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**content** | **string** |  | [default to undefined]
-**role** | **string** |  | [default to undefined]
+**content** | **string** | The message text | [default to undefined]
+**role** | **string** | The message role, such as system, user, or assistant | [default to undefined]
 
 ## Example
 

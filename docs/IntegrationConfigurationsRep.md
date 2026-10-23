@@ -16,9 +16,10 @@ Name | Type | Description | Notes
 **configValues** | **{ [key: string]: any; }** | Details on configuration for an integration of this type. Refer to the &lt;code&gt;formVariables&lt;/code&gt; field in the corresponding &lt;code&gt;manifest.json&lt;/code&gt; for a full list of fields for each integration. | [optional] [default to undefined]
 **capabilityConfig** | [**CapabilityConfigRep**](CapabilityConfigRep.md) |  | [optional] [default to undefined]
 **snowflakeSetupScript** | **string** | Consolidated SQL script for Snowflake Warehouse Native Experimentation setup. Present only for setup endpoint responses. | [optional] [default to undefined]
-**redshiftSetupScripts** | **Array&lt;string&gt;** | SQL setup scripts (4 parts) for Redshift Native Experimentation setup. Present only for setup endpoint responses. | [optional] [default to undefined]
+**redshiftSetupScripts** | **Array&lt;string&gt;** | SQL setup scripts (4 parts) for Redshift native Experimentation setup. Present on setup endpoint responses and, rehydrated from the persisted config, on active (finalized) Redshift native Experimentation configurations. | [optional] [default to undefined]
 **redshiftIAMPermissionsPolicy** | **string** | IAM permissions policy JSON for the customer\&#39;s Redshift IAM role. Present only for setup endpoint responses. | [optional] [default to undefined]
 **redshiftIAMTrustPolicy** | **string** | IAM trust policy JSON for the customer\&#39;s Redshift IAM role. Present only for setup endpoint responses. | [optional] [default to undefined]
+**clickHouseSetupScript** | **string** | SQL setup script for ClickHouse native Experimentation. On setup endpoint responses it also creates the experimentation user with the submitted password. When the two-step setup flow is enabled, it is rehydrated from the persisted config on other responses with only the grants, never the password. | [optional] [default to undefined]
 **_maintainerId** | **string** | The ID of the member who maintains this integration configuration. Defaults to the member who created it. | [optional] [default to undefined]
 
 ## Example
@@ -41,6 +42,7 @@ const instance: IntegrationConfigurationsRep = {
     redshiftSetupScripts,
     redshiftIAMPermissionsPolicy,
     redshiftIAMTrustPolicy,
+    clickHouseSetupScript,
     _maintainerId,
 };
 ```

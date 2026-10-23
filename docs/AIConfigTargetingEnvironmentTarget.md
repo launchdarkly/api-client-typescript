@@ -5,9 +5,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**contextKind** | **string** |  | [default to undefined]
-**values** | **Array&lt;string&gt;** |  | [default to undefined]
-**variation** | **number** |  | [default to undefined]
+**contextKind** | **string** | The context kind | [default to undefined]
+**values** | **Array&lt;string&gt;** | The context keys to target | [default to undefined]
+**variation** | **number** | Index of the variation to serve | [default to undefined]
 
 ## Example
 

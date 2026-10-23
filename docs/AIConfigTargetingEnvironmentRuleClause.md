@@ -5,11 +5,11 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**attribute** | **string** |  | [default to undefined]
-**id** | **string** |  | [default to undefined]
-**negate** | **boolean** |  | [default to undefined]
-**op** | **string** |  | [default to undefined]
-**values** | **Array&lt;any&gt;** |  | [default to undefined]
+**attribute** | **string** | The context attribute to match | [default to undefined]
+**id** | **string** | The clause ID | [default to undefined]
+**negate** | **boolean** | Whether to negate the match | [default to undefined]
+**op** | **string** | The operator to use | [default to undefined]
+**values** | **Array&lt;any&gt;** | The values to match against | [default to undefined]
 
 ## Example
 

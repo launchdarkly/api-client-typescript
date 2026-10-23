@@ -16,7 +16,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 # **createExperiment**
 > Experiment createExperiment(experimentPost)
 
-Create an experiment.  To run this experiment, you\'ll need to [create an iteration](https://launchdarkly.com/docs/api/experiments/create-iteration) and then [update the experiment](https://launchdarkly.com/docs/api/experiments/patch-experiment) with the `startIteration` instruction.  ### Experiment types  Use the `type` field to specify the experiment type: `experiment` (default), `mab` (multi-armed bandit), or `holdout`.  For multi-armed bandit experiments, set `reallocationFrequencyMillis` on the iteration to control how often traffic is reallocated across variations.  ### Results analysis  Use the `methodology` field to specify the results analysis approach: `bayesian` (default) or `frequentist`.  Use the `dataSource` field to specify the source of metric data: `launchdarkly` (default), `snowflake`, or `databricks`.  Use the `analysisConfig` field to customize analysis settings such as the Bayesian threshold, significance threshold, or multiple comparison correction method.  To learn more, read [Creating experiments](https://launchdarkly.com/docs/home/experimentation/create). 
+Create an experiment.  To run this experiment, you\'ll need to [create an iteration](https://launchdarkly.com/docs/api/experiments/create-iteration) and then [update the experiment](https://launchdarkly.com/docs/api/experiments/patch-experiment) with the `startIteration` instruction.  ### Experiment types  Use the `type` field to specify the experiment type: `experiment` (default), `mab` (multi-armed bandit), or `holdout`.  For multi-armed bandit experiments, set `reallocationFrequencyMillis` on the iteration to control how often traffic is reallocated across variations.  ### Results analysis  Use the `methodology` field to specify the results analysis approach: `frequentist` (default) or `bayesian`. Multi-armed bandit experiments support only `bayesian`, which is their default.  Use the `dataSource` field to specify the source of metric data: `launchdarkly` (default), `snowflake`, or `databricks`.  Use the `analysisConfig` field to customize analysis settings such as the Bayesian threshold, significance threshold, or multiple comparison correction method.  To learn more, read [Creating experiments](https://launchdarkly.com/docs/home/experimentation/create). 
 
 ### Example
 
@@ -475,6 +475,7 @@ const { status, data } = await apiInstance.patchExperiment(
 |**403** | Forbidden |  -  |
 |**404** | Invalid resource identifier |  -  |
 |**409** | Conflict |  -  |
+|**422** | The patch cannot be applied |  -  |
 |**429** | Rate limited |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

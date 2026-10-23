@@ -27,11 +27,13 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getAgentSkill**](#getagentskill) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey} | Get an agent skill|
 |[**getModelConfig**](#getmodelconfig) | **GET** /api/v2/projects/{projectKey}/ai-configs/model-configs/{modelConfigKey} | Get AI model config|
 |[**getPromptSnippet**](#getpromptsnippet) | **GET** /api/v2/projects/{projectKey}/ai-configs/prompt-snippets/{snippetKey} | Get a prompt snippet|
+|[**listAIToolReferences**](#listaitoolreferences) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/references | List AI tool references|
 |[**listAIToolVersions**](#listaitoolversions) | **GET** /api/v2/projects/{projectKey}/ai-tools/{toolKey}/versions | List AI tool versions|
 |[**listAITools**](#listaitools) | **GET** /api/v2/projects/{projectKey}/ai-tools | List AI tools|
 |[**listAgentGraphs**](#listagentgraphs) | **GET** /api/v2/projects/{projectKey}/agent-graphs | List agent graphs|
-|[**listAgentOptimizationResults**](#listagentoptimizationresults) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/results | List agent optimization runs|
+|[**listAgentOptimizationResults**](#listagentoptimizationresults) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/results | List latest agent optimization result per run|
 |[**listAgentOptimizationResultsByRunId**](#listagentoptimizationresultsbyrunid) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/runs/{runId}/results | List agent optimization results for a run|
+|[**listAgentOptimizationRuns**](#listagentoptimizationruns) | **GET** /api/v2/projects/{projectKey}/agent-optimizations/{optimizationKey}/runs | List agent optimization runs|
 |[**listAgentOptimizations**](#listagentoptimizations) | **GET** /api/v2/projects/{projectKey}/agent-optimizations | List agent optimizations|
 |[**listAgentSkillReferences**](#listagentskillreferences) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/references | List agent skill references|
 |[**listAgentSkillVersions**](#listagentskillversions) | **GET** /api/v2/projects/{projectKey}/ai-configs/skills/{skillKey}/versions | List agent skill versions|
@@ -79,8 +81,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 
 const { status, data } = await apiInstance.deleteAIConfig(
     projectKey,
@@ -92,8 +94,8 @@ const { status, data } = await apiInstance.deleteAIConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 
 
 ### Return type
@@ -137,9 +139,9 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
-let variationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
+let variationKey: string; //The AI Config variation key (default to undefined)
 
 const { status, data } = await apiInstance.deleteAIConfigVariation(
     projectKey,
@@ -152,9 +154,9 @@ const { status, data } = await apiInstance.deleteAIConfigVariation(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
-| **variationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
+| **variationKey** | [**string**] | The AI Config variation key | defaults to undefined|
 
 
 ### Return type
@@ -198,8 +200,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let toolKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let toolKey: string; //The AI tool key (default to undefined)
 
 const { status, data } = await apiInstance.deleteAITool(
     projectKey,
@@ -211,8 +213,8 @@ const { status, data } = await apiInstance.deleteAITool(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **toolKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **toolKey** | [**string**] | The AI tool key | defaults to undefined|
 
 
 ### Return type
@@ -257,8 +259,8 @@ const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
-let projectKey: string; // (default to undefined)
-let graphKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let graphKey: string; //The agent graph key (default to undefined)
 
 const { status, data } = await apiInstance.deleteAgentGraph(
     lDAPIVersion,
@@ -272,8 +274,8 @@ const { status, data } = await apiInstance.deleteAgentGraph(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **graphKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **graphKey** | [**string**] | The agent graph key | defaults to undefined|
 
 
 ### Return type
@@ -317,8 +319,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
 
 const { status, data } = await apiInstance.deleteAgentOptimization(
     projectKey,
@@ -330,8 +332,8 @@ const { status, data } = await apiInstance.deleteAgentOptimization(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
 
 
 ### Return type
@@ -375,9 +377,9 @@ const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
-let runId: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
+let runId: string; //The agent optimization run ID (default to undefined)
 
 const { status, data } = await apiInstance.deleteAgentOptimizationRun(
     lDAPIVersion,
@@ -392,9 +394,9 @@ const { status, data } = await apiInstance.deleteAgentOptimizationRun(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
-| **runId** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
+| **runId** | [**string**] | The agent optimization run ID | defaults to undefined|
 
 
 ### Return type
@@ -437,8 +439,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let skillKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let skillKey: string; //The agent skill key (default to undefined)
 
 const { status, data } = await apiInstance.deleteAgentSkill(
     projectKey,
@@ -450,8 +452,8 @@ const { status, data } = await apiInstance.deleteAgentSkill(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **skillKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **skillKey** | [**string**] | The agent skill key | defaults to undefined|
 
 
 ### Return type
@@ -495,8 +497,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let modelConfigKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let modelConfigKey: string; //The AI model config key (default to undefined)
 
 const { status, data } = await apiInstance.deleteModelConfig(
     projectKey,
@@ -508,8 +510,8 @@ const { status, data } = await apiInstance.deleteModelConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **modelConfigKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **modelConfigKey** | [**string**] | The AI model config key | defaults to undefined|
 
 
 ### Return type
@@ -553,8 +555,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let snippetKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let snippetKey: string; //The prompt snippet key (default to undefined)
 
 const { status, data } = await apiInstance.deletePromptSnippet(
     projectKey,
@@ -566,8 +568,8 @@ const { status, data } = await apiInstance.deletePromptSnippet(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **snippetKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **snippetKey** | [**string**] | The prompt snippet key | defaults to undefined|
 
 
 ### Return type
@@ -611,7 +613,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let restrictedModelsRequest: RestrictedModelsRequest; //List of AI model keys to remove from the restricted list
 
 const { status, data } = await apiInstance.deleteRestrictedModels(
@@ -625,7 +627,7 @@ const { status, data } = await apiInstance.deleteRestrictedModels(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **restrictedModelsRequest** | **RestrictedModelsRequest**| List of AI model keys to remove from the restricted list | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -669,8 +671,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfig(
     projectKey,
@@ -682,8 +684,8 @@ const { status, data } = await apiInstance.getAIConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 
 
 ### Return type
@@ -727,8 +729,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 let from: number; //The starting time, as milliseconds since epoch (inclusive). (default to undefined)
 let to: number; //The ending time, as milliseconds since epoch (exclusive). May not be more than 100 days after `from`. (default to undefined)
 let env: string; //An environment key. Only metrics from this environment will be included. (default to undefined)
@@ -750,8 +752,8 @@ const { status, data } = await apiInstance.getAIConfigMetrics(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 | **from** | [**number**] | The starting time, as milliseconds since epoch (inclusive). | defaults to undefined|
 | **to** | [**number**] | The ending time, as milliseconds since epoch (exclusive). May not be more than 100 days after &#x60;from&#x60;. | defaults to undefined|
 | **env** | [**string**] | An environment key. Only metrics from this environment will be included. | defaults to undefined|
@@ -800,8 +802,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 let from: number; //The starting time, as milliseconds since epoch (inclusive). (default to undefined)
 let to: number; //The ending time, as milliseconds since epoch (exclusive). May not be more than 100 days after `from`. (default to undefined)
 let env: string; //An environment key. Only metrics from this environment will be included. (default to undefined)
@@ -823,8 +825,8 @@ const { status, data } = await apiInstance.getAIConfigMetricsByVariation(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 | **from** | [**number**] | The starting time, as milliseconds since epoch (inclusive). | defaults to undefined|
 | **to** | [**number**] | The ending time, as milliseconds since epoch (exclusive). May not be more than 100 days after &#x60;from&#x60;. | defaults to undefined|
 | **env** | [**string**] | An environment key. Only metrics from this environment will be included. | defaults to undefined|
@@ -873,7 +875,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let env: string; //An environment key. Only metrics from this environment will be included. (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigQuickStats(
@@ -886,7 +888,7 @@ const { status, data } = await apiInstance.getAIConfigQuickStats(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **env** | [**string**] | An environment key. Only metrics from this environment will be included. | defaults to undefined|
 
 
@@ -931,8 +933,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigTargeting(
     projectKey,
@@ -944,8 +946,8 @@ const { status, data } = await apiInstance.getAIConfigTargeting(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 
 
 ### Return type
@@ -988,9 +990,9 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
-let variationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
+let variationKey: string; //The AI Config variation key (default to undefined)
 
 const { status, data } = await apiInstance.getAIConfigVariation(
     projectKey,
@@ -1003,9 +1005,9 @@ const { status, data } = await apiInstance.getAIConfigVariation(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
-| **variationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
+| **variationKey** | [**string**] | The AI Config variation key | defaults to undefined|
 
 
 ### Return type
@@ -1049,7 +1051,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let sort: string; //A sort to apply to the list of AgentControl configs. (optional) (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
@@ -1068,7 +1070,7 @@ const { status, data } = await apiInstance.getAIConfigs(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **sort** | [**string**] | A sort to apply to the list of AgentControl configs. | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
@@ -1116,8 +1118,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let toolKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let toolKey: string; //The AI tool key (default to undefined)
 
 const { status, data } = await apiInstance.getAITool(
     projectKey,
@@ -1129,8 +1131,8 @@ const { status, data } = await apiInstance.getAITool(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **toolKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **toolKey** | [**string**] | The AI tool key | defaults to undefined|
 
 
 ### Return type
@@ -1175,8 +1177,8 @@ const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
-let projectKey: string; // (default to undefined)
-let graphKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let graphKey: string; //The agent graph key (default to undefined)
 
 const { status, data } = await apiInstance.getAgentGraph(
     lDAPIVersion,
@@ -1190,8 +1192,8 @@ const { status, data } = await apiInstance.getAgentGraph(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **graphKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **graphKey** | [**string**] | The agent graph key | defaults to undefined|
 
 
 ### Return type
@@ -1235,8 +1237,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
 
 const { status, data } = await apiInstance.getAgentOptimization(
     projectKey,
@@ -1248,8 +1250,8 @@ const { status, data } = await apiInstance.getAgentOptimization(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
 
 
 ### Return type
@@ -1292,8 +1294,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let skillKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let skillKey: string; //The agent skill key (default to undefined)
 
 const { status, data } = await apiInstance.getAgentSkill(
     projectKey,
@@ -1305,8 +1307,8 @@ const { status, data } = await apiInstance.getAgentSkill(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **skillKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **skillKey** | [**string**] | The agent skill key | defaults to undefined|
 
 
 ### Return type
@@ -1349,8 +1351,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let modelConfigKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let modelConfigKey: string; //The AI model config key (default to undefined)
 let version: number; //Specific model config version to return. Omit to return the latest version. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getModelConfig(
@@ -1364,8 +1366,8 @@ const { status, data } = await apiInstance.getModelConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **modelConfigKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **modelConfigKey** | [**string**] | The AI model config key | defaults to undefined|
 | **version** | [**number**] | Specific model config version to return. Omit to return the latest version. | (optional) defaults to undefined|
 
 
@@ -1410,8 +1412,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let snippetKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let snippetKey: string; //The prompt snippet key (default to undefined)
 
 const { status, data } = await apiInstance.getPromptSnippet(
     projectKey,
@@ -1423,8 +1425,8 @@ const { status, data } = await apiInstance.getPromptSnippet(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **snippetKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **snippetKey** | [**string**] | The prompt snippet key | defaults to undefined|
 
 
 ### Return type
@@ -1451,6 +1453,70 @@ const { status, data } = await apiInstance.getPromptSnippet(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listAIToolReferences**
+> ToolReferences listAIToolReferences()
+
+Get all AgentControl config variations that currently reference this tool.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; //The project key (default to undefined)
+let toolKey: string; //The AI tool key (default to undefined)
+let limit: number; //The number of resources to return. (optional) (default to undefined)
+let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.listAIToolReferences(
+    projectKey,
+    toolKey,
+    limit,
+    offset
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **toolKey** | [**string**] | The AI tool key | defaults to undefined|
+| **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
+| **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**ToolReferences**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | AI tool references |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listAIToolVersions**
 > AITools listAIToolVersions()
 
@@ -1467,8 +1533,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let toolKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let toolKey: string; //The AI tool key (default to undefined)
 let sort: string; //A sort to apply to the list of AgentControl configs. (optional) (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
@@ -1486,8 +1552,8 @@ const { status, data } = await apiInstance.listAIToolVersions(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **toolKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **toolKey** | [**string**] | The AI tool key | defaults to undefined|
 | **sort** | [**string**] | A sort to apply to the list of AgentControl configs. | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
@@ -1533,7 +1599,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let sort: string; //A sort to apply to the list of AgentControl configs. (optional) (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
@@ -1552,7 +1618,7 @@ const { status, data } = await apiInstance.listAITools(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **sort** | [**string**] | A sort to apply to the list of AgentControl configs. | (optional) defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
@@ -1600,7 +1666,7 @@ const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 let filter: string; //A filter to apply to the list. (optional) (default to undefined)
@@ -1619,7 +1685,7 @@ const { status, data } = await apiInstance.listAgentGraphs(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 | **filter** | [**string**] | A filter to apply to the list. | (optional) defaults to undefined|
@@ -1665,8 +1731,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
@@ -1682,8 +1748,8 @@ const { status, data } = await apiInstance.listAgentOptimizationResults(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 
@@ -1728,9 +1794,9 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
-let runId: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
+let runId: string; //The agent optimization run ID (default to undefined)
 
 const { status, data } = await apiInstance.listAgentOptimizationResultsByRunId(
     projectKey,
@@ -1743,9 +1809,9 @@ const { status, data } = await apiInstance.listAgentOptimizationResultsByRunId(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
-| **runId** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
+| **runId** | [**string**] | The agent optimization run ID | defaults to undefined|
 
 
 ### Return type
@@ -1772,6 +1838,70 @@ const { status, data } = await apiInstance.listAgentOptimizationResultsByRunId(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listAgentOptimizationRuns**
+> AgentOptimizationRuns listAgentOptimizationRuns()
+
+Get one run summary per distinct run_id across all versions of an agent optimization config, ordered by created_at DESC.
+
+### Example
+
+```typescript
+import {
+    AgentControlApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new AgentControlApi(configuration);
+
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
+let limit: number; //The number of resources to return. (optional) (default to undefined)
+let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.listAgentOptimizationRuns(
+    projectKey,
+    optimizationKey,
+    limit,
+    offset
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
+| **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
+| **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**AgentOptimizationRuns**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Agent optimization run list |  -  |
+|**400** | Bad request |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Not found |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listAgentOptimizations**
 > AgentOptimizations listAgentOptimizations()
 
@@ -1788,7 +1918,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 let filter: string; //A filter to apply to the list. (optional) (default to undefined)
@@ -1805,7 +1935,7 @@ const { status, data } = await apiInstance.listAgentOptimizations(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 | **filter** | [**string**] | A filter to apply to the list. | (optional) defaults to undefined|
@@ -1852,8 +1982,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let skillKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let skillKey: string; //The agent skill key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
@@ -1869,8 +1999,8 @@ const { status, data } = await apiInstance.listAgentSkillReferences(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **skillKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **skillKey** | [**string**] | The agent skill key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 
@@ -1915,8 +2045,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let skillKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let skillKey: string; //The agent skill key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
@@ -1932,8 +2062,8 @@ const { status, data } = await apiInstance.listAgentSkillVersions(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **skillKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **skillKey** | [**string**] | The agent skill key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 
@@ -1979,7 +2109,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 let filter: string; //A filter to apply to the list. (optional) (default to undefined)
@@ -1996,7 +2126,7 @@ const { status, data } = await apiInstance.listAgentSkills(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 | **filter** | [**string**] | A filter to apply to the list. | (optional) defaults to undefined|
@@ -2043,8 +2173,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
@@ -2060,8 +2190,8 @@ const { status, data } = await apiInstance.listAllAgentOptimizationResults(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 
@@ -2106,8 +2236,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let modelConfigKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let modelConfigKey: string; //The AI model config key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
@@ -2123,8 +2253,8 @@ const { status, data } = await apiInstance.listModelConfigVersions(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **modelConfigKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **modelConfigKey** | [**string**] | The AI model config key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 
@@ -2170,12 +2300,16 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let restricted: boolean; //Whether to return only restricted models (optional) (default to undefined)
+let sort: string; //A sort to apply to the list of AgentControl configs. (optional) (default to undefined)
+let filter: string; //A filter to apply to the list. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.listModelConfigs(
     projectKey,
-    restricted
+    restricted,
+    sort,
+    filter
 );
 ```
 
@@ -2183,8 +2317,10 @@ const { status, data } = await apiInstance.listModelConfigs(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **restricted** | [**boolean**] | Whether to return only restricted models | (optional) defaults to undefined|
+| **sort** | [**string**] | A sort to apply to the list of AgentControl configs. | (optional) defaults to undefined|
+| **filter** | [**string**] | A filter to apply to the list. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -2228,8 +2364,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let snippetKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let snippetKey: string; //The prompt snippet key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
@@ -2245,8 +2381,8 @@ const { status, data } = await apiInstance.listPromptSnippetReferences(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **snippetKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **snippetKey** | [**string**] | The prompt snippet key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 
@@ -2291,8 +2427,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let snippetKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let snippetKey: string; //The prompt snippet key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 
@@ -2308,8 +2444,8 @@ const { status, data } = await apiInstance.listPromptSnippetVersions(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **snippetKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **snippetKey** | [**string**] | The prompt snippet key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 
@@ -2355,7 +2491,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 let filter: string; //A filter to apply to the list. (optional) (default to undefined)
@@ -2372,7 +2508,7 @@ const { status, data } = await apiInstance.listPromptSnippets(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 | **filter** | [**string**] | A filter to apply to the list. | (optional) defaults to undefined|
@@ -2420,8 +2556,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 let aIConfigPatch: AIConfigPatch; //AI Config object to update (optional)
 
 const { status, data } = await apiInstance.patchAIConfig(
@@ -2436,8 +2572,8 @@ const { status, data } = await apiInstance.patchAIConfig(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigPatch** | **AIConfigPatch**| AI Config object to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 
 
 ### Return type
@@ -2482,8 +2618,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 let aIConfigTargetingPatch: AIConfigTargetingPatch; //AI Config targeting semantic patch instructions (optional)
 
 const { status, data } = await apiInstance.patchAIConfigTargeting(
@@ -2498,8 +2634,8 @@ const { status, data } = await apiInstance.patchAIConfigTargeting(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigTargetingPatch** | **AIConfigTargetingPatch**| AI Config targeting semantic patch instructions | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 
 
 ### Return type
@@ -2530,7 +2666,7 @@ const { status, data } = await apiInstance.patchAIConfigTargeting(
 # **patchAIConfigVariation**
 > AIConfigVariation patchAIConfigVariation()
 
-Edit an existing variation of an AI Config. This creates a new version of the variation.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  Here\'s an example: ```   {     \"messages\": [       {         \"role\": \"system\",         \"content\": \"The new message\"       }     ]   } ``` 
+Edit an existing variation of an AI Config. This creates a new version of the variation.  The request body must be a JSON object of the fields to update. The values you include replace the existing values for the fields.  If the variation is in use in a project environment where approval settings require review for this AI Config, this endpoint returns 403 and the change must be submitted through an approval request.  Here\'s an example: ```   {     \"messages\": [       {         \"role\": \"system\",         \"content\": \"The new message\"       }     ]   } ``` 
 
 ### Example
 
@@ -2544,9 +2680,9 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
-let variationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
+let variationKey: string; //The AI Config variation key (default to undefined)
 let aIConfigVariationPatch: AIConfigVariationPatch; //AI Config variation object to update (optional)
 
 const { status, data } = await apiInstance.patchAIConfigVariation(
@@ -2562,9 +2698,9 @@ const { status, data } = await apiInstance.patchAIConfigVariation(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigVariationPatch** | **AIConfigVariationPatch**| AI Config variation object to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
-| **variationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
+| **variationKey** | [**string**] | The AI Config variation key | defaults to undefined|
 
 
 ### Return type
@@ -2609,8 +2745,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let toolKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let toolKey: string; //The AI tool key (default to undefined)
 let aIToolPatch: AIToolPatch; //AI tool object to update (optional)
 
 const { status, data } = await apiInstance.patchAITool(
@@ -2625,8 +2761,8 @@ const { status, data } = await apiInstance.patchAITool(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIToolPatch** | **AIToolPatch**| AI tool object to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **toolKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **toolKey** | [**string**] | The AI tool key | defaults to undefined|
 
 
 ### Return type
@@ -2672,8 +2808,8 @@ const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
-let projectKey: string; // (default to undefined)
-let graphKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let graphKey: string; //The agent graph key (default to undefined)
 let agentGraphPatch: AgentGraphPatch; //Agent graph object to update (optional)
 
 const { status, data } = await apiInstance.patchAgentGraph(
@@ -2690,8 +2826,8 @@ const { status, data } = await apiInstance.patchAgentGraph(
 |------------- | ------------- | ------------- | -------------|
 | **agentGraphPatch** | **AgentGraphPatch**| Agent graph object to update | |
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **graphKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **graphKey** | [**string**] | The agent graph key | defaults to undefined|
 
 
 ### Return type
@@ -2736,8 +2872,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
 let agentOptimizationPatch: AgentOptimizationPatch; //Agent optimization fields to update
 
 const { status, data } = await apiInstance.patchAgentOptimization(
@@ -2752,8 +2888,8 @@ const { status, data } = await apiInstance.patchAgentOptimization(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **agentOptimizationPatch** | **AgentOptimizationPatch**| Agent optimization fields to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
 
 
 ### Return type
@@ -2799,9 +2935,9 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
-let resultId: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
+let resultId: string; //The agent optimization result ID (default to undefined)
 let agentOptimizationResultPatch: AgentOptimizationResultPatch; //Agent optimization result fields to update
 
 const { status, data } = await apiInstance.patchAgentOptimizationResult(
@@ -2817,9 +2953,9 @@ const { status, data } = await apiInstance.patchAgentOptimizationResult(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **agentOptimizationResultPatch** | **AgentOptimizationResultPatch**| Agent optimization result fields to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
-| **resultId** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
+| **resultId** | [**string**] | The agent optimization result ID | defaults to undefined|
 
 
 ### Return type
@@ -2864,8 +3000,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let skillKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let skillKey: string; //The agent skill key (default to undefined)
 let agentSkillPatch: AgentSkillPatch; //Agent skill fields to update
 
 const { status, data } = await apiInstance.patchAgentSkill(
@@ -2880,8 +3016,8 @@ const { status, data } = await apiInstance.patchAgentSkill(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **agentSkillPatch** | **AgentSkillPatch**| Agent skill fields to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **skillKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **skillKey** | [**string**] | The agent skill key | defaults to undefined|
 
 
 ### Return type
@@ -2927,8 +3063,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let modelConfigKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let modelConfigKey: string; //The AI model config key (default to undefined)
 let modelConfigPatch: ModelConfigPatch; //AI model config object to update
 
 const { status, data } = await apiInstance.patchModelConfig(
@@ -2943,8 +3079,8 @@ const { status, data } = await apiInstance.patchModelConfig(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **modelConfigPatch** | **ModelConfigPatch**| AI model config object to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **modelConfigKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **modelConfigKey** | [**string**] | The AI model config key | defaults to undefined|
 
 
 ### Return type
@@ -2989,8 +3125,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let snippetKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let snippetKey: string; //The prompt snippet key (default to undefined)
 let promptSnippetPatch: PromptSnippetPatch; //Prompt snippet fields to update
 
 const { status, data } = await apiInstance.patchPromptSnippet(
@@ -3005,8 +3141,8 @@ const { status, data } = await apiInstance.patchPromptSnippet(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **promptSnippetPatch** | **PromptSnippetPatch**| Prompt snippet fields to update | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **snippetKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **snippetKey** | [**string**] | The prompt snippet key | defaults to undefined|
 
 
 ### Return type
@@ -3052,7 +3188,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let aIConfigPost: AIConfigPost; //AI Config object to create
 
 const { status, data } = await apiInstance.postAIConfig(
@@ -3066,7 +3202,7 @@ const { status, data } = await apiInstance.postAIConfig(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigPost** | **AIConfigPost**| AI Config object to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -3111,8 +3247,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let configKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let configKey: string; //The AI Config key (default to undefined)
 let aIConfigVariationPost: AIConfigVariationPost; //AI Config variation object to create
 
 const { status, data } = await apiInstance.postAIConfigVariation(
@@ -3127,8 +3263,8 @@ const { status, data } = await apiInstance.postAIConfigVariation(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIConfigVariationPost** | **AIConfigVariationPost**| AI Config variation object to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **configKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **configKey** | [**string**] | The AI Config key | defaults to undefined|
 
 
 ### Return type
@@ -3173,7 +3309,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let aIToolPost: AIToolPost; //AI tool object to create
 
 const { status, data } = await apiInstance.postAITool(
@@ -3187,7 +3323,7 @@ const { status, data } = await apiInstance.postAITool(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **aIToolPost** | **AIToolPost**| AI tool object to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -3233,7 +3369,7 @@ const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
 let lDAPIVersion: 'beta'; //Version of the endpoint. (default to undefined)
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let agentGraphPost: AgentGraphPost; //Agent graph object to create
 
 const { status, data } = await apiInstance.postAgentGraph(
@@ -3249,7 +3385,7 @@ const { status, data } = await apiInstance.postAgentGraph(
 |------------- | ------------- | ------------- | -------------|
 | **agentGraphPost** | **AgentGraphPost**| Agent graph object to create | |
 | **lDAPIVersion** | [**&#39;beta&#39;**]**Array<&#39;beta&#39;>** | Version of the endpoint. | defaults to undefined|
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -3294,7 +3430,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let agentOptimizationPost: AgentOptimizationPost; //Agent optimization object to create
 
 const { status, data } = await apiInstance.postAgentOptimization(
@@ -3308,7 +3444,7 @@ const { status, data } = await apiInstance.postAgentOptimization(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **agentOptimizationPost** | **AgentOptimizationPost**| Agent optimization object to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -3353,8 +3489,8 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
-let optimizationKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
+let optimizationKey: string; //The agent optimization key (default to undefined)
 let agentOptimizationResultPost: AgentOptimizationResultPost; //Agent optimization result to create
 
 const { status, data } = await apiInstance.postAgentOptimizationResult(
@@ -3369,8 +3505,8 @@ const { status, data } = await apiInstance.postAgentOptimizationResult(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **agentOptimizationResultPost** | **AgentOptimizationResultPost**| Agent optimization result to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
-| **optimizationKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
+| **optimizationKey** | [**string**] | The agent optimization key | defaults to undefined|
 
 
 ### Return type
@@ -3416,7 +3552,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let agentSkillPost: AgentSkillPost; //Agent skill object to create
 
 const { status, data } = await apiInstance.postAgentSkill(
@@ -3430,7 +3566,7 @@ const { status, data } = await apiInstance.postAgentSkill(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **agentSkillPost** | **AgentSkillPost**| Agent skill object to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -3476,7 +3612,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let modelConfigPost: ModelConfigPost; //AI model config object to create
 
 const { status, data } = await apiInstance.postModelConfig(
@@ -3490,7 +3626,7 @@ const { status, data } = await apiInstance.postModelConfig(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **modelConfigPost** | **ModelConfigPost**| AI model config object to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -3535,7 +3671,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let promptSnippetPost: PromptSnippetPost; //Prompt snippet object to create
 
 const { status, data } = await apiInstance.postPromptSnippet(
@@ -3549,7 +3685,7 @@ const { status, data } = await apiInstance.postPromptSnippet(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **promptSnippetPost** | **PromptSnippetPost**| Prompt snippet object to create | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type
@@ -3595,7 +3731,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new AgentControlApi(configuration);
 
-let projectKey: string; // (default to undefined)
+let projectKey: string; //The project key (default to undefined)
 let restrictedModelsRequest: RestrictedModelsRequest; //List of AI model keys to add to the restricted list.
 
 const { status, data } = await apiInstance.postRestrictedModels(
@@ -3609,7 +3745,7 @@ const { status, data } = await apiInstance.postRestrictedModels(
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
 | **restrictedModelsRequest** | **RestrictedModelsRequest**| List of AI model keys to add to the restricted list. | |
-| **projectKey** | [**string**] |  | defaults to undefined|
+| **projectKey** | [**string**] | The project key | defaults to undefined|
 
 
 ### Return type

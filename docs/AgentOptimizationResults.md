@@ -6,8 +6,8 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **_links** | [**PaginatedLinks**](PaginatedLinks.md) |  | [optional] [default to undefined]
-**items** | [**Array&lt;AgentOptimizationResult&gt;**](AgentOptimizationResult.md) |  | [default to undefined]
-**totalCount** | **number** |  | [optional] [default to undefined]
+**items** | [**Array&lt;AgentOptimizationResult&gt;**](AgentOptimizationResult.md) | The items on this page | [default to undefined]
+**totalCount** | **number** | The total number of items | [optional] [default to undefined]
 
 ## Example
 

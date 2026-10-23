@@ -5,11 +5,11 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**_id** | **string** |  | [default to undefined]
-**email** | **string** |  | [default to undefined]
-**firstName** | **string** |  | [optional] [default to undefined]
-**lastName** | **string** |  | [optional] [default to undefined]
-**role** | **string** |  | [default to undefined]
+**_id** | **string** | The member ID | [default to undefined]
+**email** | **string** | The member email address | [default to undefined]
+**firstName** | **string** | The member first name | [optional] [default to undefined]
+**lastName** | **string** | The member last name | [optional] [default to undefined]
+**role** | **string** | The member role | [default to undefined]
 
 ## Example
 

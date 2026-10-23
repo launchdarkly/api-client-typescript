@@ -1,0 +1,116 @@
+# EnvironmentReleasesMetricListingRep
+
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**experimentCount** | **number** | The number of experiments using this metric | [optional] [default to undefined]
+**metricGroupCount** | **number** | The number of metric groups using this metric | [optional] [default to undefined]
+**guardedRolloutCount** | **number** | The number of guarded rollouts using this metric | [optional] [default to undefined]
+**releasePolicyCount** | **number** | The number of release policies using this metric | [optional] [default to undefined]
+**activeExperimentCount** | **number** | The number of active experiments using this metric | [optional] [default to undefined]
+**activeGuardedRolloutCount** | **number** | The number of active guarded rollouts using this metric | [optional] [default to undefined]
+**_id** | **string** | The ID of this metric | [default to undefined]
+**_versionId** | **string** | The version ID of the metric | [default to undefined]
+**_version** | **number** | Version of the metric | [optional] [default to undefined]
+**key** | **string** | A unique key to reference the metric | [default to undefined]
+**name** | **string** | A human-friendly name for the metric | [default to undefined]
+**kind** | **string** | The kind of event the metric tracks | [default to undefined]
+**_attachedFlagCount** | **number** | The number of feature flags currently attached to this metric | [optional] [default to undefined]
+**_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
+**_site** | [**Link**](Link.md) |  | [optional] [default to undefined]
+**_access** | [**EnvironmentReleasesAccess**](EnvironmentReleasesAccess.md) |  | [optional] [default to undefined]
+**tags** | **Array&lt;string&gt;** | Tags for the metric | [default to undefined]
+**_creationDate** | **number** |  | [default to undefined]
+**lastModified** | [**EnvironmentReleasesModification**](EnvironmentReleasesModification.md) |  | [optional] [default to undefined]
+**maintainerId** | **string** | The ID of the member who maintains this metric | [optional] [default to undefined]
+**_maintainer** | [**EnvironmentReleasesMemberSummary**](EnvironmentReleasesMemberSummary.md) |  | [optional] [default to undefined]
+**description** | **string** | Description of the metric | [optional] [default to undefined]
+**category** | **string** | The category of the metric | [optional] [default to undefined]
+**isNumeric** | **boolean** | For custom and trace metrics, whether to track numeric changes in value against a baseline (&lt;code&gt;true&lt;/code&gt;) or to track a conversion when an end user takes an action (&lt;code&gt;false&lt;/code&gt;). | [optional] [default to undefined]
+**successCriteria** | **string** | For custom and trace metrics, the success criteria | [optional] [default to undefined]
+**unit** | **string** | For numeric custom and trace metrics, the unit of measure | [optional] [default to undefined]
+**eventKey** | **string** | For custom metrics, the event key to use in your code | [optional] [default to undefined]
+**randomizationUnits** | **Array&lt;string&gt;** | Deprecated, use &lt;code&gt;analysisUnits&lt;/code&gt; instead. | [optional] [default to undefined]
+**analysisUnits** | **Array&lt;string&gt;** | An array of analysis units allowed for this metric. | [optional] [default to undefined]
+**filters** | [**EnvironmentReleasesFilter**](EnvironmentReleasesFilter.md) |  | [optional] [default to undefined]
+**unitAggregationType** | **string** | The method by which multiple unit event values are aggregated | [optional] [default to undefined]
+**analysisType** | **string** | The method for analyzing metric events | [optional] [default to undefined]
+**percentileValue** | **number** | The percentile for the analysis method. An integer denoting the target percentile between 0 and 100. Required when &lt;code&gt;analysisType&lt;/code&gt; is &lt;code&gt;percentile&lt;/code&gt;. | [optional] [default to undefined]
+**eventDefault** | [**MetricEventDefaultRep**](MetricEventDefaultRep.md) |  | [optional] [default to undefined]
+**dataSource** | [**MetricDataSourceRefRep**](MetricDataSourceRefRep.md) |  | [default to undefined]
+**lastSeen** | **number** |  | [optional] [default to undefined]
+**archived** | **boolean** | Whether the metric version is archived | [optional] [default to undefined]
+**archivedAt** | **number** |  | [optional] [default to undefined]
+**selector** | **string** | For click metrics, the CSS selectors | [optional] [default to undefined]
+**urls** | **Array&lt;{ [key: string]: any; }&gt;** |  | [optional] [default to undefined]
+**windowStartOffset** | **number** | Not yet implemented - The start of the measurement window, in milliseconds relative to the unit\&#39;s first exposure to a flag variation | [optional] [default to undefined]
+**windowEndOffset** | **number** | Not yet implemented - The end of the measurement window, in milliseconds relative to the unit\&#39;s first exposure to a flag variation | [optional] [default to undefined]
+**winsorLowerPercentile** | **number** | Lower winsorization percentile, expressed as a percent in the open interval (0, 100). When both bounds are set, defines a two-sided clamp range. Otherwise lower-only winsorization. | [optional] [default to undefined]
+**winsorUpperPercentile** | **number** | Upper winsorization percentile, expressed as a percent in the open interval (0, 100). When both bounds are set, must be greater than winsorLowerPercentile. | [optional] [default to undefined]
+**winsorIncludeImputed** | **boolean** | When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\&#39;t send events. | [optional] [default to undefined]
+**traceQuery** | **string** | For trace metrics, the trace query to use for the metric. | [optional] [default to undefined]
+**traceValueLocation** | **string** | For trace metrics, the location in the trace to use for numeric values. | [optional] [default to undefined]
+**unitAggregationField** | **string** | For count_distinct metrics, the column to count distinct values of | [optional] [default to undefined]
+**denominator** | [**EnvironmentReleasesMetricDenominatorRep**](EnvironmentReleasesMetricDenominatorRep.md) |  | [optional] [default to undefined]
+
+## Example
+
+```typescript
+import { EnvironmentReleasesMetricListingRep } from 'launchdarkly-api-typescript';
+
+const instance: EnvironmentReleasesMetricListingRep = {
+    experimentCount,
+    metricGroupCount,
+    guardedRolloutCount,
+    releasePolicyCount,
+    activeExperimentCount,
+    activeGuardedRolloutCount,
+    _id,
+    _versionId,
+    _version,
+    key,
+    name,
+    kind,
+    _attachedFlagCount,
+    _links,
+    _site,
+    _access,
+    tags,
+    _creationDate,
+    lastModified,
+    maintainerId,
+    _maintainer,
+    description,
+    category,
+    isNumeric,
+    successCriteria,
+    unit,
+    eventKey,
+    randomizationUnits,
+    analysisUnits,
+    filters,
+    unitAggregationType,
+    analysisType,
+    percentileValue,
+    eventDefault,
+    dataSource,
+    lastSeen,
+    archived,
+    archivedAt,
+    selector,
+    urls,
+    windowStartOffset,
+    windowEndOffset,
+    winsorLowerPercentile,
+    winsorUpperPercentile,
+    winsorIncludeImputed,
+    traceQuery,
+    traceValueLocation,
+    unitAggregationField,
+    denominator,
+};
+```
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

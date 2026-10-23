@@ -1,18 +1,19 @@
 # AIConfigMaintainer
 
+The member or team that maintains this resource
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **kind** | **string** |  | [default to undefined]
-**_id** | **string** |  | [default to undefined]
-**email** | **string** |  | [default to undefined]
-**firstName** | **string** |  | [optional] [default to undefined]
-**lastName** | **string** |  | [optional] [default to undefined]
-**role** | **string** |  | [default to undefined]
-**key** | **string** |  | [default to undefined]
-**name** | **string** |  | [default to undefined]
+**_id** | **string** | The member ID | [default to undefined]
+**email** | **string** | The member email address | [default to undefined]
+**firstName** | **string** | The member first name | [optional] [default to undefined]
+**lastName** | **string** | The member last name | [optional] [default to undefined]
+**role** | **string** | The member role | [default to undefined]
+**key** | **string** | The team key | [default to undefined]
+**name** | **string** | The team name | [default to undefined]
 
 ## Example
 

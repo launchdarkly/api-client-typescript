@@ -5,8 +5,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**key** | **string** |  | [default to undefined]
-**name** | **string** |  | [default to undefined]
+**key** | **string** | The team key | [default to undefined]
+**name** | **string** | The team name | [default to undefined]
 
 ## Example
 

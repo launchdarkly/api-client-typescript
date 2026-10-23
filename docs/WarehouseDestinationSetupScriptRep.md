@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 **publicKeyPkcs8** | **string** | The PKCS8 RSA public key (Snowflake only) | [optional] [default to undefined]
 **redshiftIAMPermissionsPolicy** | **string** | For Redshift, present only when clusterIdentifier, clusterRegion, and clusterAwsAccountId are supplied in the request body. | [optional] [default to undefined]
 **redshiftIAMTrustPolicy** | **string** | For Redshift, present only when clusterIdentifier, clusterRegion, and clusterAwsAccountId are supplied in the request body. | [optional] [default to undefined]
-**s3BucketName** | **string** | The auto-generated S3 staging bucket name (ClickHouse and Redshift) | [optional] [default to undefined]
+**s3BucketName** | **string** | The S3 staging bucket name (ClickHouse and Redshift). For Redshift this is the name chosen for setup, a previously saved name, or an auto-generated default. | [optional] [default to undefined]
 
 ## Example
 

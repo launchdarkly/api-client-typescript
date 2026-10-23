@@ -5,9 +5,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**comment** | **string** |  | [optional] [default to undefined]
-**environmentKey** | **string** |  | [default to undefined]
-**instructions** | **Array&lt;{ [key: string]: any; }&gt;** |  | [default to undefined]
+**comment** | **string** | A comment describing the change | [optional] [default to undefined]
+**environmentKey** | **string** | The environment key | [default to undefined]
+**instructions** | **Array&lt;{ [key: string]: any; }&gt;** | The semantic patch instructions to apply | [default to undefined]
 
 ## Example
 

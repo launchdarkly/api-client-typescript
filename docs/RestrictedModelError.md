@@ -5,9 +5,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**key** | **string** |  | [default to undefined]
-**message** | **string** |  | [default to undefined]
-**code** | **number** |  | [default to undefined]
+**key** | **string** | The model config key that was not added | [default to undefined]
+**message** | **string** | Why the key was not added. A key that a config variation uses cannot be restricted. Move those variations to a different model first. | [default to undefined]
+**code** | **number** | HTTP status code for this key. &#x60;400&#x60; means a config variation uses the key. &#x60;404&#x60; means the key does not exist in the project. | [default to undefined]
 
 ## Example
 

@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **_links** | [**PaginatedLinks**](PaginatedLinks.md) |  | [optional] [default to undefined]
 **resourceKey** | **string** | The key of the AI tool. | [default to undefined]
 **resourceType** | **string** | The type of the resource being referenced. | [default to undefined]
-**items** | [**Array&lt;ToolReference&gt;**](ToolReference.md) |  | [default to undefined]
+**items** | [**Array&lt;ToolReference&gt;**](ToolReference.md) | The resources that reference this tool | [default to undefined]
 **totalCount** | **number** | The total number of references. | [default to undefined]
 
 ## Example

@@ -12,7 +12,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 # **getAuditLogEntries**
 > AuditLogEntryListingRepCollection getAuditLogEntries()
 
-Get a list of all audit log entries. The query parameters let you restrict the results that return by date ranges, resource specifiers, or a full-text search query.  LaunchDarkly uses a resource specifier syntax to name resources or collections of resources. To learn more, read [About the resource specifier syntax](https://launchdarkly.com/docs/home/account/role-resources#about-the-resource-specifier-syntax). 
+Get a list of all audit log entries. The query parameters let you restrict the results that return by date ranges, resource specifiers, or a full-text search query.  LaunchDarkly uses a resource specifier syntax to name resources or collections of resources. To learn more, read [Specifying resources in the advanced editor](https://launchdarkly.com/docs/home/account/roles/role-resources#specifying-resources-in-the-advanced-editor). 
 
 ### Example
 
@@ -30,13 +30,17 @@ let after: number; //A timestamp filter, expressed as a Unix epoch time in milli
 let q: string; //Text to search for. You can search for the full or partial name of the resource. (optional) (default to undefined)
 let limit: number; //A limit on the number of audit log entries that return. Set between 1 and 20. The default is 10. (optional) (default to undefined)
 let spec: string; //A resource specifier that lets you filter audit log listings by resource (optional) (default to undefined)
+let member: string; //A member ID that lets you filter audit log listings by the member who made the change. Repeat the parameter to filter by multiple members. (optional) (default to undefined)
+let token: string; //An access token ID that lets you filter audit log listings by the token that made the change. Repeat the parameter to filter by multiple tokens. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.getAuditLogEntries(
     before,
     after,
     q,
     limit,
-    spec
+    spec,
+    member,
+    token
 );
 ```
 
@@ -49,6 +53,8 @@ const { status, data } = await apiInstance.getAuditLogEntries(
 | **q** | [**string**] | Text to search for. You can search for the full or partial name of the resource. | (optional) defaults to undefined|
 | **limit** | [**number**] | A limit on the number of audit log entries that return. Set between 1 and 20. The default is 10. | (optional) defaults to undefined|
 | **spec** | [**string**] | A resource specifier that lets you filter audit log listings by resource | (optional) defaults to undefined|
+| **member** | [**string**] | A member ID that lets you filter audit log listings by the member who made the change. Repeat the parameter to filter by multiple members. | (optional) defaults to undefined|
+| **token** | [**string**] | An access token ID that lets you filter audit log listings by the token that made the change. Repeat the parameter to filter by multiple tokens. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -134,7 +140,7 @@ const { status, data } = await apiInstance.getAuditLogEntry(
 # **postAuditLogEntries**
 > AuditLogEntryListingRepCollection postAuditLogEntries()
 
-Search your audit log entries. The query parameters let you restrict the results that return by date ranges, or a full-text search query. The request body lets you restrict the results that return by resource specifiers.  LaunchDarkly uses a resource specifier syntax to name resources or collections of resources. To learn more, read [About the resource specifier syntax](https://launchdarkly.com/docs/home/account/role-resources#about-the-resource-specifier-syntax). 
+Search your audit log entries. The query parameters let you restrict the results that return by date ranges, or a full-text search query. The request body lets you restrict the results that return by resource specifiers.  LaunchDarkly uses a resource specifier syntax to name resources or collections of resources. To learn more, read [Specifying resources in the advanced editor](https://launchdarkly.com/docs/home/account/roles/role-resources#specifying-resources-in-the-advanced-editor). 
 
 ### Example
 
@@ -151,6 +157,8 @@ let before: number; //A timestamp filter, expressed as a Unix epoch time in mill
 let after: number; //A timestamp filter, expressed as a Unix epoch time in milliseconds. All entries returned occurred after the timestamp. (optional) (default to undefined)
 let q: string; //Text to search for. You can search for the full or partial name of the resource. (optional) (default to undefined)
 let limit: number; //A limit on the number of audit log entries that return. Set between 1 and 20. The default is 10. (optional) (default to undefined)
+let member: string; //A member ID that lets you filter audit log listings by the member who made the change. Repeat the parameter to filter by multiple members. (optional) (default to undefined)
+let token: string; //An access token ID that lets you filter audit log listings by the token that made the change. Repeat the parameter to filter by multiple tokens. (optional) (default to undefined)
 let statementPost: Array<StatementPost>; // (optional)
 
 const { status, data } = await apiInstance.postAuditLogEntries(
@@ -158,6 +166,8 @@ const { status, data } = await apiInstance.postAuditLogEntries(
     after,
     q,
     limit,
+    member,
+    token,
     statementPost
 );
 ```
@@ -171,6 +181,8 @@ const { status, data } = await apiInstance.postAuditLogEntries(
 | **after** | [**number**] | A timestamp filter, expressed as a Unix epoch time in milliseconds. All entries returned occurred after the timestamp. | (optional) defaults to undefined|
 | **q** | [**string**] | Text to search for. You can search for the full or partial name of the resource. | (optional) defaults to undefined|
 | **limit** | [**number**] | A limit on the number of audit log entries that return. Set between 1 and 20. The default is 10. | (optional) defaults to undefined|
+| **member** | [**string**] | A member ID that lets you filter audit log listings by the member who made the change. Repeat the parameter to filter by multiple members. | (optional) defaults to undefined|
+| **token** | [**string**] | An access token ID that lets you filter audit log listings by the token that made the change. Repeat the parameter to filter by multiple tokens. | (optional) defaults to undefined|
 
 
 ### Return type
@@ -218,12 +230,16 @@ let after: number; //A timestamp filter, expressed as a Unix epoch time in milli
 let statementPost: Array<StatementPost>; //
 let before: number; //A timestamp filter, expressed as a Unix epoch time in milliseconds. Defaults to now. (optional) (default to undefined)
 let buckets: number; //Number of time buckets to divide the range into. Default 50, max 500. (optional) (default to undefined)
+let member: string; //A member ID that lets you filter counts to changes made by that member. Repeat the parameter to filter by multiple members. (optional) (default to undefined)
+let token: string; //An access token ID that lets you filter counts to changes made by that token. Repeat the parameter to filter by multiple tokens. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.postAuditLogEntryCounts(
     after,
     statementPost,
     before,
-    buckets
+    buckets,
+    member,
+    token
 );
 ```
 
@@ -235,6 +251,8 @@ const { status, data } = await apiInstance.postAuditLogEntryCounts(
 | **after** | [**number**] | A timestamp filter, expressed as a Unix epoch time in milliseconds. Required. | defaults to undefined|
 | **before** | [**number**] | A timestamp filter, expressed as a Unix epoch time in milliseconds. Defaults to now. | (optional) defaults to undefined|
 | **buckets** | [**number**] | Number of time buckets to divide the range into. Default 50, max 500. | (optional) defaults to undefined|
+| **member** | [**string**] | A member ID that lets you filter counts to changes made by that member. Repeat the parameter to filter by multiple members. | (optional) defaults to undefined|
+| **token** | [**string**] | An access token ID that lets you filter counts to changes made by that token. Repeat the parameter to filter by multiple tokens. | (optional) defaults to undefined|
 
 
 ### Return type
