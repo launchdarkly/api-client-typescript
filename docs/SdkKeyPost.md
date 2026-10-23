@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 **name** | **string** | The human-readable name of the SDK key. | [default to undefined]
 **description** | **string** | The optional description of the SDK key. | [optional] [default to undefined]
 **expiry** | **number** |  | [optional] [default to undefined]
+**viewKeys** | **Array&lt;string&gt;** | List of view keys to associate with the SDK key. | [optional] [default to undefined]
 
 ## Example
 
@@ -22,6 +23,7 @@ const instance: SdkKeyPost = {
     name,
     description,
     expiry,
+    viewKeys,
 };
 ```
 

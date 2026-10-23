@@ -5,8 +5,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**statement** | **string** |  | [default to undefined]
-**threshold** | **number** |  | [default to undefined]
+**statement** | **string** | A statement the response must satisfy | [default to undefined]
+**threshold** | **number** | The minimum score needed to pass | [default to undefined]
 
 ## Example
 

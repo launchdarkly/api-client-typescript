@@ -9,7 +9,7 @@ Name | Type | Description | Notes
 **requireApproval** | **boolean** | Whether or not the audience requires approval | [default to undefined]
 **notifyMemberIds** | **Array&lt;string&gt;** | An array of member IDs. These members are notified to review the approval request. | [optional] [default to undefined]
 **notifyTeamKeys** | **Array&lt;string&gt;** | An array of team keys. The members of these teams are notified to review the approval request. | [optional] [default to undefined]
-**releaseGuardianConfiguration** | [**ReleaseGuardianConfiguration**](ReleaseGuardianConfiguration.md) |  | [optional] [default to undefined]
+**releaseGuardianConfiguration** | [**PipelineReleaseGuardianConfiguration**](PipelineReleaseGuardianConfiguration.md) |  | [optional] [default to undefined]
 
 ## Example
 

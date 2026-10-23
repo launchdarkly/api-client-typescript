@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **inlineRole** | [**Array&lt;StatementPost&gt;**](StatementPost.md) | A JSON array of statements represented as JSON objects with three attributes: effect, resources, actions. May be used in place of a role. | [optional] [default to undefined]
 **serviceToken** | **boolean** | Whether the token is a service token | [optional] [default to undefined]
 **defaultApiVersion** | **number** | The default API version for this token | [optional] [default to undefined]
+**expiry** | **number** |  | [optional] [default to undefined]
 
 ## Example
 
@@ -26,6 +27,7 @@ const instance: AccessTokenPost = {
     inlineRole,
     serviceToken,
     defaultApiVersion,
+    expiry,
 };
 ```
 

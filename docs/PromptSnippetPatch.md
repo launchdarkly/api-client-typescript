@@ -5,12 +5,12 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**name** | **string** |  | [optional] [default to undefined]
-**description** | **string** |  | [optional] [default to undefined]
+**name** | **string** | A human-readable name for the prompt snippet | [optional] [default to undefined]
+**description** | **string** | A description of the prompt snippet | [optional] [default to undefined]
 **text** | **string** | The text content of the prompt snippet | [optional] [default to undefined]
-**maintainerId** | **string** |  | [optional] [default to undefined]
-**maintainerTeamKey** | **string** |  | [optional] [default to undefined]
-**tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
+**maintainerId** | **string** | The ID of the member who maintains this resource | [optional] [default to undefined]
+**maintainerTeamKey** | **string** | The key of the team that maintains this resource | [optional] [default to undefined]
+**tags** | **Array&lt;string&gt;** | Tags for this resource | [optional] [default to undefined]
 
 ## Example
 

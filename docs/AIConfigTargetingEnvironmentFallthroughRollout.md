@@ -5,11 +5,11 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**bucketBy** | **string** |  | [optional] [default to undefined]
-**contextKind** | **string** |  | [default to undefined]
+**bucketBy** | **string** | The context attribute used to bucket contexts | [optional] [default to undefined]
+**contextKind** | **string** | The context kind used to bucket contexts | [default to undefined]
 **experimentAllocation** | [**AIConfigTargetingEnvironmentFallthroughRolloutExperimentationAllocation**](AIConfigTargetingEnvironmentFallthroughRolloutExperimentationAllocation.md) |  | [optional] [default to undefined]
-**seed** | **number** |  | [optional] [default to undefined]
-**variations** | [**Array&lt;AIConfigTargetingEnvironmentFallthroughRolloutVariation&gt;**](AIConfigTargetingEnvironmentFallthroughRolloutVariation.md) |  | [default to undefined]
+**seed** | **number** | The seed used for bucketing | [optional] [default to undefined]
+**variations** | [**Array&lt;AIConfigTargetingEnvironmentFallthroughRolloutVariation&gt;**](AIConfigTargetingEnvironmentFallthroughRolloutVariation.md) | The variations and their weights | [default to undefined]
 
 ## Example
 

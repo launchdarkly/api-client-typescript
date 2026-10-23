@@ -7,6 +7,7 @@ An agent graph representing a directed graph of configs
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **_access** | [**AiConfigsAccess**](AiConfigsAccess.md) |  | [optional] [default to undefined]
+**_site** | [**CoreLink**](CoreLink.md) |  | [optional] [default to undefined]
 **key** | **string** | A unique key for the agent graph | [default to undefined]
 **name** | **string** | A human-readable name for the agent graph | [default to undefined]
 **description** | **string** | A description of the agent graph | [optional] [default to undefined]
@@ -23,6 +24,7 @@ import { AgentGraph } from 'launchdarkly-api-typescript';
 
 const instance: AgentGraph = {
     _access,
+    _site,
     key,
     name,
     description,

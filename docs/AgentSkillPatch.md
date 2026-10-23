@@ -5,12 +5,12 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**name** | **string** |  | [optional] [default to undefined]
-**description** | **string** |  | [optional] [default to undefined]
+**name** | **string** | Human-readable name of the agent skill. | [optional] [default to undefined]
+**description** | **string** | Human-readable description of what the agent skill does. | [optional] [default to undefined]
 **markdown** | **string** | The verbatim SKILL.md content of the agent skill | [optional] [default to undefined]
-**maintainerId** | **string** |  | [optional] [default to undefined]
-**maintainerTeamKey** | **string** |  | [optional] [default to undefined]
-**tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
+**maintainerId** | **string** | The ID of the member who maintains this resource | [optional] [default to undefined]
+**maintainerTeamKey** | **string** | The key of the team that maintains this resource | [optional] [default to undefined]
+**tags** | **Array&lt;string&gt;** | Replaces the tags on the agent skill. Tags can be used in custom role policies. Changing only the tags does not create a new version. | [optional] [default to undefined]
 
 ## Example
 

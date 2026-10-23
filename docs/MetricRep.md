@@ -50,11 +50,12 @@ Name | Type | Description | Notes
 **winsorIncludeImputed** | **boolean** | When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\&#39;t send events. | [optional] [default to undefined]
 **traceQuery** | **string** | For trace metrics, the trace query to use for the metric. | [optional] [default to undefined]
 **traceValueLocation** | **string** | For trace metrics, the location in the trace to use for numeric values. | [optional] [default to undefined]
+**unitAggregationField** | **string** | For count_distinct metrics, the column to count distinct values of | [optional] [default to undefined]
 **denominator** | [**MetricDenominatorRep**](MetricDenominatorRep.md) |  | [optional] [default to undefined]
 **experiments** | [**Array&lt;DependentExperimentRep&gt;**](DependentExperimentRep.md) |  | [optional] [default to undefined]
 **metricGroups** | [**Array&lt;DependentMetricGroupRep&gt;**](DependentMetricGroupRep.md) | Metric groups that use this metric | [optional] [default to undefined]
 **lastUsedInExperiment** | [**DependentExperimentRep**](DependentExperimentRep.md) |  | [optional] [default to undefined]
-**lastUsedInGuardedRollout** | [**DependentMeasuredRolloutRep**](DependentMeasuredRolloutRep.md) |  | [optional] [default to undefined]
+**lastUsedInGuardedRollout** | [**DependentReleasePhaseRep**](DependentReleasePhaseRep.md) |  | [optional] [default to undefined]
 **isActive** | **boolean** | Whether the metric is active | [optional] [default to undefined]
 **_attachedFeatures** | [**Array&lt;FlagListingRep&gt;**](FlagListingRep.md) | Details on the flags attached to this metric | [optional] [default to undefined]
 
@@ -109,6 +110,7 @@ const instance: MetricRep = {
     winsorIncludeImputed,
     traceQuery,
     traceValueLocation,
+    unitAggregationField,
     denominator,
     experiments,
     metricGroups,

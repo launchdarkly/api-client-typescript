@@ -9,7 +9,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getTokens**](#gettokens) | **GET** /api/v2/tokens | List access tokens|
 |[**patchToken**](#patchtoken) | **PATCH** /api/v2/tokens/{id} | Patch access token|
 |[**postToken**](#posttoken) | **POST** /api/v2/tokens | Create access token|
-|[**resetToken**](#resettoken) | **POST** /api/v2/tokens/{id}/reset | Reset access token|
+|[**resetToken**](#resettoken) | **POST** /api/v2/tokens/{id}/reset | Reset access token (legacy)|
 
 # **deleteToken**
 > deleteToken()
@@ -301,7 +301,7 @@ const { status, data } = await apiInstance.postToken(
 # **resetToken**
 > Token resetToken()
 
-Reset an access token\'s secret key with an optional expiry time for the old key.
+Reset an access token\'s secret key with an optional expiry time for the old key. Use of this legacy handler is discouraged. Patch the `expiry` field on the token directly instead.
 
 ### Example
 

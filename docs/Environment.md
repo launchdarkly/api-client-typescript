@@ -15,7 +15,7 @@ Name | Type | Description | Notes
 **defaultTtl** | **number** | The default time (in minutes) that the PHP SDK can cache feature flag rules locally | [default to undefined]
 **secureMode** | **boolean** | Ensures that one end user of the client-side SDK cannot inspect the variations for another end user | [default to undefined]
 **_access** | [**Access**](Access.md) |  | [optional] [default to undefined]
-**defaultTrackEvents** | **boolean** | Enables tracking detailed information for new flags by default | [default to undefined]
+**defaultTrackEvents** | **boolean** | The initial value of trackEvents for flags created in this environment. Does not affect existing flags. Required for Data Export, but doesn\&#39;t enable Data Export on its own. | [default to undefined]
 **requireComments** | **boolean** | Whether members who modify flags and segments through the LaunchDarkly user interface are required to add a comment | [default to undefined]
 **confirmChanges** | **boolean** | Whether members who modify flags and segments through the LaunchDarkly user interface are required to confirm those changes | [default to undefined]
 **tags** | **Array&lt;string&gt;** | A list of tags for this environment | [default to undefined]

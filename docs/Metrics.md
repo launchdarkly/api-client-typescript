@@ -5,16 +5,16 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**inputTokens** | **number** |  | [optional] [default to undefined]
-**outputTokens** | **number** |  | [optional] [default to undefined]
-**totalTokens** | **number** |  | [optional] [default to undefined]
+**inputTokens** | **number** | Number of input tokens | [optional] [default to undefined]
+**outputTokens** | **number** | Number of output tokens | [optional] [default to undefined]
+**totalTokens** | **number** | Total number of tokens | [optional] [default to undefined]
 **generationCount** | **number** | Number of attempted generations | [optional] [default to undefined]
 **generationSuccessCount** | **number** | Number of successful generations | [optional] [default to undefined]
 **generationErrorCount** | **number** | Number of generations with errors | [optional] [default to undefined]
-**thumbsUp** | **number** |  | [optional] [default to undefined]
-**thumbsDown** | **number** |  | [optional] [default to undefined]
-**durationMs** | **number** |  | [optional] [default to undefined]
-**timeToFirstTokenMs** | **number** |  | [optional] [default to undefined]
+**thumbsUp** | **number** | Number of positive feedback ratings | [optional] [default to undefined]
+**thumbsDown** | **number** | Number of negative feedback ratings | [optional] [default to undefined]
+**durationMs** | **number** | Total generation duration, in milliseconds | [optional] [default to undefined]
+**timeToFirstTokenMs** | **number** | Time to the first token, in milliseconds | [optional] [default to undefined]
 **satisfactionRating** | **number** | A value between 0 and 1 representing satisfaction rating | [optional] [default to undefined]
 **inputCost** | **number** | Cost of input tokens in USD | [optional] [default to undefined]
 **outputCost** | **number** | Cost of output tokens in USD | [optional] [default to undefined]

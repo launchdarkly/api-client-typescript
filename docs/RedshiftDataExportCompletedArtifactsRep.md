@@ -6,7 +6,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **sqlSetupScript** | **string** | The SQL setup script originally run against the Redshift cluster, rehydrated from the destination\&#39;s persisted custom names. | [optional] [default to undefined]
-**s3BucketName** | **string** | The auto-generated S3 staging bucket name. | [optional] [default to undefined]
+**s3BucketName** | **string** | The S3 staging bucket name used by the destination. This is the customer-supplied bucket name, or the auto-generated name for destinations that did not set one. | [optional] [default to undefined]
 
 ## Example
 

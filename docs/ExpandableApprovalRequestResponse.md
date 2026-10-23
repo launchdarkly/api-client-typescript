@@ -14,6 +14,7 @@ Name | Type | Description | Notes
 **reviewStatus** | **string** | Current status of the review of this approval request | [default to undefined]
 **allReviews** | [**Array&lt;ReviewResponse&gt;**](ReviewResponse.md) | An array of individual reviews of this approval request | [default to undefined]
 **notifyMemberIds** | **Array&lt;string&gt;** | An array of member IDs. These members are notified to review the approval request. | [default to undefined]
+**notifyTeamKeys** | **Array&lt;string&gt;** | An array of team keys, if teams were specified when the approval request was created. The members of these teams are listed in &lt;code&gt;notifyMemberIds&lt;/code&gt;, resolved when the request was made. Team membership may have changed since then. | [optional] [default to undefined]
 **appliedDate** | **number** |  | [optional] [default to undefined]
 **appliedByMemberId** | **string** | The member ID of the member who applied the approval request | [optional] [default to undefined]
 **appliedByServiceTokenId** | **string** | The service token ID of the service token which applied the approval request | [optional] [default to undefined]
@@ -48,6 +49,7 @@ const instance: ExpandableApprovalRequestResponse = {
     reviewStatus,
     allReviews,
     notifyMemberIds,
+    notifyTeamKeys,
     appliedDate,
     appliedByMemberId,
     appliedByServiceTokenId,

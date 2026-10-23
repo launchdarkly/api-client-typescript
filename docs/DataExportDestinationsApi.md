@@ -18,7 +18,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 # **deleteDestination**
 > deleteDestination()
 
-Delete a Data Export destination by ID.
+Delete a Data Export destination by ID. The destination must belong to the environment in the URL. Otherwise, the response is 404.
 
 ### Example
 
@@ -79,7 +79,7 @@ void (empty response body)
 # **getDestination**
 > Destination getDestination()
 
-Get a single Data Export destination by ID.
+Get a single Data Export destination by ID. The destination must belong to the environment in the URL. Otherwise, the response is 404.
 
 ### Example
 
@@ -187,7 +187,7 @@ This endpoint does not have any parameters.
 # **patchDestination**
 > Destination patchDestination(patchOperation)
 
-Update a Data Export destination. Updating a destination uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes. To learn more, read [Updates](https://launchdarkly.com/docs/api#updates).
+Update a Data Export destination. The destination must belong to the environment in the URL. Otherwise, the response is 404. Updating a destination uses a [JSON patch](https://datatracker.ietf.org/doc/html/rfc6902) or [JSON merge patch](https://datatracker.ietf.org/doc/html/rfc7386) representation of the desired changes. To learn more, read [Updates](https://launchdarkly.com/docs/api#updates).
 
 ### Example
 

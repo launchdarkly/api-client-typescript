@@ -6,8 +6,8 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **_links** | [**PaginatedLinks**](PaginatedLinks.md) |  | [optional] [default to undefined]
-**items** | [**Array&lt;AIConfig&gt;**](AIConfig.md) |  | [default to undefined]
-**totalCount** | **number** |  | [default to undefined]
+**items** | [**Array&lt;AIConfig&gt;**](AIConfig.md) | The items on this page | [default to undefined]
+**totalCount** | **number** | The total number of items | [default to undefined]
 
 ## Example
 

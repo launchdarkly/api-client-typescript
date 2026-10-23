@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**key** | **string** | A unique key to reference the metric group | [optional] [default to undefined]
+**key** | **string** | A unique key to reference the metric group | [default to undefined]
 **name** | **string** | A human-friendly name for the metric group | [default to undefined]
 **kind** | **string** | The type of the metric group | [default to undefined]
 **description** | **string** | Description of the metric group | [optional] [default to undefined]

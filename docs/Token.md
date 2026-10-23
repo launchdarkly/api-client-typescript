@@ -21,6 +21,7 @@ Name | Type | Description | Notes
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
 **defaultApiVersion** | **number** | The default API version for this token | [optional] [default to undefined]
 **lastUsed** | **number** |  | [optional] [default to undefined]
+**expiry** | **number** |  | [optional] [default to undefined]
 
 ## Example
 
@@ -44,6 +45,7 @@ const instance: Token = {
     _links,
     defaultApiVersion,
     lastUsed,
+    expiry,
 };
 ```
 

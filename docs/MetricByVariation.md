@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**variationKey** | **string** |  | [optional] [default to undefined]
+**variationKey** | **string** | The variation key | [optional] [default to undefined]
 **metrics** | [**Metrics**](Metrics.md) |  | [optional] [default to undefined]
 
 ## Example

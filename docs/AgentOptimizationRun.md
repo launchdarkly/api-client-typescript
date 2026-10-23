@@ -5,14 +5,14 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**runId** | **string** |  | [default to undefined]
-**optimizationKey** | **string** |  | [default to undefined]
-**agentOptimizationId** | **string** |  | [default to undefined]
-**agentOptimizationVersion** | **number** |  | [default to undefined]
+**runId** | **string** | The run ID | [default to undefined]
+**optimizationKey** | **string** | The agent optimization key | [default to undefined]
+**agentOptimizationId** | **string** | The agent optimization ID | [default to undefined]
+**agentOptimizationVersion** | **number** | The version of the agent optimization used | [default to undefined]
 **status** | [**AgentOptimizationResultStatus**](AgentOptimizationResultStatus.md) |  | [default to undefined]
 **activity** | [**AgentOptimizationResultActivity**](AgentOptimizationResultActivity.md) |  | [default to undefined]
-**createdAt** | **number** |  | [default to undefined]
-**completedAt** | **number** |  | [optional] [default to undefined]
+**createdAt** | **number** | When this resource was created, in Unix milliseconds | [default to undefined]
+**completedAt** | **number** | When this finished, in Unix milliseconds | [optional] [default to undefined]
 
 ## Example
 

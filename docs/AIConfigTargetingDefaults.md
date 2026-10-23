@@ -5,8 +5,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**onVariation** | **number** |  | [default to undefined]
-**offVariation** | **number** |  | [default to undefined]
+**onVariation** | **number** | Index of the variation served when targeting is on | [default to undefined]
+**offVariation** | **number** | Index of the variation served when targeting is off | [default to undefined]
 
 ## Example
 

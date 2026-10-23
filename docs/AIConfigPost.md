@@ -5,14 +5,14 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**description** | **string** |  | [optional] [default to '']
-**key** | **string** |  | [default to undefined]
-**maintainerId** | **string** |  | [optional] [default to undefined]
-**maintainerTeamKey** | **string** |  | [optional] [default to undefined]
-**mode** | **string** |  | [optional] [default to ModeEnum_Completion]
-**name** | **string** |  | [default to undefined]
-**tags** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
-**viewKeys** | **Array&lt;string&gt;** |  | [optional] [default to undefined]
+**description** | **string** | A description of the AI Config | [optional] [default to '']
+**key** | **string** | A unique key for the AI Config | [default to undefined]
+**maintainerId** | **string** | The ID of the member who maintains this resource | [optional] [default to undefined]
+**maintainerTeamKey** | **string** | The key of the team that maintains this resource | [optional] [default to undefined]
+**mode** | **string** | The AI Config mode | [optional] [default to ModeEnum_Completion]
+**name** | **string** | A human-readable name for the AI Config | [default to undefined]
+**tags** | **Array&lt;string&gt;** | Tags for this resource | [optional] [default to undefined]
+**viewKeys** | **Array&lt;string&gt;** | Keys of the views to add the AI Config to | [optional] [default to undefined]
 **defaultVariation** | [**AIConfigVariationPost**](AIConfigVariationPost.md) |  | [optional] [default to undefined]
 **evaluationMetricKey** | **string** | Evaluation metric key for this config | [optional] [default to undefined]
 **isInverted** | **boolean** | Whether the evaluation metric is inverted, meaning a lower value is better if set as true | [optional] [default to undefined]

@@ -5,17 +5,17 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**contextTargets** | [**Array&lt;AIConfigTargetingEnvironmentTarget&gt;**](AIConfigTargetingEnvironmentTarget.md) |  | [default to undefined]
-**enabled** | **boolean** |  | [default to undefined]
+**contextTargets** | [**Array&lt;AIConfigTargetingEnvironmentTarget&gt;**](AIConfigTargetingEnvironmentTarget.md) | Individual context targets for non-user context kinds | [default to undefined]
+**enabled** | **boolean** | Whether targeting is on in this environment | [default to undefined]
 **fallthrough** | [**AIConfigTargetingEnvironmentFallthrough**](AIConfigTargetingEnvironmentFallthrough.md) |  | [default to undefined]
 **lastModified** | **number** |  | [default to undefined]
-**offVariation** | **number** |  | [optional] [default to undefined]
-**rules** | [**Array&lt;AIConfigTargetingEnvironmentRule&gt;**](AIConfigTargetingEnvironmentRule.md) |  | [default to undefined]
-**targets** | [**Array&lt;AIConfigTargetingEnvironmentTarget&gt;**](AIConfigTargetingEnvironmentTarget.md) |  | [default to undefined]
-**trackEvents** | **boolean** |  | [default to undefined]
-**trackEventsFallthrough** | **boolean** |  | [default to undefined]
-**_environmentName** | **string** |  | [default to undefined]
-**_version** | **number** |  | [default to undefined]
+**offVariation** | **number** | Index of the variation served when targeting is off | [optional] [default to undefined]
+**rules** | [**Array&lt;AIConfigTargetingEnvironmentRule&gt;**](AIConfigTargetingEnvironmentRule.md) | The targeting rules | [default to undefined]
+**targets** | [**Array&lt;AIConfigTargetingEnvironmentTarget&gt;**](AIConfigTargetingEnvironmentTarget.md) | Individual user targets | [default to undefined]
+**trackEvents** | **boolean** | Whether to send detailed events for all evaluations | [default to undefined]
+**trackEventsFallthrough** | **boolean** | Whether to send detailed events for evaluations that fall through to the default rule | [default to undefined]
+**_environmentName** | **string** | The environment name | [default to undefined]
+**_version** | **number** | The version of the targeting in this environment | [default to undefined]
 
 ## Example
 

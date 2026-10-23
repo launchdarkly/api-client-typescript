@@ -50,6 +50,7 @@ Name | Type | Description | Notes
 **winsorIncludeImputed** | **boolean** | When true, the percentile bound calculation includes imputed zeros. Only meaningful when at least one bound is set and the metric includes units that didn\&#39;t send events. | [optional] [default to undefined]
 **traceQuery** | **string** | For trace metrics, the trace query to use for the metric. | [optional] [default to undefined]
 **traceValueLocation** | **string** | For trace metrics, the location in the trace to use for numeric values. | [optional] [default to undefined]
+**unitAggregationField** | **string** | For count_distinct metrics, the column to count distinct values of | [optional] [default to undefined]
 **denominator** | [**MetricDenominatorRep**](MetricDenominatorRep.md) |  | [optional] [default to undefined]
 
 ## Example
@@ -103,6 +104,7 @@ const instance: MetricListingRep = {
     winsorIncludeImputed,
     traceQuery,
     traceValueLocation,
+    unitAggregationField,
     denominator,
 };
 ```

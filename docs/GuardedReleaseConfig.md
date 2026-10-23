@@ -11,7 +11,7 @@ Name | Type | Description | Notes
 **rollbackOnRegression** | **boolean** | Whether to roll back on regression | [optional] [default to undefined]
 **metricKeys** | **Array&lt;string&gt;** | List of metric keys | [optional] [default to undefined]
 **metricGroupKeys** | **Array&lt;string&gt;** | List of metric group keys | [optional] [default to undefined]
-**stages** | [**Array&lt;ReleasePolicyStage&gt;**](ReleasePolicyStage.md) | List of stages | [optional] [default to undefined]
+**stages** | [**Array&lt;ReleasePolicyStage&gt;**](ReleasePolicyStage.md) | List of stages. At most 10 stages by default; the server enforces the per-account limit, which is never more than 20. | [optional] [default to undefined]
 
 ## Example
 

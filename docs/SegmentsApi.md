@@ -986,7 +986,7 @@ const { status, data } = await apiInstance.patchSegment(
 # **postSegment**
 > UserSegment postSegment(segmentBody)
 
-Create a new segment.
+Create a new segment. The new segment has no individual targets or rules.  The request body only accepts the fields documented below. If you include targeting fields such as `included`, `excluded`, `includedContexts`, `excludedContexts`, or `rules`, LaunchDarkly ignores them and does not return an error. These fields are empty in the response.  To add individual targets or rules after you create the segment, use [Update segment](https://launchdarkly.com/docs/api/segments/patch-segment) with a semantic patch. For example, use the `addIncludedTargets` or `addExcludedTargets` instruction to add individual targets, and the `addRule` instruction to add a rule. For big segments, use the `addBigSegmentIncludedTargets` or `addBigSegmentExcludedTargets` instruction. 
 
 ### Example
 

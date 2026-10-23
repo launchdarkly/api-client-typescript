@@ -6,11 +6,11 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **lastSeen** | **string** | Timestamp of the last time an evaluation occurred for this context | [optional] [default to undefined]
-**applicationId** | **string** | An identifier representing the application where the LaunchDarkly SDK is running | [optional] [default to undefined]
+**applicationId** | **string** | An identifier representing the application where the LaunchDarkly SDK is running. Populated when you get contexts by kind and key. Empty in search results, which return each context\&#39;s most recently reported data. | [optional] [default to undefined]
 **context** | **any** | The context, including its kind and attributes | [default to undefined]
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [optional] [default to undefined]
 **_access** | [**Access**](Access.md) |  | [optional] [default to undefined]
-**associatedContexts** | **number** | The total number of associated contexts. Associated contexts are contexts that have appeared in the same context instance, that is, they were part of the same flag evaluation. | [optional] [default to undefined]
+**associatedContexts** | **number** | Deprecated. This value is always 1. | [optional] [default to undefined]
 
 ## Example
 

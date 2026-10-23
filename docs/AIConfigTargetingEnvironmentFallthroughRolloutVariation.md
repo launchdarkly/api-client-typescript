@@ -5,9 +5,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**_untracked** | **boolean** |  | [optional] [default to undefined]
-**variation** | **number** |  | [default to undefined]
-**weight** | **number** |  | [default to undefined]
+**_untracked** | **boolean** | Whether this variation is excluded from experiment tracking | [optional] [default to undefined]
+**variation** | **number** | Index of the variation | [default to undefined]
+**weight** | **number** | The weight of this variation, in thousandths of a percent | [default to undefined]
 
 ## Example
 

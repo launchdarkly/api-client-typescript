@@ -5,12 +5,12 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**runId** | **string** |  | [default to undefined]
-**agentOptimizationVersion** | **number** |  | [default to undefined]
-**iteration** | **number** |  | [default to undefined]
-**instructions** | **string** |  | [default to undefined]
-**userInput** | **string** |  | [default to undefined]
-**parameters** | **{ [key: string]: any; }** |  | [optional] [default to undefined]
+**runId** | **string** | The ID of the run this result belongs to | [default to undefined]
+**agentOptimizationVersion** | **number** | The version of the agent optimization used | [default to undefined]
+**iteration** | **number** | The iteration number within the run | [default to undefined]
+**instructions** | **string** | The instructions used for this attempt | [default to undefined]
+**userInput** | **string** | The user input used for this attempt | [default to undefined]
+**parameters** | **{ [key: string]: any; }** | The model parameters used for this attempt | [optional] [default to undefined]
 
 ## Example
 

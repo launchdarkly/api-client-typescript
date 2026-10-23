@@ -72,6 +72,7 @@ const { status, data } = await apiInstance.createTriggerWorkflow(
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |
 |**404** | Invalid resource identifier |  -  |
+|**405** | Method not allowed |  -  |
 |**429** | Rate limited |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -330,6 +331,7 @@ const { status, data } = await apiInstance.patchTriggerWorkflow(
 |**401** | Invalid access token |  -  |
 |**403** | Forbidden |  -  |
 |**404** | Invalid resource identifier |  -  |
+|**405** | Method not allowed |  -  |
 |**409** | Status conflict |  -  |
 |**429** | Rate limited |  -  |
 

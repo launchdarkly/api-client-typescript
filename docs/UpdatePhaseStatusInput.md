@@ -6,7 +6,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **status** | **string** |  | [optional] [default to undefined]
-**audiences** | [**Array&lt;ReleaserAudienceConfigInput&gt;**](ReleaserAudienceConfigInput.md) | Extra configuration for audiences required upon phase initialization. | [optional] [default to undefined]
+**audiences** | [**Array&lt;PipelineReleaseAudienceConfigInput&gt;**](PipelineReleaseAudienceConfigInput.md) | Extra configuration for audiences required upon phase initialization. | [optional] [default to undefined]
 
 ## Example
 

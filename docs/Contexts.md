@@ -6,9 +6,9 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [optional] [default to undefined]
-**totalCount** | **number** | The number of contexts | [optional] [default to undefined]
+**totalCount** | **number** | The number of matching contexts. This value is approximate and may be omitted if it is unavailable. | [optional] [default to undefined]
 **_environmentId** | **string** | The environment ID where the context was evaluated | [default to undefined]
-**continuationToken** | **string** | An obfuscated string that references the last context instance on the previous page of results. You can use this for pagination, however, we recommend using the &lt;code&gt;next&lt;/code&gt; link instead. | [optional] [default to undefined]
+**continuationToken** | **string** | An obfuscated string that references the last context on the previous page of results. You can use this for pagination, however, we recommend using the &lt;code&gt;next&lt;/code&gt; link instead. | [optional] [default to undefined]
 **items** | [**Array&lt;ContextRecord&gt;**](ContextRecord.md) | A collection of contexts. Can include multiple versions of contexts that have the same &lt;code&gt;kind&lt;/code&gt; and &lt;code&gt;key&lt;/code&gt;, but different &lt;code&gt;applicationId&lt;/code&gt;s. | [default to undefined]
 
 ## Example

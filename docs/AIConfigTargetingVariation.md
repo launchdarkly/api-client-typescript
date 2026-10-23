@@ -5,9 +5,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**_id** | **string** |  | [default to undefined]
-**description** | **string** |  | [default to undefined]
-**name** | **string** |  | [default to undefined]
+**_id** | **string** | The variation ID | [default to undefined]
+**description** | **string** | A description of the variation | [default to undefined]
+**name** | **string** | The variation name | [default to undefined]
 **value** | [**AIConfigTargetingVariationValue**](AIConfigTargetingVariationValue.md) |  | [default to undefined]
 
 ## Example

@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 **color** | **string** | A color to indicate this environment in the UI | [default to undefined]
 **defaultTtl** | **number** | The default time (in minutes) that the PHP SDK can cache feature flag rules locally | [optional] [default to undefined]
 **secureMode** | **boolean** | Ensures that one end user of the client-side SDK cannot inspect the variations for another end user | [optional] [default to undefined]
-**defaultTrackEvents** | **boolean** | Enables tracking detailed information for new flags by default | [optional] [default to undefined]
+**defaultTrackEvents** | **boolean** | The initial value of trackEvents for flags created in this environment. Does not affect existing flags. Required for Data Export, but doesn\&#39;t enable Data Export on its own. | [optional] [default to undefined]
 **confirmChanges** | **boolean** | Requires confirmation for all flag and segment changes via the UI in this environment | [optional] [default to undefined]
 **requireComments** | **boolean** | Requires comments for all flag and segment changes via the UI in this environment | [optional] [default to undefined]
 **tags** | **Array&lt;string&gt;** | Tags to apply to the new environment | [optional] [default to undefined]

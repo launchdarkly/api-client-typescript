@@ -5,8 +5,8 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**items** | [**Array&lt;AIConfigVariation&gt;**](AIConfigVariation.md) |  | [default to undefined]
-**totalCount** | **number** |  | [default to undefined]
+**items** | [**Array&lt;AIConfigVariation&gt;**](AIConfigVariation.md) | The items on this page | [default to undefined]
+**totalCount** | **number** | The total number of items | [default to undefined]
 
 ## Example
 

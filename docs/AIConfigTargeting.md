@@ -7,13 +7,13 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **createdAt** | **number** | Unix timestamp in milliseconds | [default to undefined]
 **defaults** | [**AIConfigTargetingDefaults**](AIConfigTargetingDefaults.md) |  | [optional] [default to undefined]
-**environments** | [**{ [key: string]: AIConfigTargetingEnvironment; }**](AIConfigTargetingEnvironment.md) |  | [default to undefined]
+**environments** | [**{ [key: string]: AIConfigTargetingEnvironment; }**](AIConfigTargetingEnvironment.md) | Targeting for each environment, keyed by environment key | [default to undefined]
 **experiments** | [**AiConfigsExperimentInfoRep**](AiConfigsExperimentInfoRep.md) |  | [default to undefined]
-**key** | **string** |  | [default to undefined]
-**name** | **string** |  | [default to undefined]
-**tags** | **Array&lt;string&gt;** |  | [default to undefined]
-**variations** | [**Array&lt;AIConfigTargetingVariation&gt;**](AIConfigTargetingVariation.md) |  | [default to undefined]
-**_version** | **number** |  | [default to undefined]
+**key** | **string** | The AI Config key | [default to undefined]
+**name** | **string** | The AI Config name | [default to undefined]
+**tags** | **Array&lt;string&gt;** | Tags for this resource | [default to undefined]
+**variations** | [**Array&lt;AIConfigTargetingVariation&gt;**](AIConfigTargetingVariation.md) | The variations of this AI Config | [default to undefined]
+**_version** | **number** | The version number of this resource | [default to undefined]
 
 ## Example
 
