@@ -21,6 +21,7 @@ Name | Type | Description | Notes
 **judgeAccuracy** | **number** | Average accuracy judge score (0.0-1.0) | [optional] [default to undefined]
 **judgeRelevance** | **number** | Average relevance judge score (0.0-1.0) | [optional] [default to undefined]
 **judgeToxicity** | **number** | Average toxicity judge score (0.0-1.0) | [optional] [default to undefined]
+**judgeScores** | [**Array&lt;JudgeScore&gt;**](JudgeScore.md) | Average score and sample count for every judge metric recorded in the time range, keyed by the judge\&#39;s evaluation metric key. Includes custom judges and the built-in accuracy, relevance, and toxicity judges. Omitted when no judge scores were recorded. | [optional] [default to undefined]
 
 ## Example
 
@@ -44,6 +45,7 @@ const instance: Metrics = {
     judgeAccuracy,
     judgeRelevance,
     judgeToxicity,
+    judgeScores,
 };
 ```
 
