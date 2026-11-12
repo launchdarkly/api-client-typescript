@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **name** | **string** | Name of the configuration | [default to undefined]
 **version** | **number** | Version of the current configuration | [default to undefined]
 **_access** | [**Access**](Access.md) |  | [optional] [default to undefined]
+**_status** | [**IntegrationDeliveryConfigurationStatus**](IntegrationDeliveryConfigurationStatus.md) |  | [optional] [default to undefined]
 
 ## Example
 
@@ -34,6 +35,7 @@ const instance: IntegrationDeliveryConfiguration = {
     name,
     version,
     _access,
+    _status,
 };
 ```
 

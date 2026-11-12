@@ -6,7 +6,7 @@ This REST API is for custom integrations, data export, or automating your featur
 This client library is only compatible with the latest version of our REST API. Previous versions of this client library are compatible with earlier versions of our REST API. When you create an access token, you can set the REST API version associated with the token. By default, API requests you send using the token will use the specified API version. To learn more, read [Versioning](https://apidocs.launchdarkly.com/#section/Overview/Versioning).
 View our [sample code](#sample-code) for example usage.
 
-## launchdarkly-api-typescript@25.0.0
+## launchdarkly-api-typescript@25.2.0
 
 This generator creates TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios). The generated Node module can be used in the following environments:
 
@@ -44,7 +44,7 @@ navigate to the folder of your consuming project and run one of the following co
 _published:_
 
 ```
-npm install launchdarkly-api-typescript@25.0.0 --save
+npm install launchdarkly-api-typescript@25.2.0 --save
 ```
 
 _unPublished (not recommended):_
@@ -410,6 +410,7 @@ Class | Method | HTTP request | Description
 *SegmentsApi* | [**createBigSegmentExport**](docs/SegmentsApi.md#createbigsegmentexport) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/exports | Create big segment export
 *SegmentsApi* | [**createBigSegmentImport**](docs/SegmentsApi.md#createbigsegmentimport) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/imports | Create big segment import
 *SegmentsApi* | [**deleteSegment**](docs/SegmentsApi.md#deletesegment) | **DELETE** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey} | Delete segment
+*SegmentsApi* | [**deleteSegmentScheduledChange**](docs/SegmentsApi.md#deletesegmentscheduledchange) | **DELETE** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes/{id} | Delete a scheduled change for a segment
 *SegmentsApi* | [**getBigSegmentExport**](docs/SegmentsApi.md#getbigsegmentexport) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/exports/{exportID} | Get big segment export
 *SegmentsApi* | [**getBigSegmentImport**](docs/SegmentsApi.md#getbigsegmentimport) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/imports/{importID} | Get big segment import
 *SegmentsApi* | [**getContextInstanceSegmentsMembershipByEnv**](docs/SegmentsApi.md#getcontextinstancesegmentsmembershipbyenv) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/segments/evaluate | List segment memberships for context instance
@@ -418,11 +419,15 @@ Class | Method | HTTP request | Description
 *SegmentsApi* | [**getSegment**](docs/SegmentsApi.md#getsegment) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey} | Get segment
 *SegmentsApi* | [**getSegmentMembershipForContext**](docs/SegmentsApi.md#getsegmentmembershipforcontext) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/contexts/{contextKey} | Get big segment membership for context
 *SegmentsApi* | [**getSegmentMembershipForUser**](docs/SegmentsApi.md#getsegmentmembershipforuser) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/users/{userKey} | Get big segment membership for user
+*SegmentsApi* | [**getSegmentScheduledChange**](docs/SegmentsApi.md#getsegmentscheduledchange) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes/{id} | Get a scheduled change for a segment
+*SegmentsApi* | [**getSegmentScheduledChanges**](docs/SegmentsApi.md#getsegmentscheduledchanges) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes | List scheduled changes for a segment
 *SegmentsApi* | [**getSegments**](docs/SegmentsApi.md#getsegments) | **GET** /api/v2/segments/{projectKey}/{environmentKey} | List segments
 *SegmentsApi* | [**patchExpiringTargetsForSegment**](docs/SegmentsApi.md#patchexpiringtargetsforsegment) | **PATCH** /api/v2/segments/{projectKey}/{segmentKey}/expiring-targets/{environmentKey} | Update expiring targets for segment
 *SegmentsApi* | [**patchExpiringUserTargetsForSegment**](docs/SegmentsApi.md#patchexpiringusertargetsforsegment) | **PATCH** /api/v2/segments/{projectKey}/{segmentKey}/expiring-user-targets/{environmentKey} | Update expiring user targets for segment
 *SegmentsApi* | [**patchSegment**](docs/SegmentsApi.md#patchsegment) | **PATCH** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey} | Patch segment
+*SegmentsApi* | [**patchSegmentScheduledChange**](docs/SegmentsApi.md#patchsegmentscheduledchange) | **PATCH** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes/{id} | Update a scheduled change for a segment
 *SegmentsApi* | [**postSegment**](docs/SegmentsApi.md#postsegment) | **POST** /api/v2/segments/{projectKey}/{environmentKey} | Create segment
+*SegmentsApi* | [**postSegmentScheduledChange**](docs/SegmentsApi.md#postsegmentscheduledchange) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes | Create a scheduled change for a segment
 *SegmentsApi* | [**updateBigSegmentContextTargets**](docs/SegmentsApi.md#updatebigsegmentcontexttargets) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/contexts | Update context targets on a big segment
 *SegmentsApi* | [**updateBigSegmentTargets**](docs/SegmentsApi.md#updatebigsegmenttargets) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/users | Update user context targets on a big segment
 *TagsApi* | [**getTags**](docs/TagsApi.md#gettags) | **GET** /api/v2/tags | List tags
@@ -583,6 +588,7 @@ Class | Method | HTTP request | Description
  - [ApprovalSettings](docs/ApprovalSettings.md)
  - [ApprovalsCapabilityConfig](docs/ApprovalsCapabilityConfig.md)
  - [AssignedToRep](docs/AssignedToRep.md)
+ - [AssignmentDataSourceInput](docs/AssignmentDataSourceInput.md)
  - [Audience](docs/Audience.md)
  - [AudienceConfiguration](docs/AudienceConfiguration.md)
  - [AudiencePost](docs/AudiencePost.md)
@@ -866,6 +872,7 @@ Class | Method | HTTP request | Description
  - [IntegrationDeliveryConfigurationLinks](docs/IntegrationDeliveryConfigurationLinks.md)
  - [IntegrationDeliveryConfigurationPost](docs/IntegrationDeliveryConfigurationPost.md)
  - [IntegrationDeliveryConfigurationResponse](docs/IntegrationDeliveryConfigurationResponse.md)
+ - [IntegrationDeliveryConfigurationStatus](docs/IntegrationDeliveryConfigurationStatus.md)
  - [IntegrationMetadata](docs/IntegrationMetadata.md)
  - [IntegrationStatus](docs/IntegrationStatus.md)
  - [IntegrationStatusRep](docs/IntegrationStatusRep.md)
@@ -875,10 +882,12 @@ Class | Method | HTTP request | Description
  - [IpAllowlistEntryResponse](docs/IpAllowlistEntryResponse.md)
  - [IpAllowlistResponse](docs/IpAllowlistResponse.md)
  - [IpList](docs/IpList.md)
+ - [IterationAssignmentDataSourceRep](docs/IterationAssignmentDataSourceRep.md)
  - [IterationInput](docs/IterationInput.md)
  - [IterationRep](docs/IterationRep.md)
  - [JudgeAttachment](docs/JudgeAttachment.md)
  - [JudgeConfiguration](docs/JudgeConfiguration.md)
+ - [JudgeScore](docs/JudgeScore.md)
  - [LastSeenMetadata](docs/LastSeenMetadata.md)
  - [LayerCollectionRep](docs/LayerCollectionRep.md)
  - [LayerConfigurationRep](docs/LayerConfigurationRep.md)
@@ -955,6 +964,7 @@ Class | Method | HTTP request | Description
  - [PatchSegmentExpiringTargetInstruction](docs/PatchSegmentExpiringTargetInstruction.md)
  - [PatchSegmentInstruction](docs/PatchSegmentInstruction.md)
  - [PatchSegmentRequest](docs/PatchSegmentRequest.md)
+ - [PatchSegmentScheduledChangeInput](docs/PatchSegmentScheduledChangeInput.md)
  - [PatchUsersRequest](docs/PatchUsersRequest.md)
  - [PatchWithComment](docs/PatchWithComment.md)
  - [PermissionGrantInput](docs/PermissionGrantInput.md)
@@ -974,6 +984,7 @@ Class | Method | HTTP request | Description
  - [PostFlagScheduledChangesInput](docs/PostFlagScheduledChangesInput.md)
  - [PostInsightGroupParams](docs/PostInsightGroupParams.md)
  - [PostReleasePolicyRequest](docs/PostReleasePolicyRequest.md)
+ - [PostSegmentScheduledChangeInput](docs/PostSegmentScheduledChangeInput.md)
  - [Prerequisite](docs/Prerequisite.md)
  - [ProgressiveReleaseConfig](docs/ProgressiveReleaseConfig.md)
  - [Project](docs/Project.md)
@@ -1061,6 +1072,10 @@ Class | Method | HTTP request | Description
  - [SdkVersionRep](docs/SdkVersionRep.md)
  - [SegmentBody](docs/SegmentBody.md)
  - [SegmentMetadata](docs/SegmentMetadata.md)
+ - [SegmentScheduledChange](docs/SegmentScheduledChange.md)
+ - [SegmentScheduledChangeStatus](docs/SegmentScheduledChangeStatus.md)
+ - [SegmentScheduledChanges](docs/SegmentScheduledChanges.md)
+ - [SegmentScheduledChangesLink](docs/SegmentScheduledChangesLink.md)
  - [SegmentTarget](docs/SegmentTarget.md)
  - [SegmentUserList](docs/SegmentUserList.md)
  - [SegmentUserState](docs/SegmentUserState.md)

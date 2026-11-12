@@ -7,6 +7,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**createBigSegmentExport**](#createbigsegmentexport) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/exports | Create big segment export|
 |[**createBigSegmentImport**](#createbigsegmentimport) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/imports | Create big segment import|
 |[**deleteSegment**](#deletesegment) | **DELETE** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey} | Delete segment|
+|[**deleteSegmentScheduledChange**](#deletesegmentscheduledchange) | **DELETE** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes/{id} | Delete a scheduled change for a segment|
 |[**getBigSegmentExport**](#getbigsegmentexport) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/exports/{exportID} | Get big segment export|
 |[**getBigSegmentImport**](#getbigsegmentimport) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/imports/{importID} | Get big segment import|
 |[**getContextInstanceSegmentsMembershipByEnv**](#getcontextinstancesegmentsmembershipbyenv) | **POST** /api/v2/projects/{projectKey}/environments/{environmentKey}/segments/evaluate | List segment memberships for context instance|
@@ -15,11 +16,15 @@ All URIs are relative to *https://app.launchdarkly.com*
 |[**getSegment**](#getsegment) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey} | Get segment|
 |[**getSegmentMembershipForContext**](#getsegmentmembershipforcontext) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/contexts/{contextKey} | Get big segment membership for context|
 |[**getSegmentMembershipForUser**](#getsegmentmembershipforuser) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/users/{userKey} | Get big segment membership for user|
+|[**getSegmentScheduledChange**](#getsegmentscheduledchange) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes/{id} | Get a scheduled change for a segment|
+|[**getSegmentScheduledChanges**](#getsegmentscheduledchanges) | **GET** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes | List scheduled changes for a segment|
 |[**getSegments**](#getsegments) | **GET** /api/v2/segments/{projectKey}/{environmentKey} | List segments|
 |[**patchExpiringTargetsForSegment**](#patchexpiringtargetsforsegment) | **PATCH** /api/v2/segments/{projectKey}/{segmentKey}/expiring-targets/{environmentKey} | Update expiring targets for segment|
 |[**patchExpiringUserTargetsForSegment**](#patchexpiringusertargetsforsegment) | **PATCH** /api/v2/segments/{projectKey}/{segmentKey}/expiring-user-targets/{environmentKey} | Update expiring user targets for segment|
 |[**patchSegment**](#patchsegment) | **PATCH** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey} | Patch segment|
+|[**patchSegmentScheduledChange**](#patchsegmentscheduledchange) | **PATCH** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes/{id} | Update a scheduled change for a segment|
 |[**postSegment**](#postsegment) | **POST** /api/v2/segments/{projectKey}/{environmentKey} | Create segment|
+|[**postSegmentScheduledChange**](#postsegmentscheduledchange) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/scheduled-changes | Create a scheduled change for a segment|
 |[**updateBigSegmentContextTargets**](#updatebigsegmentcontexttargets) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/contexts | Update context targets on a big segment|
 |[**updateBigSegmentTargets**](#updatebigsegmenttargets) | **POST** /api/v2/segments/{projectKey}/{environmentKey}/{segmentKey}/users | Update user context targets on a big segment|
 
@@ -214,6 +219,73 @@ void (empty response body)
 |**404** | Invalid resource identifier |  -  |
 |**409** | Status conflict |  -  |
 |**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deleteSegmentScheduledChange**
+> deleteSegmentScheduledChange()
+
+Delete a scheduled change before its execution date, so that its instructions are never applied to the segment.  Deleting a change with a `failed` status removes it from the segment\'s scheduled changes. Its instructions were not applied.  The caller must be allowed to update scheduled changes on the segment.  If an approval request scheduled the change, deleting the change also terminates that request, so it cannot be applied again. Declining the request is only an option while it is still awaiting review. Once it is applied, its instructions belong to a scheduled change, and this endpoint is how to stop them.  Returns 409 if the scheduled change is already being applied or has already run. 
+
+### Example
+
+```typescript
+import {
+    SegmentsApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new SegmentsApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let environmentKey: string; // (default to undefined)
+let segmentKey: string; // (default to undefined)
+let id: string; //The ID of the scheduled change (default to undefined)
+
+const { status, data } = await apiInstance.deleteSegmentScheduledChange(
+    projectKey,
+    environmentKey,
+    segmentKey,
+    id
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **environmentKey** | [**string**] |  | defaults to undefined|
+| **segmentKey** | [**string**] |  | defaults to undefined|
+| **id** | [**string**] | The ID of the scheduled change | defaults to undefined|
+
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**204** | Scheduled change deleted |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Invalid resource identifier |  -  |
+|**409** | Conflict |  -  |
+|**429** | Rate limited |  -  |
+|**500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -711,6 +783,135 @@ const { status, data } = await apiInstance.getSegmentMembershipForUser(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getSegmentScheduledChange**
+> SegmentScheduledChange getSegmentScheduledChange()
+
+Get one scheduled change that has not been applied yet, or that failed to apply. Returns 404 if the ID is not a scheduled change for the segment in the path.  The caller must be allowed to view the segment\'s project. 
+
+### Example
+
+```typescript
+import {
+    SegmentsApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new SegmentsApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let environmentKey: string; // (default to undefined)
+let segmentKey: string; // (default to undefined)
+let id: string; //The ID of the scheduled change (default to undefined)
+
+const { status, data } = await apiInstance.getSegmentScheduledChange(
+    projectKey,
+    environmentKey,
+    segmentKey,
+    id
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **environmentKey** | [**string**] |  | defaults to undefined|
+| **segmentKey** | [**string**] |  | defaults to undefined|
+| **id** | [**string**] | The ID of the scheduled change | defaults to undefined|
+
+
+### Return type
+
+**SegmentScheduledChange**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The scheduled change |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Invalid resource identifier |  -  |
+|**429** | Rate limited |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getSegmentScheduledChanges**
+> SegmentScheduledChanges getSegmentScheduledChanges()
+
+Get every scheduled change for a segment that has not been applied yet, plus any that failed to apply, soonest first. Use the `status` of each change to tell them apart.  The caller must be allowed to view the segment\'s project. 
+
+### Example
+
+```typescript
+import {
+    SegmentsApi,
+    Configuration
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new SegmentsApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let environmentKey: string; // (default to undefined)
+let segmentKey: string; // (default to undefined)
+
+const { status, data } = await apiInstance.getSegmentScheduledChanges(
+    projectKey,
+    environmentKey,
+    segmentKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **environmentKey** | [**string**] |  | defaults to undefined|
+| **segmentKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**SegmentScheduledChanges**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | Scheduled changes for the segment |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Invalid resource identifier |  -  |
+|**429** | Rate limited |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getSegments**
 > UserSegments getSegments()
 
@@ -983,6 +1184,77 @@ const { status, data } = await apiInstance.patchSegment(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **patchSegmentScheduledChange**
+> SegmentScheduledChange patchSegmentScheduledChange(patchSegmentScheduledChangeInput)
+
+Edit the execution date and/or the comment of a scheduled change that has not been applied yet. A field you leave out is unchanged, and an empty comment clears the comment.  The caller must be allowed to update scheduled changes on the segment, and must also be allowed to make the change\'s instructions directly. If the segment requires approvals, the caller must also be allowed to bypass them.  Returns 409 if the scheduled change is already being applied or was changed by someone else in the meantime. 
+
+### Example
+
+```typescript
+import {
+    SegmentsApi,
+    Configuration,
+    PatchSegmentScheduledChangeInput
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new SegmentsApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let environmentKey: string; // (default to undefined)
+let segmentKey: string; // (default to undefined)
+let id: string; //The ID of the scheduled change (default to undefined)
+let patchSegmentScheduledChangeInput: PatchSegmentScheduledChangeInput; //
+
+const { status, data } = await apiInstance.patchSegmentScheduledChange(
+    projectKey,
+    environmentKey,
+    segmentKey,
+    id,
+    patchSegmentScheduledChangeInput
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **patchSegmentScheduledChangeInput** | **PatchSegmentScheduledChangeInput**|  | |
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **environmentKey** | [**string**] |  | defaults to undefined|
+| **segmentKey** | [**string**] |  | defaults to undefined|
+| **id** | [**string**] | The ID of the scheduled change | defaults to undefined|
+
+
+### Return type
+
+**SegmentScheduledChange**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The updated scheduled change |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Invalid resource identifier |  -  |
+|**409** | Conflict |  -  |
+|**429** | Rate limited |  -  |
+|**500** | Internal server error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **postSegment**
 > UserSegment postSegment(segmentBody)
 
@@ -1043,6 +1315,73 @@ const { status, data } = await apiInstance.postSegment(
 |**403** | Forbidden |  -  |
 |**404** | Invalid resource identifier |  -  |
 |**429** | Rate limited |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **postSegmentScheduledChange**
+> SegmentScheduledChange postSegmentScheduledChange(postSegmentScheduledChangeInput)
+
+Schedule semantic patch instructions to be applied to a segment at a future time.  Each instruction uses the same format as an instruction in a semantic patch request to update a segment. Send between 1 and 100 instructions. LaunchDarkly rejects the request with a 400 if an instruction has an unknown `kind` or is malformed.  The caller must be allowed to update scheduled changes on the segment, and must also be allowed to make each instruction\'s change directly. If the segment requires approvals for an instruction, the caller must also be allowed to bypass them. Otherwise, request the change through an approval request instead. To learn more about semantic patches, read [Updates](/reference#updates-using-semantic-patch). 
+
+### Example
+
+```typescript
+import {
+    SegmentsApi,
+    Configuration,
+    PostSegmentScheduledChangeInput
+} from 'launchdarkly-api-typescript';
+
+const configuration = new Configuration();
+const apiInstance = new SegmentsApi(configuration);
+
+let projectKey: string; // (default to undefined)
+let environmentKey: string; // (default to undefined)
+let segmentKey: string; // (default to undefined)
+let postSegmentScheduledChangeInput: PostSegmentScheduledChangeInput; //
+
+const { status, data } = await apiInstance.postSegmentScheduledChange(
+    projectKey,
+    environmentKey,
+    segmentKey,
+    postSegmentScheduledChangeInput
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **postSegmentScheduledChangeInput** | **PostSegmentScheduledChangeInput**|  | |
+| **projectKey** | [**string**] |  | defaults to undefined|
+| **environmentKey** | [**string**] |  | defaults to undefined|
+| **segmentKey** | [**string**] |  | defaults to undefined|
+
+
+### Return type
+
+**SegmentScheduledChange**
+
+### Authorization
+
+[ApiKey](../README.md#ApiKey)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**201** | Scheduled change created |  -  |
+|**400** | Invalid request |  -  |
+|**401** | Invalid access token |  -  |
+|**403** | Forbidden |  -  |
+|**404** | Invalid resource identifier |  -  |
+|**429** | Rate limited |  -  |
+|**500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

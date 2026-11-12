@@ -159,6 +159,7 @@ let q: string; //Text to search for. You can search for the full or partial name
 let limit: number; //A limit on the number of audit log entries that return. Set between 1 and 20. The default is 10. (optional) (default to undefined)
 let member: string; //A member ID that lets you filter audit log listings by the member who made the change. Repeat the parameter to filter by multiple members. (optional) (default to undefined)
 let token: string; //An access token ID that lets you filter audit log listings by the token that made the change. Repeat the parameter to filter by multiple tokens. (optional) (default to undefined)
+let rollup: number; //Set to 1 to return rolled-up audit log entries, which group related changes into one entry. By default, entries aren\'t rolled up. (optional) (default to undefined)
 let statementPost: Array<StatementPost>; // (optional)
 
 const { status, data } = await apiInstance.postAuditLogEntries(
@@ -168,6 +169,7 @@ const { status, data } = await apiInstance.postAuditLogEntries(
     limit,
     member,
     token,
+    rollup,
     statementPost
 );
 ```
@@ -183,6 +185,7 @@ const { status, data } = await apiInstance.postAuditLogEntries(
 | **limit** | [**number**] | A limit on the number of audit log entries that return. Set between 1 and 20. The default is 10. | (optional) defaults to undefined|
 | **member** | [**string**] | A member ID that lets you filter audit log listings by the member who made the change. Repeat the parameter to filter by multiple members. | (optional) defaults to undefined|
 | **token** | [**string**] | An access token ID that lets you filter audit log listings by the token that made the change. Repeat the parameter to filter by multiple tokens. | (optional) defaults to undefined|
+| **rollup** | [**number**] | Set to 1 to return rolled-up audit log entries, which group related changes into one entry. By default, entries aren\&#39;t rolled up. | (optional) defaults to undefined|
 
 
 ### Return type

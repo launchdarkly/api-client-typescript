@@ -12,10 +12,11 @@ Name | Type | Description | Notes
 **primaryFunnelKey** | **string** | The key of the primary funnel group for this experiment. Either &lt;code&gt;primarySingleMetricKey&lt;/code&gt; or &lt;code&gt;primaryFunnelKey&lt;/code&gt; must be present. | [optional] [default to undefined]
 **treatments** | [**Array&lt;TreatmentInput&gt;**](TreatmentInput.md) |  | [default to undefined]
 **flags** | [**{ [key: string]: FlagInput; }**](FlagInput.md) |  | [default to undefined]
+**assignmentDataSource** | [**AssignmentDataSourceInput**](AssignmentDataSourceInput.md) |  | [optional] [default to undefined]
 **randomizationUnit** | **string** | The unit of randomization for this iteration. Defaults to user. | [optional] [default to undefined]
 **reallocationFrequencyMillis** | **number** | The cadence (in milliseconds) to update the allocation. | [optional] [default to undefined]
 **covariateId** | **string** | The ID of the covariate CSV | [optional] [default to undefined]
-**attributes** | **Array&lt;string&gt;** | The attributes that this iteration\&#39;s results can be sliced by | [optional] [default to undefined]
+**attributes** | **Array&lt;string&gt;** | The attributes that this iteration\&#39;s results can be sliced by, whose values come from flag evaluation events | [optional] [default to undefined]
 
 ## Example
 
@@ -30,6 +31,7 @@ const instance: IterationInput = {
     primaryFunnelKey,
     treatments,
     flags,
+    assignmentDataSource,
     randomizationUnit,
     reallocationFrequencyMillis,
     covariateId,

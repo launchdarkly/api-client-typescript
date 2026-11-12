@@ -9,6 +9,7 @@ Name | Type | Description | Notes
 **metricKey** | **string** |  | [default to undefined]
 **metricVersionId** | **string** |  | [optional] [readonly] [default to undefined]
 **autoRollback** | **boolean** | Whether a regression automatically reverts the release. | [default to undefined]
+**analysisUnit** | **string** | Key of the context kind this metric is analyzed on. It is the release\&#39;s randomization unit unless the metric uses a decoupled unit of analysis. Omitted on releases started before analysis units were recorded. Those metrics are analyzed on the randomization unit.  | [optional] [readonly] [default to undefined]
 **definition** | [**EnvironmentReleasesMetricListingRep**](EnvironmentReleasesMetricListingRep.md) | Present only when the caller requests &#x60;expand&#x3D;metrics&#x60; and the pinned metric version still exists. A metric whose pinned version has been deleted keeps its &#x60;metricKey&#x60; and &#x60;metricVersionId&#x60; but has no definition.  | [optional] [readonly] [default to undefined]
 
 ## Example
@@ -20,6 +21,7 @@ const instance: ReleaseMetric = {
     metricKey,
     metricVersionId,
     autoRollback,
+    analysisUnit,
     definition,
 };
 ```

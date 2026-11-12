@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 **allocationPercent** | **string** | The percentage of traffic allocated to this treatment during the iteration | [default to undefined]
 **baseline** | **boolean** | Whether this treatment is the baseline to compare other treatments against | [optional] [default to undefined]
 **parameters** | [**Array&lt;ParameterRep&gt;**](ParameterRep.md) | Details on the flag and variation used for this treatment | [optional] [default to undefined]
+**assignmentVariantId** | **string** | The variant identifier in the warehouse-native assignment source that maps to this treatment | [optional] [default to undefined]
 
 ## Example
 
@@ -22,6 +23,7 @@ const instance: TreatmentRep = {
     allocationPercent,
     baseline,
     parameters,
+    assignmentVariantId,
 };
 ```
 

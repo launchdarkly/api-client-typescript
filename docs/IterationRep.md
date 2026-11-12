@@ -21,12 +21,13 @@ Name | Type | Description | Notes
 **primarySingleMetric** | [**MetricV2Rep**](MetricV2Rep.md) |  | [optional] [default to undefined]
 **primaryFunnel** | [**DependentMetricGroupRepWithMetrics**](DependentMetricGroupRepWithMetrics.md) |  | [optional] [default to undefined]
 **randomizationUnit** | **string** | The unit of randomization for this iteration | [optional] [default to undefined]
-**attributes** | **Array&lt;string&gt;** | The available attribute filters for this iteration | [optional] [default to undefined]
+**attributes** | **Array&lt;string&gt;** | The attributes this iteration slices results by, whose values come from flag evaluation events. | [optional] [default to undefined]
 **treatments** | [**Array&lt;TreatmentRep&gt;**](TreatmentRep.md) | Details on the variations you are testing in the experiment | [optional] [default to undefined]
 **secondaryMetrics** | [**Array&lt;MetricV2Rep&gt;**](MetricV2Rep.md) | Deprecated, use &lt;code&gt;metrics&lt;/code&gt; instead. Details on the secondary metrics for this experiment. | [optional] [default to undefined]
 **metrics** | [**Array&lt;DependentMetricOrMetricGroupRep&gt;**](DependentMetricOrMetricGroupRep.md) | Details on the metrics for this experiment | [optional] [default to undefined]
 **layerSnapshot** | [**LayerSnapshotRep**](LayerSnapshotRep.md) |  | [optional] [default to undefined]
 **covariateInfo** | [**CovariateInfoRep**](CovariateInfoRep.md) |  | [optional] [default to undefined]
+**assignmentDataSource** | [**IterationAssignmentDataSourceRep**](IterationAssignmentDataSourceRep.md) |  | [optional] [default to undefined]
 
 ## Example
 
@@ -56,6 +57,7 @@ const instance: IterationRep = {
     metrics,
     layerSnapshot,
     covariateInfo,
+    assignmentDataSource,
 };
 ```
 

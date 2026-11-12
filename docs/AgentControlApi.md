@@ -2113,12 +2113,14 @@ let projectKey: string; //The project key (default to undefined)
 let limit: number; //The number of resources to return. (optional) (default to undefined)
 let offset: number; //Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query `limit`. (optional) (default to undefined)
 let filter: string; //A filter to apply to the list. (optional) (default to undefined)
+let sort: string; //A sort to apply to the list of agent skills. Use `usedIn` to sort by the number of AgentControl configs that use each skill, fewest first, or `-usedIn` for most first. Without a sort, skills are ordered by creation date, newest first. (optional) (default to undefined)
 
 const { status, data } = await apiInstance.listAgentSkills(
     projectKey,
     limit,
     offset,
-    filter
+    filter,
+    sort
 );
 ```
 
@@ -2130,6 +2132,7 @@ const { status, data } = await apiInstance.listAgentSkills(
 | **limit** | [**number**] | The number of resources to return. | (optional) defaults to undefined|
 | **offset** | [**number**] | Where to start in the list. Use this with pagination. For example, an offset of 10 skips the first ten items and then returns the next items in the list, up to the query &#x60;limit&#x60;. | (optional) defaults to undefined|
 | **filter** | [**string**] | A filter to apply to the list. | (optional) defaults to undefined|
+| **sort** | [**string**] | A sort to apply to the list of agent skills. Use &#x60;usedIn&#x60; to sort by the number of AgentControl configs that use each skill, fewest first, or &#x60;-usedIn&#x60; for most first. Without a sort, skills are ordered by creation date, newest first. | (optional) defaults to undefined|
 
 
 ### Return type

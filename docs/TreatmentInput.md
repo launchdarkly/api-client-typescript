@@ -9,6 +9,7 @@ Name | Type | Description | Notes
 **baseline** | **boolean** | Whether this treatment is the baseline to compare other treatments against | [default to undefined]
 **allocationPercent** | **string** | The percentage of traffic allocated to this treatment during the iteration | [default to undefined]
 **parameters** | [**Array&lt;TreatmentParameterInput&gt;**](TreatmentParameterInput.md) | Details on the flag and variation to use for this treatment | [default to undefined]
+**assignmentVariantId** | **string** | The variant identifier in the warehouse-native assignment source that maps to this treatment | [optional] [default to undefined]
 
 ## Example
 
@@ -20,6 +21,7 @@ const instance: TreatmentInput = {
     baseline,
     allocationPercent,
     parameters,
+    assignmentVariantId,
 };
 ```
 

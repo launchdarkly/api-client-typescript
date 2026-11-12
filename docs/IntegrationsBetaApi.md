@@ -13,7 +13,7 @@ All URIs are relative to *https://app.launchdarkly.com*
 # **createIntegrationConfiguration**
 > IntegrationConfigurationsRep createIntegrationConfiguration(integrationConfigurationPost)
 
-Create a new integration configuration. (Excludes [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configurations](https://launchdarkly.com/docs/api/flag-import-configurations-beta).)
+Create a new integration configuration. This endpoint does not include persistent store integrations or flag import configurations. To manage those, use the [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configuration](https://launchdarkly.com/docs/api/flag-import-configurations-beta) endpoints.
 
 ### Example
 
@@ -74,7 +74,7 @@ const { status, data } = await apiInstance.createIntegrationConfiguration(
 # **deleteIntegrationConfiguration**
 > deleteIntegrationConfiguration()
 
-Delete an integration configuration by ID. (Excludes [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configurations](https://launchdarkly.com/docs/api/flag-import-configurations-beta).)
+Delete an integration configuration by ID. This endpoint does not include persistent store integrations or flag import configurations. To manage those, use the [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configuration](https://launchdarkly.com/docs/api/flag-import-configurations-beta) endpoints.
 
 ### Example
 
@@ -130,7 +130,7 @@ void (empty response body)
 # **getAllIntegrationConfigurations**
 > IntegrationConfigurationCollectionRep getAllIntegrationConfigurations()
 
-Get all integration configurations with the specified integration key. (Excludes [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configurations](https://launchdarkly.com/docs/api/flag-import-configurations-beta).).
+Get all integration configurations with the specified integration key. This endpoint does not include persistent store integrations or flag import configurations. To manage those, use the [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configuration](https://launchdarkly.com/docs/api/flag-import-configurations-beta) endpoints.
 
 ### Example
 
@@ -189,7 +189,7 @@ const { status, data } = await apiInstance.getAllIntegrationConfigurations(
 # **getIntegrationConfiguration**
 > IntegrationConfigurationsRep getIntegrationConfiguration()
 
-Get integration configuration with the specified ID. (Excludes [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configurations](https://launchdarkly.com/docs/api/flag-import-configurations-beta).)
+Get integration configuration with the specified ID. This endpoint does not include persistent store integrations or flag import configurations. To manage those, use the [persistent store](https://launchdarkly.com/docs/api/persistent-store-integrations-beta) and [flag import configuration](https://launchdarkly.com/docs/api/flag-import-configurations-beta) endpoints.
 
 ### Example
 

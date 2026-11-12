@@ -14,6 +14,7 @@ Name | Type | Description | Notes
 **environmentKey** | **string** |  | [default to undefined]
 **methodology** | **string** | The results analysis approach. | [optional] [default to undefined]
 **dataSource** | **string** | The source of metric data in order to analyze results. Defaults to \&quot;launchdarkly\&quot; when not provided. | [optional] [default to undefined]
+**assignmentSourceType** | **string** | The source of assignment data for this experiment. Defaults to \&quot;launchdarkly\&quot; when not provided. | [optional] [default to undefined]
 **archivedDate** | **number** |  | [optional] [default to undefined]
 **tags** | **Array&lt;string&gt;** | Tags for the experiment | [optional] [default to undefined]
 **_links** | [**{ [key: string]: Link; }**](Link.md) | The location and content type of related resources | [default to undefined]
@@ -41,6 +42,7 @@ const instance: Experiment = {
     environmentKey,
     methodology,
     dataSource,
+    assignmentSourceType,
     archivedDate,
     tags,
     _links,
